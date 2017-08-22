@@ -1,7 +1,12 @@
+from __future__ import absolute_import, division, print_function
 import os.path
 import collections
+import warnings
 import re
 import json
+
+from .catalog import read_catalog, drop_all_but_highest_levs, key_by_alternative_name
+from .symlink_runs import symlink_runs
 
 
 _valid_identifier_pattern = re.compile('\W|^(?=\d)')
@@ -16,7 +21,6 @@ _metadata_key_map = {
 }
 def _valid_identifier_to_metadata_key(key):
     return _metadata_key_map.get(key, key.replace('_', '-'))
-
 
 
 class Metadata(collections.OrderedDict):
@@ -34,7 +38,7 @@ class Metadata(collections.OrderedDict):
     """
 
     @classmethod
-    def from_file(cls, filename):
+    def from_file(cls, filename, ignore_invalid_lines=False):
         """Read a file into a Metadata object
 
         The input file may either end in `.txt`, for an old-style metadata.txt file, or in `.json`,
@@ -46,19 +50,19 @@ class Metadata(collections.OrderedDict):
         if filename.endswith('.json'):
             return cls.from_json_file(filename)
         elif filename.endswith('.txt'):
-            return cls.from_txt_file(filename)
+            return cls.from_txt_file(filename, ignore_invalid_lines=ignore_invalid_lines)
         else:
             json_present = os.path.isfile(filename + '.json')
             txt_present = os.path.isfile(filename + '.txt')
             if json_present and not txt_present:
                 return cls.from_json_file(filename + '.json')
             elif txt_present and not json_present:
-                return cls.from_txt_file(filename + '.txt')
+                return cls.from_txt_file(filename + '.txt', ignore_invalid_lines=ignore_invalid_lines)
             elif json_present and txt_present:
                 json_time = os.path.getmtime(filename + '.json')
                 txt_time = os.path.getmtime(filename + '.txt')
                 if txt_time > json_time:
-                    return cls.from_txt_file(filename + '.txt')
+                    return cls.from_txt_file(filename + '.txt', ignore_invalid_lines=ignore_invalid_lines)
                 else:
                     return cls.from_json_file(filename + '.json')
             else:
@@ -75,30 +79,34 @@ class Metadata(collections.OrderedDict):
         return metadata
 
     @classmethod
-    def from_txt_file(cls, txt_file, cache_json=True):
+    def from_txt_file(cls, txt_file, ignore_invalid_lines=False, cache_json=True):
         """Read metadata.txt file into Metadata object with valid python identifiers for keys
 
-        A standard metadata.txt file is close to being an executable python script that just defines a bunch of
-        constants.  The three problems with the metadata.txt format are:
+        A standard metadata.txt file is close to being an executable python script that just defines
+        a bunch of constants.  The three main problems with the metadata.txt format are:
 
           1) variable names contain dashes, which is the subtraction operator in python,
           2) strings are not enclosed in quotes, and
           3) lists are not enclosed in brackets
 
-        It is easy to correct these problems.  In particular, (1) is resolved by changing dashes to underscores in the
-        identifiers.  A bug in SpEC's metadata.txt files -- whereby some comment lines are missing the initial `#` -- is
-        also fixed.
+        It is easy to correct these problems.  In particular, (1) is resolved by changing dashes to
+        underscores in the identifiers.  A bug in SpEC's metadata.txt files -- whereby some comment
+        lines are missing the initial `#` -- is also fixed.  There are also occasional other
+        problems, like commas missing from lists.  All syntax errors as of this writing are fixed in
+        this function.
 
-        Note that this function is not very flexible when it comes to generalizing the syntax of the metadata.txt files.
-        In particular, it assumes that the right-hand sides are either numbers or strings (or lists of either numbers or
-        strings).  For example, I think I've seen cases where the eccentricity is given as something like "<1e-5".  Since
-        python has no "less-than" type, this is converted to a string.  But generally, this does seem to work on
-        metadata.txt files in the SXS waveform repository.
+        Note that this function is not very flexible when it comes to generalizing the syntax of the
+        metadata.txt files.  In particular, it assumes that the right-hand sides are either numbers
+        or strings (or lists of either numbers or strings).  For example, I think I've seen cases
+        where the eccentricity is given as something like "<1e-5".  Since python has no "less-than"
+        type, this is converted to a string.  But generally, this does seem to work on metadata.txt
+        files in the SXS waveform repository.
 
         """
         from ast import literal_eval
         assignment_pattern = re.compile(r"""([-A-Za-z0-9]+)\s*=\s*(.*)""")
         string_pattern = re.compile(r"""[A-DF-Za-df-z<>@]""")  # Ignore 'e' and 'E' because they may appear in numbers
+        multispace_pattern = re.compile(r"""\s+""")
         metadata = cls()
 
         with open(txt_file, 'r') as metadata_file:
@@ -117,7 +125,7 @@ class Metadata(collections.OrderedDict):
 
                     # If `quantity` is an empty string, we should just replace it with an empty list
                     if not quantity or quantity == '\n':
-                        quantity = []
+                        quantity = '[]'
                     else:
                         if string_pattern.search(quantity):
                             # If this is a string, strip whitespace from it, split lists and place
@@ -128,17 +136,33 @@ class Metadata(collections.OrderedDict):
                             else:
                                 quantity = "'" + quantities[0] + "'"
                         else:
-                            # Otherwise, just place brackets around lists of strings
+                            # Otherwise, just place brackets around lists of non-strings
+                            quantity = quantity.strip()
                             if "," in quantity:
                                 quantity = "[" + quantity + "]"
+                            elif " " in quantity:
+                                quantity = "[" + multispace_pattern.sub(',', quantity) + "]"
 
                     # Add this line to the metadata, whether or not it's been modified
-                    metadata[variable] = literal_eval(quantity)
+                    try:
+                        metadata[variable] = literal_eval(quantity)
+                    except SyntaxError as e:
+                        message = ("\nWhile parsing {0}, transformed input text:\n".format(txt_file)
+                                   + "    " + line.rstrip()
+                                   + "\ninto quantity\n"
+                                   + "    " + variable + " = " + quantity
+                                   + "\nParsing this using `ast.literal_eval` resulted in a SyntaxError.\n")
+                        if cache_json and ignore_invalid_lines:
+                            cache_json = False
+                            message += "JSON caching will be turned off for this file until the error is fixed.\n"
+                        warnings.warn(message)
+                        if not ignore_invalid_lines:
+                            raise e
 
         if cache_json:
             # Skip the text processing next time, and just go straight to json
             txt_index = txt_file.rfind('.txt')
-            if txt_index == -1:
+            if txt_index < 1:
                 json_file = txt_file + '.json'
             else:
                 json_file = txt_file[:txt_index] + '.json'
@@ -154,12 +178,18 @@ class Metadata(collections.OrderedDict):
             f.write(self.to_json(indent=indent, separators=separators))
 
     def to_txt(self):
-        raise NotImplementedError()
+        def deformat(value):
+            """Basically undo the nice formatting of `from_txt_file`"""
+            if isinstance(value, list):
+                return ','.join(['{0}'.format(item) for item in value])
+            else:
+                return '{0}'.format(value)
+        return '\n'.join(['{0} = {1}'.format(_valid_identifier_to_metadata_key(key), deformat(self[key])) for key in self])
 
     def to_txt_file(self, txt_file):
         with open(txt_file, 'w') as f:
-            f.write(self.to_txt())
-        
+            f.write(self.to_txt() + '\n')
+
     def __init__(self, *args, **kwargs):
         """Initialize the OrderedDict, ensuring that all keys have been converted to valid identifiers
 
@@ -194,9 +224,18 @@ class Metadata(collections.OrderedDict):
 
     @property
     def lev(self):
-        """Try to determine a numeric "Lev" number from the 'simulation-name' field"""
+        """Try to determine an integer "Lev" number from the 'simulation-name' field"""
         resolution = self.resolution
         return int(resolution.replace('Lev', ''))
+
+    @property
+    def simulation_group(self):
+        """Remove any trailing '/LevN' part of the simulation-name"""
+        simulation_name = self['simulation_name']
+        last_slash_index = simulation_name.rindex('/Lev')
+        if last_slash_index < 1:
+            last_slash_index = len(simulation_name)
+        return simulation_name[:last_slash_index]
 
     def __contains__(self, key):
         return super(Metadata, self).__contains__(_valid_identifier(key))
@@ -223,7 +262,7 @@ class Metadata(collections.OrderedDict):
 
     def __dir__(self):
         """Ensure that the keys are included in tab completion"""
-        return sorted(set(super(Metadata, self).__dir__()) | set(self.keys()))
+        return sorted(set(super(Metadata, self).__dir__() + list(self.keys())))
 
     def __getitem__(self, key):
         return super(Metadata, self).__getitem__(_valid_identifier(key))
@@ -251,62 +290,6 @@ class Metadata(collections.OrderedDict):
             mapping_or_iterable = [(_valid_identifier(k), v) for k, v in mapping_or_iterable]
         return super(Metadata, self).update(mapping_or_iterable)
 
-
-# class Metadata(object):
-
-#     def __init__(self, metadata):
-#         from collections import OrderedDict
-#         if isinstance(metadata, dict):
-#             # Just make sure that this is specifically an *ordered* dictionary
-#             metadata = OrderedDict(metadata)
-#         else if isinstance(metadata, basestr):
-#             if metadata.endswith('.json'):
-#                 with open(metadata) as file:
-#                     metadata = json.load(metadata, object_pairs_hook=OrderedDict)
-#             else if metadata.endswith('.txt'):
-#                 pass
-#             else:
-#                 raise ValueError('Cannot understand metadata file "{0}" format from extension'.format(metadata))
-#         else:
-#             raise ValueError('Unknown input of type "{0}"'.format(type(metadata)))
-        
-#         self.__dict__.update(metadata)
-#         self.all = metadata
-
-#     def __len__(self):
-#         return len(self.metadata)
-
-#     def __getitem__(self, key):
-#         """Ensure that the key has all dashes replaced by underscores"""
-#         return self.metadata[key.replace('-', '_')]
-
-#     def __setitem__(self, key, value):
-#         """Ensure that the key has all dashes replaced by underscores"""
-#         key = key.replace('-', '_')
-#         self.metadata[key] = value
-#         self.__dict__.update({key: value})
-
-#     def __delitem__(self, key):
-#         del self.metadata[key.replace('-', '_')]
-
-#     def __iter__(self):
-#         for key in self.metadata:
-#             yield key
-
-#     def __reversed__(self):
-#         for key in reversed(self.metadata):
-#             yield key
-
-#     def items(self):
-#         """Return iterator over (key, value) pairs"""
-#         for key, value in self.metadata.items():
-#             yield key, value
-
-#     def __contains__(self, key):
-#         return (key.replace('-', '_') in self.metadata)
-
-#     def get(self, key, default=''):
-#         return self.get(key.replace('-', '_'), default)
 
 #     def __repr__(self):
 #         """Return an unambiguous string representation"""

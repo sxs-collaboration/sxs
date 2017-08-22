@@ -18,6 +18,8 @@ with prefixes `^SXS:` and `^PRIVATE:`, respectively, either run the command twic
 either possibility in the regex.
 
 """
+from __future__ import absolute_import, division, print_function
+
 
 def symlink_runs(source_directory='Catalog', target_directory='CatalogLinks',
                  remove_old_target_dir=False, prefix='^SXS:',
@@ -73,7 +75,7 @@ def symlink_runs(source_directory='Catalog', target_directory='CatalogLinks',
         use_relative_links = True
     if verbosity < 1:
         verbosity = 0
-    else if verbosity > 1:
+    elif verbosity > 1:
         verbosity = 2
     
 
