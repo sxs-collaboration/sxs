@@ -5,8 +5,16 @@ import warnings
 import re
 import json
 
-from .catalog import read_catalog, drop_all_but_highest_levs, key_by_alternative_name
-from .symlink_runs import symlink_runs
+try:
+    from collections.abc import Mapping
+    from collections.abc import Iterable
+except ImportError:
+    from collections import Mapping
+    from collections import Iterable
+
+from .catalog import (read_catalog, drop_all_but_highest_levs, drop_all_but_selected_resolutions,
+                      key_by_alternative_name, symlink_runs)
+#from .symlink_runs import symlink_runs
 
 
 _valid_identifier_pattern = re.compile('\W|^(?=\d)')
@@ -199,7 +207,7 @@ class Metadata(collections.OrderedDict):
         """
         if len(args) > 0:
             args = list(args)
-            if isinstance(args[0], collections.abc.Mapping):
+            if isinstance(args[0], Mapping):
                 mapping = args[0]
                 args[0] = OrderedDict([(_valid_identifier(key), mapping[key]) for key in mapping])
             else:
@@ -219,7 +227,7 @@ class Metadata(collections.OrderedDict):
     def resolution(self):
         """Try to determine the resolution from the 'simulation-name' field"""
         simulation_name = self['simulation_name']
-        last_slash_index = simulation_name.rindex('/')
+        last_slash_index = simulation_name.rindex(os.sep)
         return simulation_name[last_slash_index+1:]
 
     @property
@@ -232,7 +240,7 @@ class Metadata(collections.OrderedDict):
     def simulation_group(self):
         """Remove any trailing '/LevN' part of the simulation-name"""
         simulation_name = self['simulation_name']
-        last_slash_index = simulation_name.rindex('/Lev')
+        last_slash_index = simulation_name.rindex(os.sep + 'Lev')
         if last_slash_index < 1:
             last_slash_index = len(simulation_name)
         return simulation_name[:last_slash_index]
@@ -284,9 +292,9 @@ class Metadata(collections.OrderedDict):
         return super(Metadata, self).setdefault(_valid_identifier(key), default)
 
     def update(self, mapping_or_iterable=None):
-        if isinstance(mapping_or_iterable, collections.abc.Mapping):
+        if isinstance(mapping_or_iterable, Mapping):
             mapping_or_iterable = OrderedDict([(_valid_identifier(key), mapping_or_iterable[key]) for key in mapping_or_iterable])
-        elif isinstance(mapping_or_iterable, collections.abc.Iterable):
+        elif isinstance(mapping_or_iterable, Iterable):
             mapping_or_iterable = [(_valid_identifier(k), v) for k, v in mapping_or_iterable]
         return super(Metadata, self).update(mapping_or_iterable)
 
