@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
-def read_catalog(catalog_root_directory='.', exclude_patterns=['Attic', '.*Links'],
+def read_catalog(catalog_root_directory='.', exclude_patterns=[r'^\.', r'Attic', r'.*Links'],
                  ignore_invalid_lines=False, suppress_errors=False,
                  cache_results=False, error_on_cache_failure=True, indent=4, separators=(',', ': ')):
     """Parse the catalog's metadata into a single ordered dictionary
@@ -9,7 +9,7 @@ def read_catalog(catalog_root_directory='.', exclude_patterns=['Attic', '.*Links
     ----------
     catalog_root_directory: str (default: '.')
         Relative or absolute path to the root of the directory to be searched for metadata files.
-    exclude_patterns: list of str (default: ['Attic', '.*Links'])
+    exclude_patterns: list of str (default: [r'^\.', 'Attic', '.*Links'])
         List of regex patterns which, if matched, will exclude a directory and all subdirectories
         from the search.
     ignore_invalid_lines: bool (default: False)
