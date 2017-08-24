@@ -60,5 +60,5 @@ setup(
     author = 'SXS Collaboration',
     author_email = 'web-admin@black-holes.org',
     url = 'https://www.black-holes.org/',
-    download_url = 'https://github.com/moble/sxs/archive/master.tar.gz',
+    # download_url = 'https://github.com/moble/sxs/archive/master.tar.gz',
 )
