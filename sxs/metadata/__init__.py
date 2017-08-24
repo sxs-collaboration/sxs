@@ -5,16 +5,8 @@ import warnings
 import re
 import json
 
-try:
-    from collections.abc import Mapping
-    from collections.abc import Iterable
-except ImportError:
-    from collections import Mapping
-    from collections import Iterable
-
 from .catalog import (read_catalog, drop_all_but_highest_levs, drop_all_but_selected_resolutions,
                       key_by_alternative_name, symlink_runs)
-#from .symlink_runs import symlink_runs
 
 
 _valid_identifier_pattern = re.compile('\W|^(?=\d)')
@@ -111,7 +103,13 @@ class Metadata(collections.OrderedDict):
         files in the SXS waveform repository.
 
         """
+        # This is considered the safe way to evaluate strings "containing Python values from
+        # untrusted sources without the need to parse the values oneself".  We will use it to parse
+        # the right-hand side expressions from the metadata.txt file, once we've appropriately
+        # modified them, so that python will get to decide what should be a string, float, int,
+        # list, etc.
         from ast import literal_eval
+
         assignment_pattern = re.compile(r"""([-A-Za-z0-9]+)\s*=\s*(.*)""")
         string_pattern = re.compile(r"""[A-DF-Za-df-z<>@]""")  # Ignore 'e' and 'E' because they may appear in numbers
         multispace_pattern = re.compile(r"""\s+""")
@@ -207,7 +205,7 @@ class Metadata(collections.OrderedDict):
         """
         if len(args) > 0:
             args = list(args)
-            if isinstance(args[0], Mapping):
+            if isinstance(args[0], collections.Mapping):
                 mapping = args[0]
                 args[0] = OrderedDict([(_valid_identifier(key), mapping[key]) for key in mapping])
             else:
@@ -292,9 +290,9 @@ class Metadata(collections.OrderedDict):
         return super(Metadata, self).setdefault(_valid_identifier(key), default)
 
     def update(self, mapping_or_iterable=None):
-        if isinstance(mapping_or_iterable, Mapping):
+        if isinstance(mapping_or_iterable, collections.Mapping):
             mapping_or_iterable = OrderedDict([(_valid_identifier(key), mapping_or_iterable[key]) for key in mapping_or_iterable])
-        elif isinstance(mapping_or_iterable, Iterable):
+        elif isinstance(mapping_or_iterable, collections.Iterable):
             mapping_or_iterable = [(_valid_identifier(k), v) for k, v in mapping_or_iterable]
         return super(Metadata, self).update(mapping_or_iterable)
 
