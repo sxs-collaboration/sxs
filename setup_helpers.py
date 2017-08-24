@@ -36,7 +36,7 @@ def calculate_version():
     return version
 
 
-class build_py_copy_version(build_py):
+class build_py_and_copy_version(build_py):
     """Add version-copying step to standard build_py"""
     def run(self):
         build_py.run(self)
