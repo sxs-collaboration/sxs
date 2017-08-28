@@ -82,7 +82,9 @@ def create_web_files(catalog_root_directory='.', output_directory='web', relativ
     try:
         on_windows = ('win' in platform.lower() and not 'darwin' in platform.lower())
         use_shell = not on_windows
-        git_revision = subprocess.check_output("""git show -s --format="%ci" HEAD""", shell=use_shell).decode('ascii').rstrip()
+        git_revision = subprocess.check_output("""git show -s --format="%ci" HEAD""",
+                                               cwd=catalog_root_directory,
+                                               shell=use_shell).decode('ascii').rstrip()
         date, time, utc_offset = git_revision.split(' ')
         last_changed = date + ' ' + time
     except Exception as e:
