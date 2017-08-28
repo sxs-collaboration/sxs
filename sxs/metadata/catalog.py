@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
-def read_catalog(catalog_root_directory='.', exclude_patterns=[r'^\.', r'Attic', r'.*Links'],
+def read_catalog(catalog_root_directory='.', exclude_patterns=[r'^\.', r'^Attic', r'.*Links$'],
                  ignore_invalid_lines=False, suppress_errors=False,
                  cache_results=False, error_on_cache_failure=True, indent=4, separators=(',', ': ')):
     """Parse the catalog's metadata into a single ordered dictionary
@@ -9,7 +9,7 @@ def read_catalog(catalog_root_directory='.', exclude_patterns=[r'^\.', r'Attic',
     ----------
     catalog_root_directory: str (default: '.')
         Relative or absolute path to the root of the directory to be searched for metadata files.
-    exclude_patterns: list of str (default: [r'^\.', 'Attic', '.*Links'])
+    exclude_patterns: list of str (default: [r'^\.', '^Attic', '.*Links$'])
         List of regex patterns which, if matched, will exclude a directory and all subdirectories
         from the search.
     ignore_invalid_lines: bool (default: False)
@@ -154,7 +154,8 @@ def drop_all_but_selected_resolutions(catalog,
 
 
 def key_by_alternative_name(catalog, alternative_name_patterns=[r"""^SXS:""",],
-                            error_on_duplicate_keys=True, error_on_missing_key=False, warn_on_missing_key=False):
+                            error_on_duplicate_keys=True, error_on_missing_key=False,
+                            warn_on_missing_key=False, allow_ugly_keys=False):
     """Return a new catalog, with keys replaced by first-matched alternative name found in metadata
 
     NOTE: You almost certainly want to run `drop_all_but_highest_levs` before running this function.
@@ -167,8 +168,8 @@ def key_by_alternative_name(catalog, alternative_name_patterns=[r"""^SXS:""",],
         Output from `drop_all_but_highest_levs`, for example, mapping a directory to a Metadata
         object.
     alternative_name_patterns: list of strings (default: ['^SXS:'])
-        List of regular expressions to match prefix in `alternative-names`.  If a match is found,
-        the first matching name is used as the key in the output OrderedDict.
+        List of regular expressions to match in `alternative-names`.  If a match is found, the first
+        matching name is used as the key in the output OrderedDict.
     error_on_duplicate_keys: bool (default: True)
         If False, only issue a warning when duplicate alternative-name keys are found; otherwise
         raise an Exception.  The last metadata found with that alternative name will be the only one
@@ -178,6 +179,8 @@ def key_by_alternative_name(catalog, alternative_name_patterns=[r"""^SXS:""",],
     warn_on_missing_key: bool (default: False)
         If True, raise a warning whenever no match is found in the list of alternative names.  The
         code will not arrive at the point of the warning unless the previous argument was False.
+    allow_ugly_keys: bool (default: False)
+        If no match is found in the list of alternative names, simply use the ugly key.
 
     Returns
     -------
@@ -197,20 +200,22 @@ def key_by_alternative_name(catalog, alternative_name_patterns=[r"""^SXS:""",],
 
     alternative_name_patterns = [re.compile(pattern) for pattern in alternative_name_patterns]
 
-    def first_match(names):
+    def first_match(names, key):
         for pattern in alternative_name_patterns:
             for name in names:
                 if pattern.match(name):
                     return name
+        if allow_ugly_keys:
+            return key
         return ''
 
     for key in catalog:
         alternative_names = catalog[key].alternative_names
         if not isinstance(alternative_names, list):
             alternative_names = [alternative_names,]
-        new_key = first_match(alternative_names)
+        new_key = first_match(alternative_names, key)
         if not new_key:
-            message = ("\nCould not find a match among the alternative names:\n"
+            message = ("\nCould not find a matching pattern among the alternative names for {0}:\n".format(key)
                        + "    alternative_names = {0!r}\n".format(alternative_names)
                        + "    alternative_name_patterns = {0!r}\n".format(alternative_name_patterns))
             if error_on_missing_key:
@@ -235,7 +240,8 @@ def key_by_alternative_name(catalog, alternative_name_patterns=[r"""^SXS:""",],
 
 
 def symlink_runs(source_directory='Catalog', target_directory='CatalogLinks',
-                 remove_old_target_dir=False, prefix_patterns=[r"""^SXS:""",],
+                 remove_old_target_dir=False, alternative_name_patterns=[r"""^SXS:""",],
+                 exclude_patterns=[r'^\.', r'^Attic', r'.*Links$'],
                  use_relative_links=False, relative_directory_path=None, verbosity=1):
     """Make nicely named symbolic links for entries in the SpEC waveform catalog
 
@@ -248,15 +254,18 @@ def symlink_runs(source_directory='Catalog', target_directory='CatalogLinks',
     ----------
     source_directory: str (default: 'Catalog')
         Name of directory (either absolute or relative to working directory) to traverse looking for
-        metadata files containing the `alternative-names` key with a matching prefix (given below).
+        metadata files containing the `alternative-names` key with a matching a pattern (given below).
     target_directory: str (default: 'CatalogLinks')
         Name of directory (either absolute or relative to working directory) in which to store the
         resulting links.  If this does not exist, it is created.
     remove_old_target_dir: bool (default: False)
         If True, remove and recreate the `target_directory`, so that old links are gone.
-    prefix_patterns: list of strings (default: ['^SXS:'])
-        List of regular expressions to match prefix in `alternative-names`.  If a match is found,
-        the first matching name is used as the name of the "nice" link.
+    alternative_name_patterns: list of strings (default: ['^SXS:'])
+        List of regular expressions to match in `alternative-names`.  If a match is found, the first
+        matching name is used as the name of the "nice" link.
+    exclude_patterns: list of str (default: [r'^\.', '^Attic', '.*Links$'])
+        List of regex patterns which, if matched, will exclude a directory and all subdirectories
+        from the search.
     use_relative_links: bool (default: False)
         If True, use relative paths in the links instead of absolute paths.  This can be helpful,
         for example, when the catalog is mounted as a volume in a docker container, so that the
@@ -275,6 +284,7 @@ def symlink_runs(source_directory='Catalog', target_directory='CatalogLinks',
     import sys
     import shutil
     import re
+    from . import _mkdir_recursively
 
     def symlink_force(target, link_name):
         import errno
@@ -291,8 +301,7 @@ def symlink_runs(source_directory='Catalog', target_directory='CatalogLinks',
         raise ValueError("source_directory '{0}' not found".format(source_directory))
     if remove_old_target_dir and os.path.isdir(target_directory):
         shutil.rmtree(target_directory)
-    if not os.path.isdir(target_directory):
-        os.mkdir(target_directory)
+    _mkdir_recursively(target_directory)
     if relative_directory_path is not None:
         use_relative_links = True
         relative_directory_replaced = os.path.relpath(source_directory, target_directory)
@@ -301,9 +310,9 @@ def symlink_runs(source_directory='Catalog', target_directory='CatalogLinks',
     elif verbosity > 1:
         verbosity = 2
 
-    catalog = read_catalog(source_directory, ignore_invalid_lines=True, suppress_errors=True)
+    catalog = read_catalog(source_directory, ignore_invalid_lines=True, suppress_errors=True, exclude_patterns=exclude_patterns)
     catalog = drop_all_but_highest_levs(catalog)
-    catalog = key_by_alternative_name(catalog, alternative_name_patterns=prefix_patterns,
+    catalog = key_by_alternative_name(catalog, alternative_name_patterns=alternative_name_patterns,
                                       error_on_duplicate_keys=True, warn_on_missing_key=(verbosity>0))
 
     for name in catalog:
@@ -324,3 +333,5 @@ def symlink_runs(source_directory='Catalog', target_directory='CatalogLinks',
             print(target, '->', source_link)
 
         symlink_force(source_link, target)
+
+    return catalog

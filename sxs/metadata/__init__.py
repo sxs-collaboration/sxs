@@ -7,11 +7,14 @@ import json
 
 from .catalog import (read_catalog, drop_all_but_highest_levs, drop_all_but_selected_resolutions,
                       key_by_alternative_name, symlink_runs)
+from .field_mapping import metadata_field_mapping
+from .web import create_web_files
 
 
 _valid_identifier_pattern = re.compile('\W|^(?=\d)')
 def _valid_identifier(key):
     return _valid_identifier_pattern.sub('_', key)
+
 
 _metadata_key_map = {
     # This should be a dictionary of `valid_identifier: metadata_key` pairs for any pair that isn't
@@ -21,6 +24,19 @@ _metadata_key_map = {
 }
 def _valid_identifier_to_metadata_key(key):
     return _metadata_key_map.get(key, key.replace('_', '-'))
+
+
+def _mkdir_recursively(path):
+    import errno    
+    import os
+    import os.path
+    try:
+        os.makedirs(os.path.abspath(path))
+    except OSError as e:
+        if e.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
 
 
 class Metadata(collections.OrderedDict):
@@ -76,6 +92,7 @@ class Metadata(collections.OrderedDict):
     def from_json_file(cls, json_file):
         with open(json_file, 'r') as metadata_file:
             metadata = json.load(metadata_file, object_pairs_hook=cls)
+        metadata['metadata_path'] = json_file
         return metadata
 
     @classmethod
@@ -174,6 +191,7 @@ class Metadata(collections.OrderedDict):
                 json_file = txt_file[:txt_index] + '.json'
             metadata.to_json_file(json_file)
 
+        metadata['metadata_path'] = txt_file
         return metadata
 
     def to_json(self, indent=4, separators=(',', ': ')):

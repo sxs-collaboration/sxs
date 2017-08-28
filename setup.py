@@ -13,7 +13,7 @@ def calculate_version():
         git_revision = subprocess.check_output("""git show -s --format="%ci %h" HEAD""", shell=use_shell).decode('ascii').rstrip()
         date, time, utc_offset, short_hash = git_revision.split(' ')
         date = date.replace('-', '.').strip()  # make date an acceptable version string
-        time = time.replace(':', '.').strip()  # make date an acceptable version string
+        time = time.replace(':', '.').strip()  # make time an acceptable version string
         short_hash = short_hash.strip()  # remove newline and any other whitespace
         short_hash = int(short_hash, 16)  # So that it's a valid PEP 440 version identifier
         dirty = bool(subprocess.call("git diff-files --quiet --", shell=use_shell))
