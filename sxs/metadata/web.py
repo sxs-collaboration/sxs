@@ -55,9 +55,9 @@ def create_web_files(catalog_root_directory='.', output_directory='web', relativ
         return ''
 
     # Figure out which directories are public and which are private
-    public_dirs = [d for d in os.listdir(catalog_root_directory)
+    public_dirs = [os.path.join(catalog_root_directory, d) for d in os.listdir(catalog_root_directory)
                    if os.path.isdir(os.path.join(catalog_root_directory, d)) and is_public(d) and not exclude(d)]
-    private_dirs = [d for d in os.listdir(catalog_root_directory)
+    private_dirs = [os.path.join(catalog_root_directory, d) for d in os.listdir(catalog_root_directory)
                     if os.path.isdir(os.path.join(catalog_root_directory, d)) and not is_public(d) and not exclude(d)]
 
     # Assemble the public parts of the catalog, symlinking for each directory
