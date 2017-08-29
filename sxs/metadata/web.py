@@ -1,7 +1,8 @@
 from __future__ import absolute_import, division, print_function
 
 
-def create_web_files(catalog_root_directory='.', output_directory='web', relative_directory_path=None,
+def create_web_files(catalog_root_directory='.', relative_directory_path=None,
+                     public_json_directory='web/public', public_links_directory='web/links', private_json_directory='web/private',
                      public_directory_patterns=[r'Catalog'], excluded_directory_patterns=[r'^\.', r'^Attic', r'.*Links$'],
                      public_altname_patterns=[r"""^SXS:""",], private_altname_patterns=[r"""^SXS:""", r"""^PRIVATE:""", r""".+"""]):
     """Function to create the files needed by the website's catalog pages
@@ -55,16 +56,19 @@ def create_web_files(catalog_root_directory='.', output_directory='web', relativ
         return ''
 
     # Figure out which directories are public and which are private
-    public_dirs = [os.path.join(catalog_root_directory, d) for d in os.listdir(catalog_root_directory)
+    catalog_root_directory = os.path.expanduser(catalog_root_directory)
+    public_dirs = [os.path.normpath(os.path.join(catalog_root_directory, d))
+                   for d in os.listdir(catalog_root_directory)
                    if os.path.isdir(os.path.join(catalog_root_directory, d)) and is_public(d) and not exclude(d)]
-    private_dirs = [os.path.join(catalog_root_directory, d) for d in os.listdir(catalog_root_directory)
+    private_dirs = [os.path.normpath(os.path.join(catalog_root_directory, d))
+                    for d in os.listdir(catalog_root_directory)
                     if os.path.isdir(os.path.join(catalog_root_directory, d)) and not is_public(d) and not exclude(d)]
 
     # Assemble the public parts of the catalog, symlinking for each directory
     public_catalog = collections.OrderedDict()
     for directory in public_dirs:
         sub_catalog = symlink_runs(source_directory=directory,
-                                   target_directory=os.path.join(output_directory, 'public'),
+                                   target_directory=public_links_directory,
                                    remove_old_target_dir=False, alternative_name_patterns=public_altname_patterns,
                                    exclude_patterns=excluded_directory_patterns,
                                    use_relative_links=True, relative_directory_path=os.path.join('..', '..', directory), verbosity=1)
@@ -91,17 +95,17 @@ def create_web_files(catalog_root_directory='.', output_directory='web', relativ
         last_changed = ''
 
     # Make sure the directories we want are present
-    _mkdir_recursively(os.path.join(output_directory, 'public'))
-    _mkdir_recursively(os.path.join(output_directory, 'private'))
+    _mkdir_recursively(public_json_directory)
+    _mkdir_recursively(private_json_directory)
 
     # Finally, output the JSON files
-    with open(os.path.join(output_directory, 'public', 'catalog_info.json'), 'w') as f:
+    with open(os.path.join(public_json_directory, 'catalog_info.json'), 'w') as f:
         catalog_info = {
             'last_changed': last_changed,
             'metadata_fields': metadata_field_mapping
         }
         json.dump(catalog_info, f, indent=4)
-    with open(os.path.join(output_directory, 'public', 'catalog.json'), 'w') as f:
+    with open(os.path.join(public_json_directory, 'catalog.json'), 'w') as f:
         json.dump(public_catalog, f, indent=4)
-    with open(os.path.join(output_directory, 'private', 'catalog.json'), 'w') as f:
+    with open(os.path.join(private_json_directory, 'catalog.json'), 'w') as f:
         json.dump(private_catalog, f, indent=4)
