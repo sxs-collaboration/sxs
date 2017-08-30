@@ -8,6 +8,7 @@ metadata_fields = [
         'title': r'Name',
         'tooltip': 'Primary short name by which this simulation is known',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': True,
         'width': '110'
     },
@@ -37,6 +38,7 @@ metadata_fields = [
         'title': r'Object 1',
         'tooltip': 'Type of object 1 (BH or NS)',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': False,
     },
     {
@@ -44,6 +46,7 @@ metadata_fields = [
         'title': r'Object 2',
         'tooltip': 'Type of object 2 (BH or NS)',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': False,
     },
     {
@@ -527,6 +530,7 @@ metadata_fields = [
         'title': r'ID type',
         'tooltip': 'Initial-data type',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': False,
     },
     {
@@ -534,6 +538,7 @@ metadata_fields = [
         'title': r'Full name',
         'tooltip': 'Full simulation name used in production',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': False,
     },
     {
@@ -541,6 +546,7 @@ metadata_fields = [
         'title': r'Other names',
         'tooltip': 'Other names by which this run has been known',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': False,
     },
     {
@@ -548,6 +554,7 @@ metadata_fields = [
         'title': r"Authors' emails",
         'tooltip': 'Researchers who contributed to the generation of this waveform',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': False,
     },
     {
@@ -555,6 +562,7 @@ metadata_fields = [
         'title': r'Sim bib keys',
         'tooltip': 'ADS BibTeX keys for this simulation',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': False,
     },
     {
@@ -562,6 +570,7 @@ metadata_fields = [
         'title': r'Code bib keys',
         'tooltip': 'ADS BibTeX keys for the evolution code',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': False,
     },
     {
@@ -569,6 +578,7 @@ metadata_fields = [
         'title': r'ID bib keys',
         'tooltip': 'ADS BibTeX keys for the initial data',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': False,
     },
     {
@@ -576,6 +586,7 @@ metadata_fields = [
         'title': r'QC bib keys',
         'tooltip': 'ADS BibTeX keys for eccentricity reduction',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': False,
     },
     {
@@ -583,6 +594,7 @@ metadata_fields = [
         'title': r'SpEC revisions',
         'tooltip': 'SpEC revisions',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': False,
     },
     {
@@ -590,6 +602,7 @@ metadata_fields = [
         'title': r'SPELLS revision',
         'tooltip': 'SPELLS revision',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': False,
     },
     {
@@ -597,6 +610,7 @@ metadata_fields = [
         'title': r'Keywords',
         'tooltip': 'Keywords to qualitatively identify this simulation',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': False,
     },
     {
@@ -604,12 +618,14 @@ metadata_fields = [
         'title': r'Contact',
         'tooltip': 'Point-of-contact email for this waveform.  Usually the person having placed the waveform into the repository.',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'visible': True,
         'itemTemplate': 'sxs_format_email'
     },
     {
         'title': 'Files',
         'type': 'text',
+        'headerTemplate': 'tooltipHeader',
         'filtering': False,
         'visible': True,
         'itemTemplate': 'sxs_format_downloads'
