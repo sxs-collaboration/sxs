@@ -21,6 +21,7 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
     import os
     from sys import platform
     import subprocess
+    import math
     import re
     import collections
     import json
@@ -84,10 +85,27 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
         private_catalog.update(sub_catalog)
 
     # Rearrange the catalogs to be lists of OrderedDicts for JSON
-    public_catalog = [collections.OrderedDict([('name', key)] + [(k, val[k]) for k in val])
-                      for key in public_catalog for val in [public_catalog[key]]]
-    private_catalog = [collections.OrderedDict([('name', key)] + [(k, val[k]) for k in val])
-                      for key in private_catalog for val in [private_catalog[key]]]
+    def modify_metadata(key, metadata):
+        """Add 'name' field, and expand three-vectors to four separate fields"""
+        m = [('name', key)]
+        for k in metadata:
+            v = metadata[k]
+            if isinstance(v, list) and len(v)==3 and (
+                    isinstance(v[0], float) and isinstance(v[1], float) and isinstance(v[2], float)):
+                m += [(k+'_mag', math.sqrt(v[0]**2 + v[1]**2 + v[2]**2)),
+                      (k+'_x', v[0]), (k+'_y', v[1]), (k+'_z', v[2])]
+            else:
+                m += [(k, v)]
+        return collections.OrderedDict(m)
+    public_catalog = [modify_metadata(key, metadata)
+                      for key in public_catalog for metadata in [public_catalog[key]]]
+    private_catalog = [modify_metadata(key, metadata)
+                       for key in private_catalog for metadata in [private_catalog[key]]]
+
+    # public_catalog = [collections.OrderedDict([('name', key)] + [(k, val[k]) for k in val])
+    #                   for key in public_catalog for val in [public_catalog[key]]]
+    # private_catalog = [collections.OrderedDict([('name', key)] + [(k, val[k]) for k in val])
+    #                   for key in private_catalog for val in [private_catalog[key]]]
 
     # Get date of last git change
     try:
