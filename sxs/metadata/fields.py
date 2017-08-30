@@ -42,7 +42,7 @@ metadata_fields = [
     },
     {
         'name': 'authors_emails',
-        'title': r'Authors\' emails',
+        'title': r"Authors' emails",
         'tooltip': 'Researchers who contributed to the generation of this waveform',
         'type': 'text',
         'visible': False,
@@ -84,7 +84,7 @@ metadata_fields = [
     },
     {
         'name': 'initial_separation',
-        'title': r'$\mathrm{sep}_{\mathrm{ini}}',
+        'title': r'$\mathrm{sep}_{\mathrm{ini}}$',
         'tooltip': 'Initial separation',
         'type': 'float',
         'visible': False,
@@ -154,14 +154,14 @@ metadata_fields = [
     },
     {
         'name': 'initial_dimensionless_spin1',
-        'title': r'$\vec{chi}_{\mathrm{ini}, 1}$',
+        'title': r'$\vec{\chi}_{\mathrm{ini}, 1}$',
         'tooltip': 'Initial dimensionless spin of object 1',
         'type': 'vector',
         'visible': False,
     },
     {
         'name': 'initial_dimensionless_spin2',
-        'title': r'$\vec{chi}_{\mathrm{ini}, 2}$',
+        'title': r'$\vec{\chi}_{\mathrm{ini}, 2}$',
         'tooltip': 'Initial dimensionless spin of object 2',
         'type': 'vector',
         'visible': False,
@@ -203,14 +203,14 @@ metadata_fields = [
     },
     {
         'name': 'relaxed_dimensionless_spin1',
-        'title': r'$\vec{chi}_{\mathrm{rel}, 1}$',
+        'title': r'$\vec{\chi}_{\mathrm{rel}, 1}$',
         'tooltip': 'Dimensionless spin of object 1 after relaxation',
         'type': 'vector',
         'visible': False,
     },
     {
         'name': 'relaxed_dimensionless_spin2',
-        'title': r'$\vec{chi}_{\mathrm{rel}, 2}$',
+        'title': r'$\vec{\chi}_{\mathrm{rel}, 2}$',
         'tooltip': 'Dimensionless spin of object 2 after relaxation',
         'type': 'vector',
         'visible': False,
@@ -301,7 +301,7 @@ metadata_fields = [
     },
     {
         'name': 'ejecta_mass',
-        'title': r'$M_{\mathrm{ejecta}}',
+        'title': r'$M_{\mathrm{ejecta}}$',
         'tooltip': 'ejecta mass',
         'type': 'float',
         'visible': False,
