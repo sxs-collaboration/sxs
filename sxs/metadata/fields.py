@@ -16,6 +16,7 @@ metadata_fields = [
         'title': r'$\mathrm{sep}^{\mathrm{ini}}$',
         'tooltip': 'Initial separation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -23,6 +24,7 @@ metadata_fields = [
         'title': r'$\|\vec{\Omega}^{\mathrm{orb}\ \mathrm{ini}}\|$',
         'tooltip': 'Initial orbital frequency',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': True,
     },
     {
@@ -30,6 +32,7 @@ metadata_fields = [
         'title': r'$\dot{a}^{\mathrm{ini}}$',
         'tooltip': 'initial rate of change of separation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -51,6 +54,7 @@ metadata_fields = [
         'title': r'$E^{\mathrm{ADM}}$',
         'tooltip': 'ADM energy measured in the initial data',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -58,6 +62,7 @@ metadata_fields = [
         'title': r'$\|\vec{P}^{\mathrm{ADM}}\|$',
         'tooltip': 'ADM linear momentum measured in the initial data',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -65,6 +70,7 @@ metadata_fields = [
         'title': r'${P}^{\mathrm{ADM}}_x$',
         'tooltip': 'x component of ADM linear momentum measured in the initial data',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -72,6 +78,7 @@ metadata_fields = [
         'title': r'${P}^{\mathrm{ADM}}_y$',
         'tooltip': 'y component of ADM linear momentum measured in the initial data',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -79,6 +86,7 @@ metadata_fields = [
         'title': r'${P}^{\mathrm{ADM}}_z$',
         'tooltip': 'z component of ADM linear momentum measured in the initial data',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -86,6 +94,7 @@ metadata_fields = [
         'title': r'$\|\vec{L}^{\mathrm{ADM}}\|$',
         'tooltip': 'ADM angular momentum measured in the initial data',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -93,6 +102,7 @@ metadata_fields = [
         'title': r'${L}^{\mathrm{ADM}}_x$',
         'tooltip': 'x component of ADM angular momentum measured in the initial data',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -100,6 +110,7 @@ metadata_fields = [
         'title': r'${L}^{\mathrm{ADM}}_y$',
         'tooltip': 'y component of ADM angular momentum measured in the initial data',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -107,6 +118,7 @@ metadata_fields = [
         'title': r'${L}^{\mathrm{ADM}}_z$',
         'tooltip': 'z component of ADM angular momentum measured in the initial data',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -114,6 +126,7 @@ metadata_fields = [
         'title': r'$M^{\mathrm{ini}, 1} / M^{\mathrm{ini}, 2}$',
         'tooltip': 'Ratio of initial masses',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': True,
     },
     {
@@ -121,6 +134,7 @@ metadata_fields = [
         'title': r'$M^{\mathrm{ini}, 1}$',
         'tooltip': 'Initial mass of object 1',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -128,6 +142,7 @@ metadata_fields = [
         'title': r'$M^{\mathrm{ini}, 2}$',
         'tooltip': 'Initial mass of object 2',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -135,6 +150,7 @@ metadata_fields = [
         'title': r'$\|\vec{\chi}^{\mathrm{ini}, 1}\|$',
         'tooltip': 'Initial dimensionless spin of object 1',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': True,
     },
     {
@@ -142,6 +158,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{ini}, 1}_x$',
         'tooltip': 'x component of Initial dimensionless spin of object 1',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': True,
     },
     {
@@ -149,6 +166,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{ini}, 1}_y$',
         'tooltip': 'y component of Initial dimensionless spin of object 1',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': True,
     },
     {
@@ -156,6 +174,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{ini}, 1}_z$',
         'tooltip': 'z component of Initial dimensionless spin of object 1',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': True,
     },
     {
@@ -163,6 +182,7 @@ metadata_fields = [
         'title': r'$\|\vec{\chi}^{\mathrm{ini}, 2}\|$',
         'tooltip': 'Initial dimensionless spin of object 2',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': True,
     },
     {
@@ -170,6 +190,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{ini}, 2}_x$',
         'tooltip': 'x component of Initial dimensionless spin of object 2',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': True,
     },
     {
@@ -177,6 +198,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{ini}, 2}_y$',
         'tooltip': 'y component of Initial dimensionless spin of object 2',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': True,
     },
     {
@@ -184,6 +206,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{ini}, 2}_z$',
         'tooltip': 'z component of Initial dimensionless spin of object 2',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': True,
     },
     {
@@ -191,6 +214,7 @@ metadata_fields = [
         'title': r'$\|\vec{x}^{\mathrm{ini}, 1}\|$',
         'tooltip': 'Initial position of object 1',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -198,6 +222,7 @@ metadata_fields = [
         'title': r'${x}^{\mathrm{ini}, 1}_x$',
         'tooltip': 'x component of Initial position of object 1',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -205,6 +230,7 @@ metadata_fields = [
         'title': r'${x}^{\mathrm{ini}, 1}_y$',
         'tooltip': 'y component of Initial position of object 1',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -212,6 +238,7 @@ metadata_fields = [
         'title': r'${x}^{\mathrm{ini}, 1}_z$',
         'tooltip': 'z component of Initial position of object 1',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -219,6 +246,7 @@ metadata_fields = [
         'title': r'$\|\vec{x}^{\mathrm{ini}, 2}\|$',
         'tooltip': 'Initial position of object 2',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -226,6 +254,7 @@ metadata_fields = [
         'title': r'${x}^{\mathrm{ini}, 2}_x$',
         'tooltip': 'x component of Initial position of object 2',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -233,6 +262,7 @@ metadata_fields = [
         'title': r'${x}^{\mathrm{ini}, 2}_y$',
         'tooltip': 'y component of Initial position of object 2',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -240,6 +270,7 @@ metadata_fields = [
         'title': r'${x}^{\mathrm{ini}, 2}_z$',
         'tooltip': 'z component of Initial position of object 2',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -247,6 +278,7 @@ metadata_fields = [
         'title': r'$t^{\mathrm{rel}}$',
         'tooltip': 'Time at which "relaxed" quantities are measured',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -254,6 +286,7 @@ metadata_fields = [
         'title': r'$M^{\mathrm{rel}, 1} / M^{\mathrm{rel}, 2}$',
         'tooltip': 'Ratio of masses at relaxation time',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -261,6 +294,7 @@ metadata_fields = [
         'title': r'$M^{\mathrm{rel}, 1}$',
         'tooltip': 'Mass of object 1 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -268,6 +302,7 @@ metadata_fields = [
         'title': r'$M^{\mathrm{rel}, 2}$',
         'tooltip': 'Mass of object 2 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -275,6 +310,7 @@ metadata_fields = [
         'title': r'$\|\vec{\chi}^{\mathrm{rel}, 1}\|$',
         'tooltip': 'Dimensionless spin of object 1 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -282,6 +318,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{rel}, 1}_x$',
         'tooltip': 'x component of Dimensionless spin of object 1 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -289,6 +326,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{rel}, 1}_y$',
         'tooltip': 'y component of Dimensionless spin of object 1 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -296,6 +334,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{rel}, 1}_z$',
         'tooltip': 'z component of Dimensionless spin of object 1 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -303,6 +342,7 @@ metadata_fields = [
         'title': r'$\|\vec{\chi}^{\mathrm{rel}, 2}\|$',
         'tooltip': 'Dimensionless spin of object 2 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -310,6 +350,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{rel}, 2}_x$',
         'tooltip': 'x component of Dimensionless spin of object 2 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -317,6 +358,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{rel}, 2}_y$',
         'tooltip': 'y component of Dimensionless spin of object 2 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -324,6 +366,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{rel}, 2}_z$',
         'tooltip': 'z component of Dimensionless spin of object 2 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -331,6 +374,7 @@ metadata_fields = [
         'title': r'$\|\vec{x}^{\mathrm{rel}, 1}\|$',
         'tooltip': 'Position of object 1 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -338,6 +382,7 @@ metadata_fields = [
         'title': r'${x}^{\mathrm{rel}, 1}_x$',
         'tooltip': 'x component of Position of object 1 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -345,6 +390,7 @@ metadata_fields = [
         'title': r'${x}^{\mathrm{rel}, 1}_y$',
         'tooltip': 'y component of Position of object 1 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -352,6 +398,7 @@ metadata_fields = [
         'title': r'${x}^{\mathrm{rel}, 1}_z$',
         'tooltip': 'z component of Position of object 1 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -359,6 +406,7 @@ metadata_fields = [
         'title': r'$\|\vec{x}^{\mathrm{rel}, 2}\|$',
         'tooltip': 'Position of object 2 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -366,6 +414,7 @@ metadata_fields = [
         'title': r'${x}^{\mathrm{rel}, 2}_x$',
         'tooltip': 'x component of Position of object 2 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -373,6 +422,7 @@ metadata_fields = [
         'title': r'${x}^{\mathrm{rel}, 2}_y$',
         'tooltip': 'y component of Position of object 2 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -380,6 +430,7 @@ metadata_fields = [
         'title': r'${x}^{\mathrm{rel}, 2}_z$',
         'tooltip': 'z component of Position of object 2 after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -387,6 +438,7 @@ metadata_fields = [
         'title': r'$\|\vec{\Omega}^{\mathrm{orb}\ \mathrm{rel}}\|$',
         'tooltip': 'Orbital frequency after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -394,6 +446,7 @@ metadata_fields = [
         'title': r'${\Omega}^{\mathrm{orb}\ \mathrm{rel}}_x$',
         'tooltip': 'x component of Orbital frequency after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -401,6 +454,7 @@ metadata_fields = [
         'title': r'${\Omega}^{\mathrm{orb}\ \mathrm{rel}}_y$',
         'tooltip': 'y component of Orbital frequency after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -408,6 +462,7 @@ metadata_fields = [
         'title': r'${\Omega}^{\mathrm{orb}\ \mathrm{rel}}_z$',
         'tooltip': 'z component of Orbital frequency after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -415,6 +470,7 @@ metadata_fields = [
         'title': r'$e^{\mathrm{rel}}$',
         'tooltip': 'Eccentricity after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': True,
     },
     {
@@ -422,6 +478,7 @@ metadata_fields = [
         'title': r'$M^{\mathrm{rel}}$ (mean anomaly)',
         'tooltip': 'Mean anomaly after relaxation',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -429,6 +486,7 @@ metadata_fields = [
         'title': r'$t^{\mathrm{merg}}$',
         'tooltip': 'Merger time',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -436,6 +494,7 @@ metadata_fields = [
         'title': r'$N^{\mathrm{orbits}}$',
         'tooltip': 'Number of orbits from beginning of simulation to merger',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': True,
     },
     {
@@ -443,6 +502,7 @@ metadata_fields = [
         'title': r'$t^{\mathrm{fin}}$',
         'tooltip': 'Final time',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -450,6 +510,7 @@ metadata_fields = [
         'title': r'$M^{\mathrm{rem}}$',
         'tooltip': 'Mass of remnant object',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -457,6 +518,7 @@ metadata_fields = [
         'title': r'$\|\vec{\chi}^{\mathrm{rem}}\|$',
         'tooltip': 'Dimensionless spin of remnant object',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -464,6 +526,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{rem}}_x$',
         'tooltip': 'x component of Dimensionless spin of remnant object',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -471,6 +534,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{rem}}_y$',
         'tooltip': 'y component of Dimensionless spin of remnant object',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -478,6 +542,7 @@ metadata_fields = [
         'title': r'${\chi}^{\mathrm{rem}}_z$',
         'tooltip': 'z component of Dimensionless spin of remnant object',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -485,6 +550,7 @@ metadata_fields = [
         'title': r'$\|\vec{v}^{\mathrm{rem}}\|$',
         'tooltip': 'Velocity of remnant object',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -492,6 +558,7 @@ metadata_fields = [
         'title': r'${v}^{\mathrm{rem}}_x$',
         'tooltip': 'x component of Velocity of remnant object',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -499,6 +566,7 @@ metadata_fields = [
         'title': r'${v}^{\mathrm{rem}}_y$',
         'tooltip': 'y component of Velocity of remnant object',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -506,6 +574,7 @@ metadata_fields = [
         'title': r'${v}^{\mathrm{rem}}_z$',
         'tooltip': 'z component of Velocity of remnant object',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -513,6 +582,7 @@ metadata_fields = [
         'title': r'$M^{\mathrm{disk}}$',
         'tooltip': 'Mass of any remaining disk',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
@@ -520,6 +590,7 @@ metadata_fields = [
         'title': r'$M^{\mathrm{ejecta}}$',
         'tooltip': 'Ejecta mass',
         'type': 'float',
+        'sorter': 'limit_or_float',
         'visible': False,
     },
     {
