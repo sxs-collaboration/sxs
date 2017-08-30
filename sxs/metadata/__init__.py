@@ -8,6 +8,7 @@ import json
 from .catalog import (read_catalog, drop_all_but_highest_levs, drop_all_but_selected_resolutions,
                       key_by_alternative_name, symlink_runs)
 from .field_mapping import metadata_field_mapping
+from .fields import metadata_fields
 from .web import create_web_files
 
 
@@ -309,7 +310,7 @@ class Metadata(collections.OrderedDict):
 
     def update(self, mapping_or_iterable=None):
         if isinstance(mapping_or_iterable, collections.Mapping):
-            mapping_or_iterable = OrderedDict([(_valid_identifier(key), mapping_or_iterable[key]) for key in mapping_or_iterable])
+            mapping_or_iterable = collections.OrderedDict([(_valid_identifier(key), mapping_or_iterable[key]) for key in mapping_or_iterable])
         elif isinstance(mapping_or_iterable, collections.Iterable):
             mapping_or_iterable = [(_valid_identifier(k), v) for k, v in mapping_or_iterable]
         return super(Metadata, self).update(mapping_or_iterable)

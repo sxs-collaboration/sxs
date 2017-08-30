@@ -25,7 +25,7 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
     import collections
     import json
     from . import (read_catalog, drop_all_but_highest_levs,
-                   key_by_alternative_name, symlink_runs, metadata_field_mapping, _mkdir_recursively)
+                   key_by_alternative_name, symlink_runs, metadata_fields, _mkdir_recursively)
 
     # Compile regex patterns and create functions for matching the various inputs
     public_directory_patterns = [re.compile(pattern) for pattern in public_directory_patterns]
@@ -64,7 +64,7 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
                     for d in os.listdir(catalog_root_directory)
                     if os.path.isdir(os.path.join(catalog_root_directory, d)) and not is_public(d) and not exclude(d)]
 
-    # Assemble the public parts of the catalog, symlinking for each directory
+    # Assemble the public parts of the catalog, symlinking for each directory, and getting the catalogs
     public_catalog = collections.OrderedDict()
     for directory in public_dirs:
         sub_catalog = symlink_runs(source_directory=directory,
@@ -73,7 +73,8 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
                                    exclude_patterns=excluded_directory_patterns,
                                    use_relative_links=True, relative_directory_path=os.path.join('..', '..', directory), verbosity=1)
         public_catalog.update(sub_catalog)
-    
+
+    # Get the private catalogs
     private_catalog = collections.OrderedDict()
     for directory in private_dirs:
         sub_catalog = read_catalog(directory, ignore_invalid_lines=True, suppress_errors=True, exclude_patterns=excluded_directory_patterns)
@@ -81,6 +82,12 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
         sub_catalog = key_by_alternative_name(sub_catalog, alternative_name_patterns=private_altname_patterns,
                                               allow_ugly_keys=True)
         private_catalog.update(sub_catalog)
+
+    # Rearrange the catalogs to be lists of OrderedDicts for JSON
+    public_catalog = [collections.OrderedDict([('name', key)] + [(k, val[k]) for k in val])
+                      for key in public_catalog for val in [public_catalog[key]]]
+    private_catalog = [collections.OrderedDict([('name', key)] + [(k, val[k]) for k in val])
+                      for key in private_catalog for val in [private_catalog[key]]]
 
     # Get date of last git change
     try:
@@ -101,8 +108,12 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
     # Finally, output the JSON files
     with open(os.path.join(public_json_directory, 'catalog_info.json'), 'w') as f:
         catalog_info = {
+            'title': 'SXS Gravitational Waveform Database',
+            'subtitle': 'Completed Simulations',
+            'documentation': True,
+            'news': True,
             'last_changed': last_changed,
-            'metadata_fields': metadata_field_mapping
+            'fields': metadata_fields
         }
         json.dump(catalog_info, f, indent=4)
     with open(os.path.join(public_json_directory, 'catalog.json'), 'w') as f:
