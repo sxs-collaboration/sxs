@@ -95,6 +95,8 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
                 m += [(k+'_mag', math.sqrt(v[0]**2 + v[1]**2 + v[2]**2)),
                       (k+'_x', v[0]), (k+'_y', v[1]), (k+'_z', v[2])]
             else:
+                if k == 'initial_mass1':  # Insert mass ratio first
+                    m += [('initial_mass_ratio', metadata[k]/metadata['initial_mass2'])]
                 if k == 'relaxed_mass1':  # Insert mass ratio first
                     m += [('relaxed_mass_ratio', metadata[k]/metadata['relaxed_mass2'])]
                 m += [(k, v)]
