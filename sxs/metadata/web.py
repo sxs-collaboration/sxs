@@ -86,7 +86,7 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
 
     # Rearrange the catalogs to be lists of OrderedDicts for JSON
     def modify_metadata(key, metadata):
-        """Add 'name' field, and expand three-vectors to four separate fields"""
+        """Add 'name' and 'relaxed_mass_ratio' fields, and expand three-vectors to four separate fields"""
         m = [('name', key)]
         for k in metadata:
             v = metadata[k]
@@ -95,6 +95,8 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
                 m += [(k+'_mag', math.sqrt(v[0]**2 + v[1]**2 + v[2]**2)),
                       (k+'_x', v[0]), (k+'_y', v[1]), (k+'_z', v[2])]
             else:
+                if k == 'relaxed_mass1':  # Insert mass ratio first
+                    m += [('relaxed_mass_ratio', metadata[k]/metadata['relaxed_mass2'])]
                 m += [(k, v)]
         return collections.OrderedDict(m)
     public_catalog = [modify_metadata(key, metadata)
