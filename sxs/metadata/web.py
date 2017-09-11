@@ -76,7 +76,7 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
                                    target_directory=public_links_directory,
                                    remove_old_target_dir=False, alternative_name_patterns=public_altname_patterns,
                                    exclude_patterns=excluded_directory_patterns,
-                                   use_relative_links=True, relative_directory_replacement=replacement, verbosity=1)
+                                   use_relative_links=True, relative_directory_path=replacement, verbosity=1)
         public_catalog.update(sub_catalog)
 
     # Get the private catalogs
