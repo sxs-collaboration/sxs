@@ -217,7 +217,7 @@ def key_by_alternative_name(catalog, alternative_name_patterns=[r"""^SXS:""",],
         if not new_key:
             message = ("\nCould not find a matching pattern among the alternative names for {0}:\n".format(key)
                        + "    alternative_names = {0!r}\n".format(alternative_names)
-                       + "    alternative_name_patterns = {0!r}\n".format(alternative_name_patterns))
+                       + "    alternative_name_patterns = {0!r}\n".format([p.pattern for p in alternative_name_patterns]))
             if error_on_missing_key:
                 raise ValueError(message)
             elif warn_on_missing_key:

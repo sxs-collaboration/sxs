@@ -28,6 +28,9 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
     from . import (read_catalog, drop_all_but_highest_levs,
                    key_by_alternative_name, symlink_runs, metadata_fields, _mkdir_recursively)
 
+    if relative_directory_path is None:
+        relative_directory_path = os.path.join('..', '..')
+
     # Compile regex patterns and create functions for matching the various inputs
     public_directory_patterns = [re.compile(pattern) for pattern in public_directory_patterns]
     def is_public(directory):
@@ -68,11 +71,12 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
     # Assemble the public parts of the catalog, symlinking for each directory, and getting the catalogs
     public_catalog = collections.OrderedDict()
     for directory in public_dirs:
+        replacement = os.path.join(relative_directory_path, os.path.relpath(directory, catalog_root_directory))
         sub_catalog = symlink_runs(source_directory=directory,
                                    target_directory=public_links_directory,
                                    remove_old_target_dir=False, alternative_name_patterns=public_altname_patterns,
                                    exclude_patterns=excluded_directory_patterns,
-                                   use_relative_links=True, relative_directory_path=os.path.join('..', '..', directory), verbosity=1)
+                                   use_relative_links=True, relative_directory_replacement=replacement, verbosity=1)
         public_catalog.update(sub_catalog)
 
     # Get the private catalogs
