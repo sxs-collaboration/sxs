@@ -16,9 +16,9 @@ def validate_xml(source, parser=None, skip_entity_errors=True):
             pass
         else:
             if isinstance(source, str):
-                warning = 'Parsing failed for {0}:\n\t'.format(source) + str(e)
+                warning = '\n\tParsing failed for {0}:\n\t\t'.format(source) + str(e)
             else:
-                warning = 'Parsing failed:\n\t' + str(e)
+                warning = '\n\tParsing failed:\n\t\t' + str(e)
             warn(warning)
             return False
     return True
