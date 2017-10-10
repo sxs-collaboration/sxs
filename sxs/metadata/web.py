@@ -90,7 +90,7 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
 
     # Rearrange the catalogs to be lists of OrderedDicts for JSON
     def modify_metadata(key, metadata):
-        """Add 'name' and 'relaxed_mass_ratio' fields, and expand three-vectors to four separate fields"""
+        """Add 'name', 'object_types', and '*_mass_ratio' fields, and expand three-vectors to four separate fields"""
         m = [('name', key)]
         for k in metadata:
             v = metadata[k]
@@ -99,6 +99,8 @@ def create_web_files(catalog_root_directory='.', relative_directory_path=None,
                 m += [(k+'_mag', math.sqrt(v[0]**2 + v[1]**2 + v[2]**2)),
                       (k+'_x', v[0]), (k+'_y', v[1]), (k+'_z', v[2])]
             else:
+                if k == 'object1':  # Insert combined type first
+                    m += [('object_types', ''.join(sorted([metadata[k].upper(), metadata['object2'].upper()])))]
                 if k == 'initial_mass1':  # Insert mass ratio first
                     m += [('initial_mass_ratio', metadata[k]/metadata['initial_mass2'])]
                 if k == 'relaxed_mass1':  # Insert mass ratio first

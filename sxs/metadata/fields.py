@@ -36,6 +36,13 @@ metadata_fields = [
         'visible': False,
     },
     {
+        'name': 'object_types',
+        'title': r'Object types',
+        'tooltip': 'Types of objects (BHBH, BHNS, or NSNS)',
+        'type': 'text',
+        'visible': False,
+    },
+    {
         'name': 'object1',
         'title': r'Object 1',
         'tooltip': 'Type of object 1 (BH or NS)',
