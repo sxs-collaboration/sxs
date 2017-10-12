@@ -9,7 +9,7 @@ metadata_fields = [
         'tooltip': 'Primary short name by which this simulation is known',
         'type': 'text',
         'visible': True,
-        'width': '110'
+        'width': '110',
     },
     {
         'name': 'initial_separation',
@@ -62,6 +62,7 @@ metadata_fields = [
         'tooltip': 'Equation of state',
         'type': 'text',
         'visible': False,
+        'width': '140',
     },
     {
         'name': 'initial_ADM_energy',
