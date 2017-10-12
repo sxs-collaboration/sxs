@@ -57,6 +57,13 @@ metadata_fields = [
         'visible': False,
     },
     {
+        'name': 'eos',
+        'title': 'EOS',
+        'tooltip': 'Equation of state',
+        'type': 'text',
+        'visible': False,
+    },
+    {
         'name': 'initial_ADM_energy',
         'title': r'$E^{\mathrm{ADM}}$',
         'tooltip': 'ADM energy measured in the initial data',

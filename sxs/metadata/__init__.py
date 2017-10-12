@@ -43,6 +43,9 @@ def _mkdir_recursively(path):
 class Metadata(collections.OrderedDict):
     """Object to collect metadata
 
+    Note that the constructor is not generally useful from outside this class.  See the
+    Metadata.from_file, etc., functions for more useful factory functions.
+
     This object is essentially a `collections.OrderedDict`, with a few extra features:
       1) Keys are always forced to be valid python identifiers, whether setting or getting.
       2) There are a few extra methods for constructing these objects from json data or files or txt
@@ -151,7 +154,12 @@ class Metadata(collections.OrderedDict):
                     if not quantity or quantity == '\n':
                         quantity = '[]'
                     else:
-                        if string_pattern.search(quantity):
+                        q = quantity.strip()
+                        if ((q.startswith('"') and q.endswith('"'))
+                            or (q.startswith("'") and q.endswith("'"))):
+                            # If the whole thing is quoted, just leave it as is
+                            quantity = q
+                        elif string_pattern.search(quantity):
                             # If this is a string, strip whitespace from it, split lists and place
                             # brackets around them, and place quotation marks around each element
                             quantities = [q.strip() for q in quantity.split(",")]
@@ -217,6 +225,9 @@ class Metadata(collections.OrderedDict):
 
     def __init__(self, *args, **kwargs):
         """Initialize the OrderedDict, ensuring that all keys have been converted to valid identifiers
+
+        Note that this constructor is not frequently used directly from outside this code.  See
+        Metadata.from_file, etc., for more useful factory functions.
 
         This function intercepts the allowed args and kwargs and converts any keys before simply
         calling the base class's initialization function.
