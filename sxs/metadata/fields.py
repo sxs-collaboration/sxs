@@ -62,7 +62,7 @@ metadata_fields = [
         'tooltip': 'Equation of state',
         'type': 'text',
         'visible': False,
-        'width': '140',
+        'width': '180',
     },
     {
         'name': 'initial_ADM_energy',
