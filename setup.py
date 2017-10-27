@@ -53,7 +53,7 @@ class build_py_and_copy_version(build_py):
 
 setup(
     name = 'sxs',
-    packages = ['sxs', 'sxs.metadata', 'sxs.doxygen'],
+    packages = ['sxs', 'sxs.metadata', 'sxs.doxygen', 'sxs.references'],
     scripts = ['sxs/doxygen/validate_xml.py'],
     version=calculate_version(),
     cmdclass={'build_py': build_py_and_copy_version},
