@@ -1,10 +1,15 @@
 from __future__ import absolute_import, division, print_function
 
 
-def create_web_files(catalog_root_directory='.', relative_directory_path=None,
-                     public_json_directory='web/public', public_links_directory='web/links', private_json_directory='web/private',
-                     public_directory_patterns=[r'Catalog'], excluded_directory_patterns=[r'^\.', r'^Attic', r'.*Links$'],
-                     public_altname_patterns=[r"""^SXS:""",], private_altname_patterns=[r"""^SXS:""", r"""^PRIVATE:""", r""".+"""]):
+def create_web_files(catalog_root_directory='.',
+                     relative_directory_path=None,
+                     public_json_directory='web/public',
+                     public_links_directory='web/links',
+                     private_json_directory='web/private',
+                     public_directory_patterns=[r'Catalog'],
+                     excluded_directory_patterns=[r'^\.', r'^Attic', r'.*Links$'],
+                     public_altname_patterns=[r"""^SXS:""", r"""^BHNS:"""],
+                     private_altname_patterns=[r"""^SXS:""", r"""^BHNS:""", r"""^PRIVATE:""", r""".+"""]):
     """Function to create the files needed by the website's catalog pages
 
     1) Create a directory symlinking public runs to data files
