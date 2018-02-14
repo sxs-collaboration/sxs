@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function
 def create_web_files(catalog_root_directory='.',
                      relative_directory_path=None,
                      public_json_directory='web/public',
+                     public_file_listings_directory='web/public_file_listings',
                      public_links_directory='web/links',
                      private_json_directory='web/private',
                      public_directory_patterns=[r'Catalog'],
@@ -151,5 +152,65 @@ def create_web_files(catalog_root_directory='.',
         json.dump(catalog_info, f, indent=4)
     with open(os.path.join(public_json_directory, 'catalog.json'), 'w') as f:
         json.dump(public_catalog, f, indent=4)
+    write_file_listings(public_catalog, public_file_listings_directory, public_links_directory)
     with open(os.path.join(private_json_directory, 'catalog.json'), 'w') as f:
         json.dump(private_catalog, f, indent=4)
+
+
+def write_file_listings(catalog, file_listings_directory, catalog_root_directory,
+                        file_extension_whitelist = ['.h5', '.txt', '.out', '.perl', '.tgz']):
+    import os
+    import os.path
+    import json
+    from . import _mkdir_recursively
+
+    def lsdir(path):
+        with os.scandir(os.path.realpath(path)) as it:
+            for entry in it:
+                if (not entry.name.startswith('.')
+                    and (entry.is_dir()
+                         or os.path.splitext(entry.name)[1].lower() in file_extension_whitelist)):
+                    yield entry.name
+
+    def path_to_dict(annex_root, path, depth=-1):
+        d = {
+            "basename": os.path.basename(path),
+            "depth": depth,
+            "path": path,
+        }
+        try:
+            if os.path.isdir(os.path.join(annex_root, path)):
+                children = [y
+                            for x in lsdir(os.path.join(annex_root, path))
+                            for y in [path_to_dict(annex_root, os.path.join(path, x), depth+1)]
+                            if y is not None]
+                if len(children) == 0:
+                    print("len == 0 in", path)
+                    return None
+                d['type'] = "directory"
+                d['children'] = sorted(children, key=lambda d: d['basename'].lower())
+            else:
+                split_extension = os.path.splitext(d['basename'])
+                if len(split_extension) < 1:
+                    print("len < 1 in", path)
+                    return None
+                d['type'] = split_extension[1].lower()
+                d['size'] = os.stat(os.path.join(annex_root, path)).st_size
+            return d
+        except:
+            print("Exception in", path)
+            raise
+
+    _mkdir_recursively(file_listings_directory)
+
+    for group in catalog:
+        name = group['name']
+        group_dir = group['_original_catalog_key']
+        d = path_to_dict(catalog_root_directory, group_dir)
+        if d is None:
+            continue
+        d['basename'] = name
+        print(d['basename'])
+        with open(os.path.join(file_listings_directory, name + '.json'), 'w') as f:
+            json.dump(d, f)
+
