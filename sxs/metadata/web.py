@@ -205,8 +205,7 @@ def write_file_listings(catalog, file_listings_directory, catalog_root_directory
 
     for group in catalog:
         name = group['name']
-        group_dir = group['_original_catalog_key']
-        d = path_to_dict(catalog_root_directory, group_dir)
+        d = path_to_dict(catalog_root_directory, name)
         if d is None:
             continue
         d['basename'] = name
