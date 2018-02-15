@@ -165,9 +165,14 @@ def write_file_listings(catalog, file_listings_directory, catalog_root_directory
     from . import _mkdir_recursively
 
     def lsdir(path):
-        for entry in os.listdir(os.path.realpath(path)):
+        path = os.path.realpath(path)
+        for entry in os.listdir(path):
+            # print(entry, path)
+            # print('\t', os.path.realpath(entry), os.path.join(path, entry))
+            # print('\t', os.path.isdir(os.path.join(path, entry)), os.path.splitext(entry)[1].lower(),
+            #       os.path.splitext(entry)[1].lower() in file_extension_whitelist)
             if (not entry.startswith('.')
-                and (os.path.isdir(entry)
+                and (os.path.isdir(os.path.join(path, entry))
                      or os.path.splitext(entry)[1].lower() in file_extension_whitelist)):
                 yield entry
         # with os.scandir(os.path.realpath(path)) as it:
@@ -203,8 +208,9 @@ def write_file_listings(catalog, file_listings_directory, catalog_root_directory
                 d['size'] = os.stat(os.path.join(annex_root, path)).st_size
             return d
         except:
-            print("Exception in", path)
-            raise
+            return None
+            # print("Exception in", path)
+            # raise
 
     _mkdir_recursively(file_listings_directory)
 
