@@ -165,12 +165,17 @@ def write_file_listings(catalog, file_listings_directory, catalog_root_directory
     from . import _mkdir_recursively
 
     def lsdir(path):
-        with os.scandir(os.path.realpath(path)) as it:
-            for entry in it:
-                if (not entry.name.startswith('.')
-                    and (entry.is_dir()
-                         or os.path.splitext(entry.name)[1].lower() in file_extension_whitelist)):
-                    yield entry.name
+        for entry in os.listdir(os.path.realpath(path)):
+            if (not entry.startswith('.')
+                and (os.path.is_dir(entry)
+                     or os.path.splitext(entry)[1].lower() in file_extension_whitelist)):
+                yield entry
+        # with os.scandir(os.path.realpath(path)) as it:
+        #     for entry in it:
+        #         if (not entry.name.startswith('.')
+        #             and (entry.is_dir()
+        #                  or os.path.splitext(entry.name)[1].lower() in file_extension_whitelist)):
+        #             yield entry.name
 
     def path_to_dict(annex_root, path, depth=-1):
         d = {
