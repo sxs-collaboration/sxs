@@ -167,7 +167,7 @@ def write_file_listings(catalog, file_listings_directory, catalog_root_directory
     def lsdir(path):
         for entry in os.listdir(os.path.realpath(path)):
             if (not entry.startswith('.')
-                and (os.path.is_dir(entry)
+                and (os.path.isdir(entry)
                      or os.path.splitext(entry)[1].lower() in file_extension_whitelist)):
                 yield entry
         # with os.scandir(os.path.realpath(path)) as it:
