@@ -220,7 +220,7 @@ def write_file_listings(catalog, file_listings_directory, catalog_root_directory
         if d is None:
             continue
         d['basename'] = name
-        print(d['basename'])
+        #print(d['basename'])
         with open(os.path.join(file_listings_directory, name + '.json'), 'w') as f:
             json.dump(d, f)
 
