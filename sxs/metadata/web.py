@@ -167,20 +167,10 @@ def write_file_listings(catalog, file_listings_directory, catalog_root_directory
     def lsdir(path):
         path = os.path.realpath(path)
         for entry in os.listdir(path):
-            # print(entry, path)
-            # print('\t', os.path.realpath(entry), os.path.join(path, entry))
-            # print('\t', os.path.isdir(os.path.join(path, entry)), os.path.splitext(entry)[1].lower(),
-            #       os.path.splitext(entry)[1].lower() in file_extension_whitelist)
             if (not entry.startswith('.')
                 and (os.path.isdir(os.path.join(path, entry))
                      or os.path.splitext(entry)[1].lower() in file_extension_whitelist)):
                 yield entry
-        # with os.scandir(os.path.realpath(path)) as it:
-        #     for entry in it:
-        #         if (not entry.name.startswith('.')
-        #             and (entry.is_dir()
-        #                  or os.path.splitext(entry.name)[1].lower() in file_extension_whitelist)):
-        #             yield entry.name
 
     def path_to_dict(annex_root, path, depth=-1):
         d = {
@@ -195,22 +185,18 @@ def write_file_listings(catalog, file_listings_directory, catalog_root_directory
                             for y in [path_to_dict(annex_root, os.path.join(path, x), depth+1)]
                             if y is not None]
                 if len(children) == 0:
-                    print("len == 0 in", path)
                     return None
                 d['type'] = "directory"
                 d['children'] = sorted(children, key=lambda d: d['basename'].lower())
             else:
                 split_extension = os.path.splitext(d['basename'])
                 if len(split_extension) < 1:
-                    print("len < 1 in", path)
                     return None
                 d['type'] = split_extension[1].lower()
                 d['size'] = os.stat(os.path.join(annex_root, path)).st_size
             return d
         except:
             return None
-            # print("Exception in", path)
-            # raise
 
     _mkdir_recursively(file_listings_directory)
 
