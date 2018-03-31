@@ -22,4 +22,4 @@ def authorization_header(error_if_not_found=True):
 
 
 
-curl -H 'Authorization: Bearer:Co3woTdgh00kgY46RrP51sVHZBFEiml6LeQq2xNK' 'http://api.adsabs.harvard.edu/v1/search/query?q=doi:10.1111/j.1365-2966.2010.18127.x&fl=pub+volume+issue+year+page'
+#curl -H 'Authorization: Bearer:Co3woTdgh00kgY46RrP51sVHZBFEiml6LeQq2xNK' 'http://api.adsabs.harvard.edu/v1/search/query?q=doi:10.1111/j.1365-2966.2010.18127.x&fl=pub+volume+issue+year+page'
