@@ -196,7 +196,7 @@ class Deposition(object):
             url = "{0}api/deposit/depositions/{1}".format(self.base_url, deposition_id)
             r = self.get(url)
             if r.status_code != 200:
-                print('The input deposition id "{0}" could not be accessed on {1}.'.format(self.deposition_id, url))
+                print('The input deposition id "{0}" could not be accessed on {1}.'.format(deposition_id, url))
                 print(r.json())
                 r.raise_for_status()
                 raise RuntimeError()  # Will only happen if the response was not strictly an error
@@ -556,7 +556,7 @@ class Deposition(object):
             for f in files:
                 path = os.path.join(root, f)
                 name = os.path.relpath(path, parent_directory)
-                print("Uploading\n    {0}\nas\n    {1}\n".format(path, name))
+                print("Uploading\n    {0}\nas\n    {1}".format(path, name))
                 self.upload_file(path, name=name)
                 print("Upload succeeded\n")
 
@@ -569,7 +569,7 @@ class Deposition(object):
         the metadata (including the description) without changing the DOI.
 
         """
-        url = '{0}api/deposit/depositions/{1}/actions/publish'.format(self.base_url, deposition_id)
+        url = '{0}api/deposit/depositions/{1}/actions/publish'.format(self.base_url, self.deposition_id)
         r = self.post(url)
         if r.status_code != 202:
             print('Publishing deposition {0} failed.'.format(self.deposition_id))
@@ -577,6 +577,7 @@ class Deposition(object):
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         r_json = r.json()
+        self._links = r_json['links']
         self._state = r_json['state']
         self._submitted = bool(r_json['submitted'])
         return r
