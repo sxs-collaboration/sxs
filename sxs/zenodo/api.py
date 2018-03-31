@@ -234,30 +234,13 @@ class Deposition(object):
         return self._state
     
     @property
+    def submitted(self):
+        return self._submitted
+    
+    @property
     def published(self):
         return self._submitted
     
-    def publish(self):
-        """Publish this deposition on Zenodo.
-
-        Note that you will not be able to change the files after publishing, unless you create a new
-        version of this deposition, which will result in a new DOI -- though anyone looking for this
-        deposition will see a notice that there is a newer version.  You will still be able to edit
-        the metadata (including the description) without changing the DOI.
-
-        """
-        url = '{0}api/deposit/depositions/{1}/actions/publish'.format(self.login.base_url, deposition_id)
-        r = self.login.session.post(url)
-        if r.status_code != 202:
-            print('Publishing deposition {0} failed.'.format(self.deposition_id))
-            print('The returned HTTP status code was "{0} {1}".'.format(r.status_code, responses[r.status_code]))
-            r.raise_for_status()
-            raise RuntimeError()  # Will only happen if the response was not strictly an error
-        r_json = r.json()
-        self._state = r_json['state']
-        self._submitted = bool(r_json['submitted'])
-        return r
-
     def delete(self, confirmed=False):
         """Permanently delete this deposition from Zenodo
 
@@ -531,6 +514,27 @@ class Deposition(object):
         if r.status_code != 200:
             print('Uploading {0} to deposition {1} failed.'.format(path, self.deposition_id))
             print('Upload url was {0}.'.format(url))
+            print('The returned HTTP status code was "{0} {1}".'.format(r.status_code, responses[r.status_code]))
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        r_json = r.json()
+        self._state = r_json['state']
+        self._submitted = bool(r_json['submitted'])
+        return r
+
+    def publish(self):
+        """Publish this deposition on Zenodo.
+
+        Note that you will not be able to change the files after publishing, unless you create a new
+        version of this deposition, which will result in a new DOI -- though anyone looking for this
+        deposition will see a notice that there is a newer version.  You will still be able to edit
+        the metadata (including the description) without changing the DOI.
+
+        """
+        url = '{0}api/deposit/depositions/{1}/actions/publish'.format(self.login.base_url, deposition_id)
+        r = self.login.session.post(url)
+        if r.status_code != 202:
+            print('Publishing deposition {0} failed.'.format(self.deposition_id))
             print('The returned HTTP status code was "{0} {1}".'.format(r.status_code, responses[r.status_code]))
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
