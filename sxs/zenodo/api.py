@@ -1,11 +1,7 @@
-class Login(object):
-    import requests
-    import json
-    import os
-    from http.client import responses
+url_standard = 'https://zenodo.org/'
+url_sandbox = 'https://sandbox.zenodo.org/'
 
-    url_standard = 'https://zenodo.org/'
-    url_sandbox = 'https://sandbox.zenodo.org/'
+class Login(object):
 
     def __init__(self, sandbox=False, access_token=None, access_token_path=None, session=None):
         """Initialize a Login object for interacting with zenodo
@@ -48,6 +44,9 @@ class Login(object):
                 {"Authorization": "Bearer <YourAccessTokenHere>"}
 
         """
+        import requests
+        import os
+
         self.sandbox = sandbox
         if self.sandbox:
             self.base_url = url_sandbox
@@ -105,10 +104,11 @@ class Login(object):
         if r.status_code == 401:
             print('The given Zenodo access token was not accepted by {0}.  Please ensure that it is still valid.'.format(self.base_url))
             print('Also note that zenodo.org and sandbox.zenodo.org use separate logins and separate access tokens.')
+            print(r.json())
             r.raise_for_status()
         elif r.status_code != 200:
             print('An unknown error occurred when trying to access {0}.'.format(self.base_url))
-            print('The returned HTTP status code was "{0} {1}".'.format(r.status_code, responses[r.status_code]))
+            print(r.json())
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
 
@@ -163,14 +163,13 @@ class Login(object):
         if r.status_code != 200:
             print('An unknown error occurred when trying to access {0}.'.format(url))
             print('The search parameters were "{0}"'.format(params))
-            print('The returned HTTP status code was "{0} {1}".'.format(r.status_code, responses[r.status_code]))
+            print(r.json())
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         return r.json()
 
 
 class Deposition(object):
-    from http.client import responses
 
     def __init__(self, login, deposition_id=None):
         """Initialize a Deposition object for creating a new zenodo entry
@@ -195,18 +194,18 @@ class Deposition(object):
         if deposition_id is not None:
             # If the deposition id was given, check that we can access it
             url = "{0}api/deposit/depositions/{1}".format(self.base_url, deposition_id)
-            r = self.login.session.get(url)
+            r = self.get(url)
             if r.status_code != 200:
                 print('The input deposition id "{0}" could not be accessed on {1}.'.format(self.deposition_id, url))
-                print('The returned HTTP status code was "{0} {1}".'.format(r.status_code, responses[r.status_code]))
+                print(r.json())
                 r.raise_for_status()
                 raise RuntimeError()  # Will only happen if the response was not strictly an error
         else:
             url = "{0}api/deposit/depositions".format(self.base_url)
-            r = self.login.session.post(url, data="{}")
+            r = self.post(url, data="{}")
             if r.status_code != 201:
                 print('Unable to create a new deposition on {0}.'.format(url))
-                print('The returned HTTP status code was "{0} {1}".'.format(r.status_code, responses[r.status_code]))
+                print(r.json())
                 r.raise_for_status()
                 raise RuntimeError()  # Will only happen if the response was not strictly an error
 
@@ -216,6 +215,26 @@ class Deposition(object):
         self._links = r_json['links']
         self._state = r_json['state']
         self._submitted = bool(r_json['submitted'])
+
+    @property
+    def base_url(self):
+        return self.login.base_url
+
+    @property
+    def get(self):
+        return self.login.session.get
+
+    @property
+    def post(self):
+        return self.login.session.post
+
+    @property
+    def put(self):
+        return self.login.session.put
+
+    @property
+    def delete(self):
+        return self.login.session.delete
 
     @property
     def id(self):
@@ -240,45 +259,34 @@ class Deposition(object):
     @property
     def published(self):
         return self._submitted
-    
-    def delete(self, confirmed=False):
-        """Permanently delete this deposition from Zenodo
 
-        If you are sure that you want to delete this deposition, you can pass `confirmed=True`.
-        Otherwise, you will be prompted to input 'yes' in order to complete the deletion.  This
-        prompt will only last for 60 seconds.  If no input is given, we assume that the answer is
-        'no', a warning is printed, and the program continues.
-
-        """
-        if not confirmed:
-            import sys, select
-            timeout = 60
-            print("Please confirm that you want to delete the deposition {0}.".format(self.deposition_id))
-            print("You have {0} seconds to confirm by entering 'yes'.".format(timeout))
-            i, o, e = select.select([sys.stdin], [], [], timeout)
-            if not i or sys.stdin.readline().strip().lower() != 'yes':
-                print('No confirmation received.  Aborting deletion of zenodo deposition {0}.'.format(self.deposition_id))
-                raise RuntimeError('No confirmation')
-        url = '{0}api/deposit/depositions/{1}'.format(self.login.base_url, deposition_id)
-        r = self.login.session.delete(url)
-        # TODO: Check if this really should be 204; the documentation is contradictory, and says '201 Created' somewhere else
-        if r.status_code != 204:
-            print('Deleting deposition {0} failed.'.format(self.deposition_id))
-            print('The returned HTTP status code was "{0} {1}".'.format(r.status_code, responses[r.status_code]))
+    @property
+    def files(self):
+        url = '{0}api/deposit/depositions/{1}/files'.format(self.base_url, self.deposition_id)
+        r = self.get(url)
+        if r.status_code != 200:
+            print('Getting file listing for deposition {0} failed.'.format(self.deposition_id))
+            print(r.json())
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        r_json = r.json()
-        self._state = r_json['state']
-        self._submitted = bool(r_json['submitted'])
-        return r
+        return r.json()
 
-    def update(self, data):
-        """Update this deposition with the given data
+    def update(self, metadata):
+        """Update this deposition with the given metadata
 
-        The `data` argument should be a dictionary representing the metadata
+        The `metadata` argument should be a dictionary representing the metadata
 
         Metadata keys and allowed values
         ================================
+        title: string, required
+
+        creators: list of dictionaries, required
+            Each entry should be a dictionary of these entries:
+                * name: Name of creator in the format Family name, Given names
+                * affiliation: Affiliation of creator (optional).
+                * orcid: ORCID identifier of creator (optional).
+                * gnd: GND identifier of creator (optional).
+
         upload_type: string, required
             * 'publication'
             * 'poster'
@@ -312,15 +320,6 @@ class Deposition(object):
         
         publication_date: string [defaults to current date]
             Date of publication in ISO8601 format (YYYY-MM-DD).
-
-        title: string, required
-
-        creators: list of dictionaries, required
-            Each entry should be a dictionary of these entries:
-                * name: Name of creator in the format Family name, Given names
-                * affiliation: Affiliation of creator (optional).
-                * orcid: ORCID identifier of creator (optional).
-                * gnd: GND identifier of creator (optional).
 
         description: string, required
             Abstract or description for deposition. The following HTML tags are allowed: a, p, br,
@@ -473,19 +472,17 @@ class Deposition(object):
             Congress ISO 639 codes list.
 
         """
-        url = "{0}api/deposit/depositions/{1}".format(self.login.base_url, self.deposition_id)
-        r = self.login.session.put(url, data=data)
+        import json
+        url = "{0}api/deposit/depositions/{1}".format(self.base_url, self.deposition_id)
+        r = self.put(url, data=json.dumps({'metadata': metadata}))
         if r.status_code != 200:
             print('Updating deposition {0} failed.'.format(self.deposition_id))
-            print('The returned HTTP status code was "{0} {1}".'.format(r.status_code, responses[r.status_code]))
+            print(r.json())
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        r_json = r.json()
-        self._state = r_json['state']
-        self._submitted = bool(r_json['submitted'])
         return r
 
-    def upload_file(self, path, name=None, relpath_start=os.curdir):
+    def upload_file(self, path, name=None, relpath_start=None):
         """Upload a single file to the deposition
 
         Parameters
@@ -502,6 +499,11 @@ class Deposition(object):
             Relative or absolute path at which to start the relative path to the `name` if required.
 
         """
+        import os
+
+        if relpath_start is None:
+            relpath_start = os.curdir
+
         if name is None:
             abspath = os.path.abspath(path)
             absstart = os.path.abspath(relpath_start)
@@ -509,18 +511,54 @@ class Deposition(object):
             pardir_sep = os.pardir + os.sep
             while name.startswith(pardir_sep):
                 name = name[len(pardir_sep):]
-        url = '{0}/{1}'.format(self.links['bucket_url'], name)
-        r = requests.put(url, data=open(path, 'rb'),  headers={"Content-Type":"application/octet-stream"})
+        url = '{0}/{1}'.format(self.links['bucket'], name)
+        r = self.put(url, data=open(path, 'rb'),  headers={"Content-Type":"application/octet-stream"})
         if r.status_code != 200:
             print('Uploading {0} to deposition {1} failed.'.format(path, self.deposition_id))
             print('Upload url was {0}.'.format(url))
-            print('The returned HTTP status code was "{0} {1}".'.format(r.status_code, responses[r.status_code]))
+            print(r.json())
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        r_json = r.json()
-        self._state = r_json['state']
-        self._submitted = bool(r_json['submitted'])
+
         return r
+
+    def upload_all_files(self, top_directory, exclude=[]):
+        """Recursively upload all files found in `top_directory`
+
+        Each file is named with its path relative to the parent directory of `top_directory`.
+
+        Parameters
+        ==========
+        top_directory: string
+            Absolute or relative path to the top directory from which the recursive search for files
+            begins.
+        exclude: list of strings
+            Each string is compiled as a regular expression.  The path to each directory and file
+            relative to `top_directory` is searched for a match, and if found that item is excluded.
+            In particular, if a directory matches, no files from that directory will be uploaded.
+
+        """
+        import os
+        import re
+        exclude = [re.compile(exclusion) for exclusion in exclude]
+        top_directory = os.path.abspath(top_directory)
+        parent_directory = os.path.dirname(top_directory)
+        for root, dirs, files in os.walk(top_directory, topdown=True):
+            dirs.sort(key=str.lower)  # Go in case-insensitive alphabetical order
+            files.sort(key=str.lower)  # Go in case-insensitive alphabetical order
+            for exclusion in exclude:
+                for d in dirs:
+                    if exclusion.search(os.path.relpath(d, top_directory)):
+                        dirs.remove(d)
+                for f in files:
+                    if exclusion.search(os.path.relpath(f, top_directory)):
+                        files.remove(f)
+            for f in files:
+                path = os.path.join(root, f)
+                name = os.path.relpath(path, parent_directory)
+                print("Uploading\n    {0}\nas\n    {1}\n".format(path, name))
+                self.upload_file(path, name=name)
+                print("Upload succeeded\n")
 
     def publish(self):
         """Publish this deposition on Zenodo.
@@ -531,11 +569,42 @@ class Deposition(object):
         the metadata (including the description) without changing the DOI.
 
         """
-        url = '{0}api/deposit/depositions/{1}/actions/publish'.format(self.login.base_url, deposition_id)
-        r = self.login.session.post(url)
+        url = '{0}api/deposit/depositions/{1}/actions/publish'.format(self.base_url, deposition_id)
+        r = self.post(url)
         if r.status_code != 202:
             print('Publishing deposition {0} failed.'.format(self.deposition_id))
-            print('The returned HTTP status code was "{0} {1}".'.format(r.status_code, responses[r.status_code]))
+            print(r.json())
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        r_json = r.json()
+        self._state = r_json['state']
+        self._submitted = bool(r_json['submitted'])
+        return r
+    
+    def delete(self, confirmed=False):
+        """Permanently delete this deposition from Zenodo
+
+        If you are sure that you want to delete this deposition, you can pass `confirmed=True`.
+        Otherwise, you will be prompted to input 'yes' in order to complete the deletion.  This
+        prompt will only last for 60 seconds.  If no input is given, we assume that the answer is
+        'no', a warning is printed, and the program continues.
+
+        """
+        if not confirmed:
+            import sys, select
+            timeout = 60
+            print("Please confirm that you want to delete the deposition {0}.".format(self.deposition_id))
+            print("You have {0} seconds to confirm by entering 'yes'.".format(timeout))
+            i, o, e = select.select([sys.stdin], [], [], timeout)
+            if not i or sys.stdin.readline().strip().lower() != 'yes':
+                print('No confirmation received.  Aborting deletion of zenodo deposition {0}.'.format(self.deposition_id))
+                raise RuntimeError('No confirmation')
+        url = '{0}api/deposit/depositions/{1}'.format(self.base_url, deposition_id)
+        r = self.delete(url)
+        # TODO: Check if this really should be 204; the documentation is contradictory, and says '201 Created' somewhere else
+        if r.status_code != 204:
+            print('Deleting deposition {0} failed.'.format(self.deposition_id))
+            print(r.json())
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         r_json = r.json()
