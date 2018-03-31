@@ -106,7 +106,7 @@ class Login(object):
             print('The given Zenodo access token was not accepted by {0}.  Please ensure that it is still valid.'.format(self.base_url))
             print('Also note that zenodo.org and sandbox.zenodo.org use separate logins and separate access tokens.')
             r.raise_for_status()
-        else if r.status_code != 200:
+        elif r.status_code != 200:
             print('An unknown error occurred when trying to access {0}.'.format(self.base_url))
             print('The returned HTTP status code was "{0} {1}".'.format(r.status_code, responses[r.status_code]))
             r.raise_for_status()
@@ -202,8 +202,8 @@ class Deposition(object):
                 r.raise_for_status()
                 raise RuntimeError()  # Will only happen if the response was not strictly an error
         else:
-            url = "{0}api/deposit/depositions".format(self.base_url, self.deposition_id), data="{}"
-            r = self.login.session.post(url)
+            url = "{0}api/deposit/depositions".format(self.base_url)
+            r = self.login.session.post(url, data="{}")
             if r.status_code != 201:
                 print('Unable to create a new deposition on {0}.'.format(url))
                 print('The returned HTTP status code was "{0} {1}".'.format(r.status_code, responses[r.status_code]))
