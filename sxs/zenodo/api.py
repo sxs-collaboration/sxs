@@ -1,6 +1,16 @@
 url_standard = 'https://zenodo.org/'
 url_sandbox = 'https://sandbox.zenodo.org/'
 
+
+def md5checksum(file_name):
+    from hashlib import md5
+    hash_md5 = md5()
+    with open(file_name, "rb") as f:
+        for chunk in iter(lambda: f.read(32768), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
+
 class Login(object):
 
     def __init__(self, sandbox=False, access_token=None, access_token_path=None, session=None):
@@ -79,7 +89,7 @@ class Login(object):
                         self.access_token = f.readline().strip()
                     self.access_argument = "access_token_path='{0}'".format(access_token_path)
                 except IOError:
-                    print('Unable to find the Zenodo access token needed to make a Deposition.')
+                    print('Unable to find the Zenodo access token needed to make a deposition.')
                     print('Failed to open file "{0}" for reading.'.format(path))
                     raise
                 if not self.access_token:
@@ -194,7 +204,7 @@ class Deposition(object):
         if deposition_id is not None:
             # If the deposition id was given, check that we can access it
             url = "{0}api/deposit/depositions/{1}".format(self.base_url, deposition_id)
-            r = self.get(url)
+            r = self._get(url)
             if r.status_code != 200:
                 print('The input deposition id "{0}" could not be accessed on {1}.'.format(deposition_id, url))
                 print(r.json())
@@ -202,7 +212,7 @@ class Deposition(object):
                 raise RuntimeError()  # Will only happen if the response was not strictly an error
         else:
             url = "{0}api/deposit/depositions".format(self.base_url)
-            r = self.post(url, data="{}")
+            r = self._post(url, data="{}")
             if r.status_code != 201:
                 print('Unable to create a new deposition on {0}.'.format(url))
                 print(r.json())
@@ -210,68 +220,187 @@ class Deposition(object):
                 raise RuntimeError()  # Will only happen if the response was not strictly an error
 
         # Now, using the response generated above, set some data describing this deposition
-        r_json = r.json()
-        self._deposition_id = r_json['id']
-        self._links = r_json['links']
-        self._state = r_json['state']
-        self._submitted = bool(r_json['submitted'])
+        self._representation = r.json()
 
     @property
     def base_url(self):
         return self.login.base_url
 
     @property
-    def get(self):
+    def _get(self):
         return self.login.session.get
 
     @property
-    def post(self):
+    def _post(self):
         return self.login.session.post
 
     @property
-    def put(self):
+    def _put(self):
         return self.login.session.put
 
     @property
-    def delete(self):
+    def _delete(self):
         return self.login.session.delete
 
     @property
-    def id(self):
-        return self._deposition_id
+    def refresh_information(self):
+        """Retrieve current information about this Deposition from Zenodo
 
-    @property
-    def deposition_id(self):
-        return self._deposition_id
-    
-    @property
-    def links(self):
-        return self._links
-    
-    @property
-    def state(self):
-        return self._state
-    
-    @property
-    def submitted(self):
-        return self._submitted
-    
-    @property
-    def published(self):
-        return self._submitted
+        This function updates this object's `representation` data, which contains information like
+        the id, metadata, submission status, and various links for this deposition.  That
+        information is also used by many of this object's other member functions.
 
-    @property
-    def files(self):
-        url = '{0}api/deposit/depositions/{1}/files'.format(self.base_url, self.deposition_id)
-        r = self.get(url)
+        """
+        url = "{0}api/deposit/depositions/{1}".format(self.base_url, self.deposition_id)
+        r = self._get(url)
         if r.status_code != 200:
-            print('Getting file listing for deposition {0} failed.'.format(self.deposition_id))
+            print('This deposition (id "{0}") could not be accessed on {1}.'.format(self.deposition_id, url))
             print(r.json())
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        return r.json()
+        self._representation = r.json()
+        return self.representation
 
-    def update(self, metadata):
+    @property
+    def representation(self):
+        return self._representation
+
+    @property
+    def links(self):
+        return self.representation['links']
+    
+    @property
+    def deposition_id(self):
+        """Return id number of this deposition"""
+        return self.id
+
+    @property
+    def id(self):
+        """Return id number of this deposition"""
+        return self.representation['id']
+
+    @property
+    def id_latest(self):
+        """Return id number of the most recent version of this deposition"""
+        return self.links['latest'].split('/')[-1]
+
+    @property
+    def id_latest_draft(self):
+        """Return id number of the most recent draft (unpublished) version of this deposition
+
+        Note: There may be no draft version, in which case this function will raise a KeyError.
+
+        """
+        return self.links['latest_draft'].split('/')[-1]
+
+    @property
+    def website(self):
+        """URL of web page on which this deposition is found"""
+        return self.links['html']
+
+    @property
+    def website_latest(self):
+        """URL of web page on which the current version of this deposition is found"""
+        return self.links['latest_html']
+
+    @property
+    def website_latest_draft(self):
+        """URL of web page on which the current draft (unpublished) version of this deposition is found
+
+        Note: There may be no draft version, in which case this function will raise a KeyError.
+
+        """
+        return self.links['latest_draft_html']
+
+    @property
+    def record(self):
+        """URL of API endpoint for this deposition"""
+        return self.links['record']
+
+    @property
+    def record_latest(self):
+        """URL of API endpoint for most recent version of this deposition"""
+        return self.links['latest']
+
+    @property
+    def record_latest_draft(self):
+        """URL of API endpoint for most recent draft (unpublished) version of this deposition
+
+        Note: There may be no draft version, in which case this function will raise a KeyError.
+
+        """
+        return self.links['latest_draft']
+
+    @property
+    def state(self):
+        """Current status of this deposition
+
+        May be one of:
+            * inprogress: Deposition metadata can be updated. If deposition is also unsubmitted (see
+              submitted) files can be updated as well.
+            * done: Deposition has been published. 
+            * error: Deposition is in an error state - contact Zenodo support.
+
+        """
+        return self.representation['state']
+    
+    @property
+    def submitted(self):
+        """Return True if this deposition has been submitted/published"""
+        return bool(self.representation['submitted'])
+    
+    @property
+    def published(self):
+        """Return True if this deposition has been submitted/published"""
+        return self.submitted
+
+    @property
+    def is_latest(self):
+        """Return True if this deposition is the most recent version"""
+        return (self.links['latest'] == self.links['record'])
+
+    def get_latest(self):
+        """Return a new Deposition object pointing to the latest version of this deposition
+        
+        Note: This deposition may already be the latest version, in which case a new object pointing
+        to this deposition is returned.
+
+        """
+        return self.login.deposition(self.id_latest)
+
+    def get_latest_draft(self):
+        """Return a new Deposition object pointing to the latest draft (unpublished) version of this deposition
+
+        Note: There may be no draft version, in which case this function will raise a KeyError.
+
+        """
+        return self.login.deposition(self.id_latest_draft)
+
+    @property
+    def files(self):
+        """Return list of dictionaries describing uploaded files
+
+        Each file is described by a dictionary containing these keys:
+
+            * checksum (MD5 fingerprint)
+            * filename
+            * filesize (in bytes)
+            * id (Zenodo-generated hex id of this file)
+            * links
+                * download
+                * self
+
+        The last item, 'links' is another dictionary giving a couple URLs; it is not clear how to
+        use these URLs.  For example, trying to get the 'download' link results in a 404 message.
+
+        """
+        return self.representation['files']
+
+    @property
+    def file_checksums(self):
+        return {d['filename']: d['checksum'] for d in self.files}
+
+    def update_metadata(self, metadata):
         """Update this deposition with the given metadata
 
         The `metadata` argument should be a dictionary representing the metadata
@@ -474,16 +603,103 @@ class Deposition(object):
         """
         import json
         url = "{0}api/deposit/depositions/{1}".format(self.base_url, self.deposition_id)
-        r = self.put(url, data=json.dumps({'metadata': metadata}))
+        r = self._put(url, data=json.dumps({'metadata': metadata}))
         if r.status_code != 200:
             print('Updating deposition {0} failed.'.format(self.deposition_id))
             print(r.json())
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
+        self.refresh_information
         return r
 
+    def edit(self):
+        """Unlock a previously submitted deposition for editing."""
+        url = "{0}api/deposit/depositions/{1}/actions/edit".format(self.base_url, self.deposition_id)
+        r = self._post(url)
+        if r.status_code == 400:
+            print('Deposition state does not allow for editing (e.g., depositions in state `inprogress`).')
+            print(r.json())
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        elif r.status_code == 409:
+            print('Deposition is in the process of being integrated.  Please wait 5 minutes before trying again.')
+            print(r.json())
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        elif r.status_code != 201:
+            print('Unlocking deposition {0} for editing failed.'.format(self.deposition_id))
+            print(r.json())
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        self.refresh_information
+        return r
+        
+    def discard(self):
+        """Discard changes in the current editing session."""
+        url = "{0}api/deposit/depositions/{1}/actions/discard".format(self.base_url, self.deposition_id)
+        r = self._post(url)
+        if r.status_code == 400:
+            print('Deposition is not being edited.')
+            print(r.json())
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        elif r.status_code != 201:
+            print('Discarding changes from the current editing session to deposition {0} failed.'.format(self.deposition_id))
+            print(r.json())
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        self.refresh_information
+        return r
+
+    def get_new_version(self):
+        """Create a new Deposition object describing a new version of this deposition.
+
+        This action will create a new deposit, which will be a snapshot of the current resouce,
+        inheriting the metadata as well as snapshot of files. The new version deposit will have a
+        state similar to a new, unpublished deposit, most importantly its files will be modifiable
+        as for a new deposit.
+
+        Only one unpublished new version deposit can be available at any moment, i.e.: calling new
+        version action multiple times will have no effect, as long as the resulting new version
+        deposit from the first call is not published or deleted.
+
+        """
+        self.register_new_version()
+        return self.login.deposition(self.id_latest_draft)
+        
+    def register_new_version(self):
+        """Create a new version of a deposition.
+
+        This action will create a new deposit, which will be a snapshot of the current resouce,
+        inheriting the metadata as well as snapshot of files. The new version deposit will have a
+        state similar to a new, unpublished deposit, most importantly its files will be modifiable
+        as for a new deposit.
+
+        Only one unpublished new version deposit can be available at any moment, i.e.: calling new
+        version action multiple times will have no effect, as long as the resulting new version
+        deposit from the first call is not published or deleted.
+
+        NOTE: The response body of this action is NOT the new version deposit, but the original
+        resource. The new version deposition can be accessed through the "latest_draft" under
+        "links" in the response body.
+
+        """
+        url = "{0}api/deposit/depositions/{1}/actions/newversion".format(self.base_url, self.deposition_id)
+        r = self._post(url)
+        if r.status_code != 201:
+            print('Updating deposition {0} failed.'.format(self.deposition_id))
+            print(r.json())
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        self.refresh_information
+        return r
+        
     def upload_file(self, path, name=None, relpath_start=None):
         """Upload a single file to the deposition
+
+        The current list of files uploaded to Zenodo is checked.  If `name` is in that list, the MD5
+        checksum of `path` is evaluated and compared to the MD5 checksum of the file on Zenodo.  If
+        they match, the upload is skipped and `None` is returned.
 
         Parameters
         ==========
@@ -500,10 +716,8 @@ class Deposition(object):
 
         """
         import os
-
         if relpath_start is None:
             relpath_start = os.curdir
-
         if name is None:
             abspath = os.path.abspath(path)
             absstart = os.path.abspath(relpath_start)
@@ -511,15 +725,20 @@ class Deposition(object):
             pardir_sep = os.pardir + os.sep
             while name.startswith(pardir_sep):
                 name = name[len(pardir_sep):]
+        file_checksums = self.file_checksums
+        if name in file_checksums:
+            if md5checksum(path) == file_checksums[name]:
+                print('File {0} has already been uploaded.  Skipping this upload.'.format(name))
+                return None
         url = '{0}/{1}'.format(self.links['bucket'], name)
-        r = self.put(url, data=open(path, 'rb'),  headers={"Content-Type":"application/octet-stream"})
+        r = self._put(url, data=open(path, 'rb'),  headers={"Content-Type":"application/octet-stream"})
         if r.status_code != 200:
             print('Uploading {0} to deposition {1} failed.'.format(path, self.deposition_id))
             print('Upload url was {0}.'.format(url))
             print(r.json())
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-
+        self.refresh_information
         return r
 
     def upload_all_files(self, top_directory, exclude=[]):
@@ -570,16 +789,13 @@ class Deposition(object):
 
         """
         url = '{0}api/deposit/depositions/{1}/actions/publish'.format(self.base_url, self.deposition_id)
-        r = self.post(url)
+        r = self._post(url)
         if r.status_code != 202:
             print('Publishing deposition {0} failed.'.format(self.deposition_id))
             print(r.json())
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        r_json = r.json()
-        self._links = r_json['links']
-        self._state = r_json['state']
-        self._submitted = bool(r_json['submitted'])
+        self.refresh_information
         return r
     
     def delete(self, confirmed=False):
@@ -601,16 +817,14 @@ class Deposition(object):
                 print('No confirmation received.  Aborting deletion of zenodo deposition {0}.'.format(self.deposition_id))
                 raise RuntimeError('No confirmation')
         url = '{0}api/deposit/depositions/{1}'.format(self.base_url, deposition_id)
-        r = self.delete(url)
+        r = self._delete(url)
         # TODO: Check if this really should be 204; the documentation is contradictory, and says '201 Created' somewhere else
         if r.status_code != 204:
             print('Deleting deposition {0} failed.'.format(self.deposition_id))
             print(r.json())
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        r_json = r.json()
-        self._state = r_json['state']
-        self._submitted = bool(r_json['submitted'])
+        self.refresh_information
         return r
 
     def __del__(self):
@@ -635,7 +849,7 @@ class Deposition(object):
                 >>> from sxs.zenodo import Login
                 >>> l = Login(<YourLoginInfo>)
                 >>> d = l.deposition({deposition_id})
-                >>> # d.upload_file(...), d.update(...), etc.
+                >>> # d.upload_file(...), d.update_metadata(...), etc.
                 >>> d.publish()
 
             or
