@@ -18,7 +18,7 @@ class Login(object):
 
         This object encapsulates the credentials needed to interact with the Zenodo API.  It can be
         used for generic requests, but note that other objects in this module make certain tasks
-        easier -- such as creating or modifying a "deposition", which is Zenodo's name for a new
+        easier -- such as creating or modifying a "deposit", which is Zenodo's name for a new
         upload.
 
         Parameters
@@ -89,13 +89,13 @@ class Login(object):
                         self.access_token = f.readline().strip()
                     self.access_argument = "access_token_path='{0}'".format(access_token_path)
                 except IOError:
-                    print('Unable to find the Zenodo access token needed to make a deposition.')
+                    print('Unable to find the Zenodo access token needed to make a deposit.')
                     print('Failed to open file "{0}" for reading.'.format(path))
                     raise
                 if not self.access_token:
                     print('The file "{0}" did not contain any text on the first line.'.format(path))
-                    print('This is should be a Zenodo access token, which is need to make a Deposition.')
-                    raise ValueError('Deposition requires a Zenodo access token')
+                    print('This is should be a Zenodo access token, which is need to make a Deposit.')
+                    raise ValueError('Deposit requires a Zenodo access token')
 
             # Ensure that, by default, this session sends the Authorization header
             self.session.headers.update({"Authorization": "Bearer {0}".format(self.access_token)})
@@ -114,26 +114,31 @@ class Login(object):
         if r.status_code == 401:
             print('The given Zenodo access token was not accepted by {0}.  Please ensure that it is still valid.'.format(self.base_url))
             print('Also note that zenodo.org and sandbox.zenodo.org use separate logins and separate access tokens.')
-            print(r.json())
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
         elif r.status_code != 200:
             print('An unknown error occurred when trying to access {0}.'.format(self.base_url))
-            print(r.json())
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
 
     @property
-    def new_deposition(self):
-        """Create a new Deposition object using this login"""
-        return self.deposition()
+    def new_deposit(self):
+        """Create a new Deposit object using this login"""
+        return self.deposit()
 
-    def deposition(self, deposition_id=None):
-        """Retrieve a deposition created with this login"""
-        return Deposition(self, deposition_id)
+    def deposit(self, deposition_id=None):
+        """Retrieve a deposit created with this login"""
+        return Deposit(self, deposition_id)
 
-    @property
-    def list_depositions(self, q=None, status=None, sort=None, page=None, size=None):
-        """Return list of dictionaries describing each deposition created with this login
+    def list_deposits(self, q=None, status=None, sort=None, page=None, size=None):
+        """Return list of dictionaries describing each deposit created with this login
 
         It is possible to filter the results use the optional parameters
 
@@ -173,16 +178,19 @@ class Login(object):
         if r.status_code != 200:
             print('An unknown error occurred when trying to access {0}.'.format(url))
             print('The search parameters were "{0}"'.format(params))
-            print(r.json())
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         return r.json()
 
 
-class Deposition(object):
+class Deposit(object):
 
     def __init__(self, login, deposition_id=None):
-        """Initialize a Deposition object for creating a new zenodo entry
+        """Initialize a Deposit object for creating a new zenodo entry
 
         This object encapsulates all the actions you might want to take when creating, publishing,
         updating, or replacing an entry in zenodo.
@@ -194,37 +202,39 @@ class Deposition(object):
             Zenodo API.  See the help string for `Login` in this module.
 
         deposition_id: string, int, or None [default: None]
-            If present, this is used as the id of the deposition to edit.  If `None`, a new
-            deposition is created.
+            If present, this is used as the id of the deposit to edit.  If `None`, a new
+            deposit is created.
 
         """
         self.login = login
 
-        # Now, create or reacquire the specific deposition we're looking for
+        # Now, create or reacquire the specific deposit we're looking for
         if deposition_id is not None:
-            # If the deposition id was given, check that we can access it
+            # If the deposit id was given, check that we can access it
             url = "{0}api/deposit/depositions/{1}".format(self.base_url, deposition_id)
             r = self._get(url)
             if r.status_code != 200:
                 print('The input deposition id "{0}" could not be accessed on {1}.'.format(deposition_id, url))
-                print(r.json())
+                try:
+                    print(r.json())
+                except:
+                    pass
                 r.raise_for_status()
                 raise RuntimeError()  # Will only happen if the response was not strictly an error
         else:
             url = "{0}api/deposit/depositions".format(self.base_url)
             r = self._post(url, data="{}")
             if r.status_code != 201:
-                print('Unable to create a new deposition on {0}.'.format(url))
-                print(r.json())
+                print('Unable to create a new deposit on {0}.'.format(url))
+                try:
+                    print(r.json())
+                except:
+                    pass
                 r.raise_for_status()
                 raise RuntimeError()  # Will only happen if the response was not strictly an error
 
-        # Now, using the response generated above, set some data describing this deposition
+        # Now, using the response generated above, set some data describing this deposit
         self._representation = r.json()
-
-    @property
-    def base_url(self):
-        return self.login.base_url
 
     @property
     def _get(self):
@@ -244,26 +254,37 @@ class Deposition(object):
 
     @property
     def refresh_information(self):
-        """Retrieve current information about this Deposition from Zenodo
+        """Retrieve current information about this Deposit from Zenodo
 
         This function updates this object's `representation` data, which contains information like
-        the id, metadata, submission status, and various links for this deposition.  That
+        the id, metadata, submission status, and various links for this deposit.  That
         information is also used by many of this object's other member functions.
 
         """
         url = "{0}api/deposit/depositions/{1}".format(self.base_url, self.deposition_id)
         r = self._get(url)
         if r.status_code != 200:
-            print('This deposition (id "{0}") could not be accessed on {1}.'.format(self.deposition_id, url))
-            print(r.json())
+            print('This deposit (id "{0}") could not be accessed on {1}.'.format(self.deposition_id, url))
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         self._representation = r.json()
         return self.representation
 
     @property
+    def base_url(self):
+        return self.login.base_url
+
+    @property
     def representation(self):
         return self._representation
+
+    @property
+    def metadata(self):
+        return self.representation['metadata']
 
     @property
     def links(self):
@@ -271,22 +292,22 @@ class Deposition(object):
     
     @property
     def deposition_id(self):
-        """Return id number of this deposition"""
+        """Return id number of this deposit"""
         return self.id
 
     @property
     def id(self):
-        """Return id number of this deposition"""
+        """Return id number of this deposit"""
         return self.representation['id']
 
     @property
     def id_latest(self):
-        """Return id number of the most recent version of this deposition"""
+        """Return id number of the most recent version of this deposit"""
         return self.links['latest'].split('/')[-1]
 
     @property
     def id_latest_draft(self):
-        """Return id number of the most recent draft (unpublished) version of this deposition
+        """Return id number of the most recent draft (unpublished) version of this deposit
 
         Note: There may be no draft version, in which case this function will raise a KeyError.
 
@@ -295,17 +316,17 @@ class Deposition(object):
 
     @property
     def website(self):
-        """URL of web page on which this deposition is found"""
+        """URL of web page on which this deposit is found"""
         return self.links['html']
 
     @property
     def website_latest(self):
-        """URL of web page on which the current version of this deposition is found"""
+        """URL of web page on which the current version of this deposit is found"""
         return self.links['latest_html']
 
     @property
     def website_latest_draft(self):
-        """URL of web page on which the current draft (unpublished) version of this deposition is found
+        """URL of web page on which the current draft (unpublished) version of this deposit is found
 
         Note: There may be no draft version, in which case this function will raise a KeyError.
 
@@ -314,17 +335,17 @@ class Deposition(object):
 
     @property
     def record(self):
-        """URL of API endpoint for this deposition"""
+        """URL of API endpoint for this deposit"""
         return self.links['record']
 
     @property
     def record_latest(self):
-        """URL of API endpoint for most recent version of this deposition"""
+        """URL of API endpoint for most recent version of this deposit"""
         return self.links['latest']
 
     @property
     def record_latest_draft(self):
-        """URL of API endpoint for most recent draft (unpublished) version of this deposition
+        """URL of API endpoint for most recent draft (unpublished) version of this deposit
 
         Note: There may be no draft version, in which case this function will raise a KeyError.
 
@@ -333,48 +354,52 @@ class Deposition(object):
 
     @property
     def state(self):
-        """Current status of this deposition
+        """Current status of this deposit
 
         May be one of:
-            * inprogress: Deposition metadata can be updated. If deposition is also unsubmitted (see
+            * inprogress: Deposit metadata can be updated. If deposit is also unsubmitted (see
               submitted) files can be updated as well.
-            * done: Deposition has been published. 
-            * error: Deposition is in an error state - contact Zenodo support.
+            * done: Deposit has been published. 
+            * error: Deposit is in an error state - contact Zenodo support.
 
         """
         return self.representation['state']
     
     @property
     def submitted(self):
-        """Return True if this deposition has been submitted/published"""
+        """Return True if this deposit has been submitted/published"""
         return bool(self.representation['submitted'])
     
     @property
     def published(self):
-        """Return True if this deposition has been submitted/published"""
+        """Return True if this deposit has been submitted/published"""
         return self.submitted
 
     @property
     def is_latest(self):
-        """Return True if this deposition is the most recent version"""
+        """Return True if this deposit is the most recent version"""
         return (self.links['latest'] == self.links['record'])
 
     def get_latest(self):
-        """Return a new Deposition object pointing to the latest version of this deposition
+        """Return a new Deposit object pointing to the latest version of this deposit
         
-        Note: This deposition may already be the latest version, in which case a new object pointing
-        to this deposition is returned.
+        Note: This deposit may already be the latest version, in which case a new object pointing
+        to this deposit is returned.
 
         """
-        return self.login.deposition(self.id_latest)
+        return self.login.deposit(self.id_latest)
 
     def get_latest_draft(self):
-        """Return a new Deposition object pointing to the latest draft (unpublished) version of this deposition
+        """Return a new Deposit object pointing to the latest draft (unpublished) version of this deposit
 
         Note: There may be no draft version, in which case this function will raise a KeyError.
 
         """
-        return self.login.deposition(self.id_latest_draft)
+        return self.login.deposit(self.id_latest_draft)
+
+    @property
+    def title(self):
+        return self.representation['title']
 
     @property
     def files(self):
@@ -401,9 +426,15 @@ class Deposition(object):
         return {d['filename']: d['checksum'] for d in self.files}
 
     def update_metadata(self, metadata):
-        """Update this deposition with the given metadata
+        """Update this deposit with the given metadata
 
-        The `metadata` argument should be a dictionary representing the metadata
+        The `metadata` argument should be a dictionary representing the metadata.
+
+        Note that a deposit cannot be published unless all required metadata fields are present,
+        including things like 'doi', which are automatically assigned by the system.  So if you are
+        changing the metadata of a deposit, it's usually simpler to copy the metadata, modify it
+        as desired, and then use this function to update it on Zenodo.
+
 
         Metadata keys and allowed values
         ================================
@@ -451,7 +482,7 @@ class Deposition(object):
             Date of publication in ISO8601 format (YYYY-MM-DD).
 
         description: string, required
-            Abstract or description for deposition. The following HTML tags are allowed: a, p, br,
+            Abstract or description for deposit. The following HTML tags are allowed: a, p, br,
             blockquote, strong, b, u, i, em, ul, ol, li, sub, sup, div, strike.
 
         access_right: string [defaults to 'open']
@@ -475,13 +506,13 @@ class Deposition(object):
             strike.
 
         keywords: list of strings
-            Free form keywords for this deposition.
+            Free form keywords for this deposit.
 
         notes: string
             Additional notes. No HTML allowed.
 
         communities: list of dictionaries
-            List of communities in which you wish the deposition to appear. The owner of the
+            List of communities in which you wish the deposit to appear. The owner of the
             community will be notified, and can either accept or reject your request. Each array
             element is a dictionary with the key 'identifier' followed by the name of a Zenodo
             community.
@@ -489,12 +520,12 @@ class Deposition(object):
         doi: string
             Digital Object Identifier. Did a publisher already assign a DOI to your deposited files?
             If not, leave the field empty and we will register a new DOI for you when you publish. A
-            DOI allow others to easily and unambiguously cite your deposition.
+            DOI allow others to easily and unambiguously cite your deposit.
 
         prereserve_doi: bool
             Set to `True`, to reserve a Digital Object Identifier (DOI). The DOI is automatically
             generated by our system and cannot be changed. Also, The DOI is not registered with
-            DataCite until you publish your deposition, and thus cannot be used before
+            DataCite until you publish your deposit, and thus cannot be used before
             then. Reserving a DOI is useful, if you need to include it in the files you upload, or
             if you need to provide a dataset DOI to your publisher but not yet publish your
             dataset. The response from the REST API will include the reserved DOI.
@@ -510,7 +541,7 @@ class Deposition(object):
                   compiles, isCompiledBy, isIdenticalTo, isAlternateIdentifier).
 
         contributors: list of dictionaries
-            The contributors of the deposition (e.g., editors, data curators, etc.). Each array
+            The contributors of the deposit (e.g., editors, data curators, etc.). Each array
             element is a dictionary with the keys:
                 * name: Name of creator in the format Family name, Given names
                 * type: Contributor type. Controlled vocabulary (ContactPerson, DataCollector,
@@ -524,19 +555,19 @@ class Deposition(object):
 
         grants: list of dictionaries
             List of OpenAIRE-supported grants, which have funded the research for this
-            deposition. Each array element is an object with the key 'id' giving the grant ID.
+            deposit. Each array element is an object with the key 'id' giving the grant ID.
 
         journal_title: string
-            Journal title, if deposition is a published article.
+            Journal title, if deposit is a published article.
 
         journal_volume: string
-            Journal volume, if deposition is a published article.
+            Journal volume, if deposit is a published article.
 
         journal_issue: string
-            Journal issue, if deposition is a published article.
+            Journal issue, if deposit is a published article.
 
         journal_pages: string
-            Journal pages, if deposition is a published article.
+            Journal pages, if deposit is a published article.
 
         conference_title: string
             Title of conference (e.g., 20th International Conference on Computing in High Energy and
@@ -605,30 +636,42 @@ class Deposition(object):
         url = "{0}api/deposit/depositions/{1}".format(self.base_url, self.deposition_id)
         r = self._put(url, data=json.dumps({'metadata': metadata}))
         if r.status_code != 200:
-            print('Updating deposition {0} failed.'.format(self.deposition_id))
-            print(r.json())
+            print('Updating deposit {0} failed.'.format(self.deposition_id))
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         self.refresh_information
         return r
 
     def edit(self):
-        """Unlock a previously submitted deposition for editing."""
+        """Unlock a previously submitted deposit for editing."""
         url = "{0}api/deposit/depositions/{1}/actions/edit".format(self.base_url, self.deposition_id)
         r = self._post(url)
         if r.status_code == 400:
-            print('Deposition state does not allow for editing (e.g., depositions in state `inprogress`).')
-            print(r.json())
+            print('Deposit state does not allow for editing (e.g., deposits in state `inprogress`).')
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         elif r.status_code == 409:
-            print('Deposition is in the process of being integrated.  Please wait 5 minutes before trying again.')
-            print(r.json())
+            print('Deposit is in the process of being integrated.  Please wait 5 minutes before trying again.')
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         elif r.status_code != 201:
-            print('Unlocking deposition {0} for editing failed.'.format(self.deposition_id))
-            print(r.json())
+            print('Unlocking deposit {0} for editing failed.'.format(self.deposition_id))
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         self.refresh_information
@@ -639,20 +682,28 @@ class Deposition(object):
         url = "{0}api/deposit/depositions/{1}/actions/discard".format(self.base_url, self.deposition_id)
         r = self._post(url)
         if r.status_code == 400:
-            print('Deposition is not being edited.')
-            print(r.json())
+            print('Deposit is not being edited.')
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         elif r.status_code != 201:
-            print('Discarding changes from the current editing session to deposition {0} failed.'.format(self.deposition_id))
-            print(r.json())
+            print('Discarding changes from the current editing session to deposit {0} failed.'.format(self.deposition_id))
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         self.refresh_information
         return r
 
     def get_new_version(self):
-        """Create a new Deposition object describing a new version of this deposition.
+        """Create a new Deposit object describing a new version of this deposit.
+
+        To publish the new version, its files must differ from all previous versions.
 
         This action will create a new deposit, which will be a snapshot of the current resouce,
         inheriting the metadata as well as snapshot of files. The new version deposit will have a
@@ -665,10 +716,12 @@ class Deposition(object):
 
         """
         self.register_new_version()
-        return self.login.deposition(self.id_latest_draft)
+        return self.login.deposit(self.id_latest_draft)
         
     def register_new_version(self):
-        """Create a new version of a deposition.
+        """Create a new version of a deposit.
+
+        To publish the new version, its files must differ from all previous versions.
 
         This action will create a new deposit, which will be a snapshot of the current resouce,
         inheriting the metadata as well as snapshot of files. The new version deposit will have a
@@ -680,22 +733,25 @@ class Deposition(object):
         deposit from the first call is not published or deleted.
 
         NOTE: The response body of this action is NOT the new version deposit, but the original
-        resource. The new version deposition can be accessed through the "latest_draft" under
+        resource. The new version deposit can be accessed through the "latest_draft" under
         "links" in the response body.
 
         """
         url = "{0}api/deposit/depositions/{1}/actions/newversion".format(self.base_url, self.deposition_id)
         r = self._post(url)
         if r.status_code != 201:
-            print('Updating deposition {0} failed.'.format(self.deposition_id))
-            print(r.json())
+            print('Updating deposit {0} failed.'.format(self.deposition_id))
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         self.refresh_information
         return r
         
     def upload_file(self, path, name=None, relpath_start=None):
-        """Upload a single file to the deposition
+        """Upload a single file to the deposit
 
         The current list of files uploaded to Zenodo is checked.  If `name` is in that list, the MD5
         checksum of `path` is evaluated and compared to the MD5 checksum of the file on Zenodo.  If
@@ -706,7 +762,7 @@ class Deposition(object):
         path: string
             Relative or absolute path to the file to upload
         name: string or None [default: None]
-            Name of the file as it should appear in the deposition.  This can be the same as or
+            Name of the file as it should appear in the deposit.  This can be the same as or
             different from the path, and can contain directories.  If this is None, the name will be
             the relative path from `relpath_start` to the file itself.  Note that if the absolute
             path to `relpath_start` is not contained within the absolute path to `path`, then that
@@ -733,9 +789,12 @@ class Deposition(object):
         url = '{0}/{1}'.format(self.links['bucket'], name)
         r = self._put(url, data=open(path, 'rb'),  headers={"Content-Type":"application/octet-stream"})
         if r.status_code != 200:
-            print('Uploading {0} to deposition {1} failed.'.format(path, self.deposition_id))
+            print('Uploading {0} to deposit {1} failed.'.format(path, self.deposition_id))
             print('Upload url was {0}.'.format(url))
-            print(r.json())
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         self.refresh_information
@@ -780,28 +839,48 @@ class Deposition(object):
                 print("Upload succeeded\n")
 
     def publish(self):
-        """Publish this deposition on Zenodo.
+        """Publish this deposit on Zenodo.
+
+        In order to be published successfully, a deposit must contain at least one file, and all
+        of the required metadata fields must be present.  In particular if you have changed the
+        metadata, be sure that you have not removed one of the fields that is automatically
+        assigned, like 'doi' or 'prereserve_doi', etc.
 
         Note that you will not be able to change the files after publishing, unless you create a new
-        version of this deposition, which will result in a new DOI -- though anyone looking for this
-        deposition will see a notice that there is a newer version.  You will still be able to edit
+        version of this deposit, which will result in a new DOI -- though anyone looking for this
+        deposit will see a notice that there is a newer version.  You will still be able to edit
         the metadata (including the description) without changing the DOI.
 
         """
         url = '{0}api/deposit/depositions/{1}/actions/publish'.format(self.base_url, self.deposition_id)
         r = self._post(url)
-        if r.status_code != 202:
-            print('Publishing deposition {0} failed.'.format(self.deposition_id))
-            print(r.json())
+        if r.status_code == 500:
+            print('Server returned the code "500 Internal Server Error".')
+            print('This can have any number of causes, but frequently it is because not')
+            print('all of the required information is present.  In particular, every')
+            print('deposit must contain at least one file, and all of its metadata')
+            print('must be present.  See the warning in `Deposit.update_metadata`.')
+            try:
+                print(r.json())
+            except:
+                pass
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        elif r.status_code != 202:
+            print('Publishing deposit {0} failed.'.format(self.deposition_id))
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         self.refresh_information
         return r
     
     def delete(self, confirmed=False):
-        """Permanently delete this deposition from Zenodo
+        """Permanently delete this deposit from Zenodo
 
-        If you are sure that you want to delete this deposition, you can pass `confirmed=True`.
+        If you are sure that you want to delete this deposit, you can pass `confirmed=True`.
         Otherwise, you will be prompted to input 'yes' in order to complete the deletion.  This
         prompt will only last for 60 seconds.  If no input is given, we assume that the answer is
         'no', a warning is printed, and the program continues.
@@ -810,21 +889,22 @@ class Deposition(object):
         if not confirmed:
             import sys, select
             timeout = 60
-            print("Please confirm that you want to delete the deposition {0}.".format(self.deposition_id))
+            print("Please confirm that you want to delete the deposit {0}.".format(self.deposition_id))
             print("You have {0} seconds to confirm by entering 'yes'.".format(timeout))
             i, o, e = select.select([sys.stdin], [], [], timeout)
             if not i or sys.stdin.readline().strip().lower() != 'yes':
-                print('No confirmation received.  Aborting deletion of zenodo deposition {0}.'.format(self.deposition_id))
+                print('No confirmation received.  Aborting deletion of zenodo deposit {0}.'.format(self.deposition_id))
                 raise RuntimeError('No confirmation')
-        url = '{0}api/deposit/depositions/{1}'.format(self.base_url, deposition_id)
+        url = '{0}api/deposit/depositions/{1}'.format(self.base_url, self.deposition_id)
         r = self._delete(url)
-        # TODO: Check if this really should be 204; the documentation is contradictory, and says '201 Created' somewhere else
         if r.status_code != 204:
-            print('Deleting deposition {0} failed.'.format(self.deposition_id))
-            print(r.json())
+            print('Deleting deposit {0} failed.'.format(self.deposition_id))
+            try:
+                print(r.json())
+            except:
+                pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        self.refresh_information
         return r
 
     def __del__(self):
@@ -832,11 +912,9 @@ class Deposition(object):
             from textwrap import dedent
             from warnings import warn
 
-            self.sandbox, self.access_argument
-            
             warning = r"""\
-            The Zenodo Deposition object has not been published.  The deposition id is '{deposition_id}'.
-            If you want to publish this deposition, you can do it manually from the website by
+            The Zenodo Deposit object has not been published.  The deposit id is '{deposition_id}'.
+            If you want to publish this deposit, you can do it manually from the website by
             going to
 
                 {base_url}deposit/{deposition_id}
@@ -848,7 +926,7 @@ class Deposition(object):
 
                 >>> from sxs.zenodo import Login
                 >>> l = Login(<YourLoginInfo>)
-                >>> d = l.deposition({deposition_id})
+                >>> d = l.deposit({deposition_id})
                 >>> # d.upload_file(...), d.update_metadata(...), etc.
                 >>> d.publish()
 
@@ -856,5 +934,5 @@ class Deposition(object):
 
                 >>> d.delete()
 
-            """.format(deposition_id=self.deposition_id, base_url=self.l.base_url)
+            """.format(deposition_id=self.deposition_id, base_url=self.base_url)
             warn(dedent(warning))
