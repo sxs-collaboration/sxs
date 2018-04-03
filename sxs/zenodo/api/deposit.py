@@ -236,6 +236,10 @@ class Deposit(object):
     def file_checksums(self):
         return {d['filename']: d['checksum'] for d in self.files}
 
+    @property
+    def file_names(self):
+        return [d['filename'] for d in self.files]
+
     def update_metadata(self, metadata):
         """Update this deposit with the given metadata
 
@@ -561,7 +565,7 @@ class Deposit(object):
         self.refresh_information
         return r
         
-    def upload_file(self, path, name=None, relpath_start=None):
+    def upload_file(self, path, name=None, relpath_start=None, skip_checksum=False):
         """Upload a single file to the deposit
 
         The current list of files uploaded to Zenodo is checked.  If `name` is in that list, the MD5
@@ -580,6 +584,10 @@ class Deposit(object):
             name would start with '../' or something.  All such parts are removed from the `name`.
         relpath_start: string [default: current directory]
             Relative or absolute path at which to start the relative path to the `name` if required.
+        skip_checksum: bool [default: False]
+            If True, ignore the checksum and always upload the file.  If False, see if any file with
+            exactly this name and checksum has been uploaded to Zenodo; if so, don't bother
+            uploading it again.
 
         """
         import os
@@ -592,11 +600,12 @@ class Deposit(object):
             pardir_sep = os.pardir + os.sep
             while name.startswith(pardir_sep):
                 name = name[len(pardir_sep):]
-        file_checksums = self.file_checksums
-        if name in file_checksums:
-            if md5checksum(path) == file_checksums[name]:
-                print('File {0} has already been uploaded.  Skipping this upload.'.format(name))
-                return None
+        if not skip_checksum:
+            file_checksums = self.file_checksums
+            if name in file_checksums:
+                if md5checksum(path) == file_checksums[name]:
+                    print('File {0} has already been uploaded.  Skipping this upload.'.format(name))
+                    return None
         url = '{0}/{1}'.format(self.links['bucket'], name)
         r = self._put(url, data=open(path, 'rb'),  headers={"Content-Type": "application/octet-stream"})
         if r.status_code != 200:
@@ -611,43 +620,22 @@ class Deposit(object):
         self.refresh_information
         return r
 
-    def upload_all_files(self, top_directory, exclude=[]):
+    def upload_all_files(self, top_directory, exclude=[], skip_checksum=False):
         """Recursively upload all files found in `top_directory`
 
-        Each file is named with its path relative to the parent directory of `top_directory`.
-
-        Parameters
-        ==========
-        top_directory: string
-            Absolute or relative path to the top directory from which the recursive search for files
-            begins.
-        exclude: list of strings
-            Each string is compiled as a regular expression.  The path to each directory and file
-            relative to `top_directory` is searched for a match, and if found that item is excluded.
-            In particular, if a directory matches, no files from that directory will be uploaded.
+        This function simply calls the `zenodo.api.utilities.find_files` function, and then calls
+        `upload_file` for each one.  See those functions for explanations of the parameters to this
+        function.
 
         """
         import os
         import re
-        exclude = [re.compile(exclusion) for exclusion in exclude]
-        top_directory = os.path.abspath(top_directory)
-        parent_directory = os.path.dirname(top_directory)
-        for root, dirs, files in os.walk(top_directory, topdown=True):
-            dirs.sort(key=str.lower)  # Go in case-insensitive alphabetical order
-            files.sort(key=str.lower)  # Go in case-insensitive alphabetical order
-            for exclusion in exclude:
-                for d in dirs:
-                    if exclusion.search(os.path.relpath(d, top_directory)):
-                        dirs.remove(d)
-                for f in files:
-                    if exclusion.search(os.path.relpath(f, top_directory)):
-                        files.remove(f)
-            for f in files:
-                path = os.path.join(root, f)
-                name = os.path.relpath(path, parent_directory)
-                print("Uploading\n    {0}\nas\n    {1}".format(path, name))
-                self.upload_file(path, name=name)
-                print("Upload succeeded\n")
+        from .utilities import find_files
+        paths_and_names = find_files(top_directory, exclude=exclude)
+        for path, name in paths_and_names:
+            print("Uploading\n    {0}\nas\n    {1}".format(path, name))
+            self.upload_file(path, name=name, skip_checksum=skip_checksum)
+            print("Upload succeeded\n")
 
     def publish(self):
         """Publish this deposit on Zenodo.
