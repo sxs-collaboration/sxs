@@ -11,15 +11,84 @@ def md5checksum(file_name):
     return hash_md5.hexdigest()
 
 
+def search_records(q=None, status=None, sort=None, page=None, size=None, sandbox=False):
+    """Search public records
+
+    It is possible to filter the results use the optional parameters.  Note that the web interface
+    can sometimes be used to find search parameters by looking in the `search-hidden-params`
+    parameter of the `invenio-search` tag.
+
+    Example queries
+    ===============
+    {'q': 'title "SXS:BBH:0003"'}  # Finds titles with given string; use quotes for robustness
+    {'q': 'provisional_communities:sxs'}  # Records awaiting approval for a community
+    {'q': 'owners: 38418'}  # Find records by id number of owner
+
+    Optional parameters
+    ===================
+    q: string
+        Search query (using Elasticsearch query string syntax)
+
+    status: string
+        Filter result based on deposit status (either 'draft' or 'published')
+
+    sort: string
+        Sort order ('bestmatch' or 'mostrecent').  Prefix with minus to change form ascending to
+        descending (e.g., '-mostrecent').
+
+    page: int
+        Page number for pagination
+
+    size: int
+        Number of results to return per page
+
+    sandbox: bool [defaults to False]
+        If true use sandbox.zenodo.org instead of the standard site.
+
+    """
+    import requests
+    if sandbox:
+        base_url = url_sandbox
+    else:
+        base_url = url_standard
+    url = base_url + "api/records/"
+    params={}
+    if q is not None:
+        params['q'] = q
+    if status is not None:
+        params['status'] = status
+    if sort is not None:
+        params['sort'] = sort
+    if page is not None:
+        params['page'] = page
+    if size is not None:
+        params['size'] = size
+    r = requests.get(url, params=params, headers={'Accept': 'application/json'})
+    if r.status_code != 200:
+        print('An unknown error occurred when trying to access {0}.'.format(url))
+        print('The search parameters were "{0}"'.format(params))
+        try:
+            print(r.json())
+        except:
+            pass
+        r.raise_for_status()
+        raise RuntimeError()  # Will only happen if the response was not strictly an error
+    return r.json()
+    
+
+
 class Login(object):
 
     def __init__(self, sandbox=False, access_token=None, access_token_path=None, session=None):
         """Initialize a Login object for interacting with zenodo
 
-        This object encapsulates the credentials needed to interact with the Zenodo API.  It can be
-        used for generic requests, but note that other objects in this module make certain tasks
-        easier -- such as creating or modifying a "deposit", which is Zenodo's name for a new
-        upload.
+        This object encapsulates the credentials needed to interact with the Zenodo API, and exposes
+        a Session object that can be used to make requests which automatically include the
+        credentials.  It can be used for generic requests, but note that other objects in this
+        module make certain tasks easier -- such as creating or modifying a "deposit", which is
+        Zenodo's name for a new upload.  Thus, for most tasks you probably don't want to use this
+        object directly.
+
 
         Parameters
         ==========
@@ -178,6 +247,20 @@ class Login(object):
         if r.status_code != 200:
             print('An unknown error occurred when trying to access {0}.'.format(url))
             print('The search parameters were "{0}"'.format(params))
+            try:
+                print(r.json())
+            except:
+                pass
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        return r.json()
+
+    def community_curate_accept(community_id, record_id):
+        url = "https://zenodo.org/communities/{0}/curate/".format(community_id)
+        data = {"action": "accept", "recid": record_id}
+        r = self.session.post(url, data=data)
+        if r.status_code != 201:
+            print('Unable to accept record id {0} into community {1}.'.format(record_id, community_id))
             try:
                 print(r.json())
             except:
