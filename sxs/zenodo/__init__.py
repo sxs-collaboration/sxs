@@ -1,12 +1,18 @@
 from .api import Login, Deposit, Records
 
 
-def publish_sxs_bbh_simulation(sxs_bbh_directory_name, sandbox=False, deposition_id=None,
-                               access_token=None, access_token_path=None, session=None,
-                               creators=None, description=None, keywords=None,
-                               access_right='open', license='cc-by'):
+def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, excludes=[],
+                               sandbox=False, deposition_id=None, access_token_path=None,
+                               access_right='open', license='cc-by',
+                               creators=None, description=None, keywords=None):
+    """Publish or edit a Zenodo entry for an SXS:BBH simulation
+
+
+    """
     import re
     import os
+    from .api import md5checksum, find_files
+    from ..metadata import Metadata
 
     if not os.path.isdir(sxs_bbh_directory_name):
         print('The input directory name "{0}" does not appear to be a directory.'.format(sxs_bbh_directory_name))
@@ -23,9 +29,9 @@ def publish_sxs_bbh_simulation(sxs_bbh_directory_name, sandbox=False, deposition
         raise ValueError(sxs_bbh_directory_name)
 
     # Log in to zenodo
-    l = Login(sandbox, access_token, access_token_path, session)
+    l = Login(sandbox=sandbox, access_token_path=access_token_path)
 
-    # Get this deposit
+    # Get this deposit and the title
     if deposition_id is not None:
         d = l.deposit(deposition_id)
         title = d.title
@@ -62,28 +68,53 @@ def publish_sxs_bbh_simulation(sxs_bbh_directory_name, sandbox=False, deposition
             d = l.new_deposit
 
 
-    # Get the list of files we'll be uploading and compare to files already in the deposit to see if
-    # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
-    # version.
-    
-    if len(new_files) == 0:
-        print('Zenodo requires that there be at least one file')
-        raise ValueError('No files found')
-
-
     # Convert each metadata.txt file to a metadata.json file sorted with interesting stuff at the
-    # top of the file, so it appears on Zenodo's preview.
-
+    # top of the file, so it appears prominently on Zenodo's preview without scrolling.  Do this
+    # before checking for new files in case these are new or get changed in the process.
+    paths_and_names = find_files(sxs_bbh_directory_name, excludes=excludes)
+    for path,_ in paths_and_names:
+        if path.endswith('metadata.txt'):
+            json_path = os.path.join(os.path.dirname(path), 'metadata.json')
+            Metadata.from_txt_file(path, cache_json=False).reorder_keys().to_json_file(json_path)
     ### OrderedDict(sorted(foo.iteritems(), key=lambda x: x[1]['depth']))
 
 
+    # Get the list of files we'll be uploading and compare to files already in the deposit to see if
+    # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
+    # version.
+    zenodo_filenames = d.file_names
+    local_paths_and_names = find_files(sxs_bbh_directory_name, excludes=exclude_files)
+    if len(local_paths_and_names) == 0:
+        print('Zenodo requires that there be at least one file.  None found in {0}.'.format(sxs_bbh_directory_name))
+        raise ValueError('No files found')
+    local_filenames = [name for path, name in local_paths_and_names]
+    zenodo_filenames_to_delete = [zf for zf in zenodo_filenames if not zf in local_filenames]
+    file_checksums = d.file_checksums  # {filename: checksum}
+    for path, name in local_paths_and_names:
+        if name in file_checksums:
+            zenodo_checksum = file_checksums[name]
+            local_checksum = md5checksum(path)
+            if zenodo_checksum == local_checksum:
+                local_paths_and_names.remove([path, name])
+    if not zenodo_filenames_to_delete and not local_paths_and_names:
+        # No files will change, so we just want to edit this Deposit
+        d.edit()
+    else:
+        # We need to create a new deposit to change the files
+        d = d.get_new_version()
+
+
     # Get list of creators, keywords, and description
-
+    if creators is None:
+        raise NotImplementedError()
+    if keywords is None:
+        raise NotImplementedError()
     if description is None:
-        description = dedent("""\
-        Simulation of a black-hole binary system evolved by the <a href="">SpEC code</a>.
-        """)
-
+        description = d.metadata.get('description', '')
+        if not description:
+            spec_url = "https://www.black-holes.org/code/SpEC.html"
+            description = """Simulation of a black-hole binary system evolved by the <a href="{0}">SpEC code</a>."""
+            description = description.format(spec_url)
 
     # Construct the Zenodo metadata
     new_metadata = {
@@ -102,8 +133,6 @@ def publish_sxs_bbh_simulation(sxs_bbh_directory_name, sandbox=False, deposition
 
     # Publish this version
     d.publish()
+    print('Finished publishing {0} to {1}.'.format(title, d.website))
 
-
-
-    
-
+    return d
