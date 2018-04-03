@@ -246,6 +246,45 @@ class Metadata(collections.OrderedDict):
                 kwargs[_valid_identifier(key)] = kwargs.pop(key)
         super(Metadata, self).__init__(*args, **kwargs)
 
+    def reorder_keys(self, order=None):
+        """Return a copy of this object with keys reordered
+
+        It is sometimes nice to reorder the keys of the metadata to display the most interesting
+        quantities first.  The usual order output by SpEC, for example, hides crucial quantities
+        like the masses and spins after lots of uninteresting keys like the author list and various
+        bibtex groups.  This function allows the keys to be reordered using exact matches and
+        regular expressions.
+
+        """
+        import re
+        if order is None:
+            order = [
+                'simulation_name',
+                'alternative_names',
+                'initial_data_type',
+                'number_of_orbits',
+                'relaxed_mass1',
+                'relaxed_mass2',
+                'relaxed_dimensionless_spin1',
+                'relaxed_dimensionless_spin2',
+                'relaxed_eccentricity',
+                'relaxed_orbital_frequency',
+                'relaxed.*',
+            ]
+        original = self.copy()
+        new = type(self)()
+        for ordered_key in order:
+            if ordered_key in original:
+                new[ordered_key] = original.pop(ordered_key)
+            else:
+                key_pattern = re.compile(ordered_key)
+                for key in list(original):
+                    if key_pattern.match(key):
+                        new[key] = original.pop(key)
+        for key in original:
+            new[key] = original[key]
+        return new
+
     @classmethod
     def fromkeys(cls, iterable):
         iterable = [(_valid_identifier(k), v) for k, v in iterable]
