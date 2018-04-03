@@ -1,9 +1,10 @@
 from .api import Login, Deposit, Records
-from .creators import creators
 
 
 def publish_sxs_bbh_simulation(sxs_bbh_directory_name, sandbox=False, deposition_id=None,
-                               access_token=None, access_token_path=None, session=None):
+                               access_token=None, access_token_path=None, session=None,
+                               creators=None, description=None, keywords=None,
+                               access_right='open', license='cc-by'):
     import re
     import os
 
@@ -24,49 +25,64 @@ def publish_sxs_bbh_simulation(sxs_bbh_directory_name, sandbox=False, deposition
     # Log in to zenodo
     l = Login(sandbox, access_token, access_token_path, session)
 
-    # Get this deposition
+    # Get this deposit
     if deposition_id is not None:
-        d = l.deposition(deposition_id)
+        d = l.deposit(deposition_id)
         title = d.title
     else:
-        # Check to see if this simulation exists in the list of the user's depositions or in the sxs community
+        # Check to see if this simulation exists in the list of the user's deposits or in the sxs community
         title = 'Binary black-hole simulation {0}'.format(sxs_bbh)
-        matching_depositions = l.list_depositions(q='title: "{0}"'.format(title))
-        if len(matching_depositions) == 1:
-            deposition_id = matching_depositions[0]['id']
-            print('A deposition with title "{0}"'.format(title))
+        matching_deposits = l.list_deposits(q='title: "{0}"'.format(title))
+        if len(matching_deposits) == 1:
+            deposition_id = matching_deposits[0]['id']
+            print('A deposit with title "{0}"'.format(title))
             print('has already been started with this login.  Opening it for editing.')
-            d = l.deposition(deposition_id)
-        elif len(matching_depositions) > 1:
-            print('Multiple depositions titled "{0}" have been found.'.format(title))
+            d = l.deposit(deposition_id)
+        elif len(matching_deposits) > 1:
+            print('Multiple deposits titled "{0}" have been found.'.format(title))
             raise ValueError(title)
-        elif len(matching_depositions) == 0:
+        elif len(matching_deposits) == 0:
             # Check to see if this simulation is already in sxs but not owned by this login
-            r = l.session.get("https://zenodo.org/api/records/", params={'q': 'title: "{0}"'.format(title)})
-            if r.status_code != 200:
-                print('An unknown error occurred when trying to access https://zenodo.org/api/records/.')
-                try:
-                    print(r.json())
-                except:
-                    pass
-                r.raise_for_status()
-                raise RuntimeError()  # Will only happen if the response was not strictly an error
-            communities = [community['identifier'] for representation in r.json()
+            records = Records.search('title: "{0}"'.format(title))
+            records = [r for r in records if r['title'] == title]  # Ensure *exact* match
+            communities = [community['identifier']
+                           for representation in records
                            for community in representation['metadata']['communities']]
             if 'sxs' in communities:
-                print('')
+                print('A record exists on Zenodo with exactly the name "{0}",'.format(title))
+                print('but is apparently owned by someone else in the "sxs" community.')
+                print('Please contact the owner of that record if you wish to update it.')
+                print('Web link: {0}'.format(records[0]['links']['html']))
                 raise ValueError(title)
-            d = l.new_deposition
-        
+            elif len(communities) > 0:
+                print('A record exists on Zenodo with exactly the name "{0}",'.format(title))
+                print('but is apparently not owned by you, nor is it in the "sxs" community.')
+                print('Web link: {0}'.format(records[0]['links']['html']))
+                raise ValueError(title)
+            d = l.new_deposit
+
+
+    # Get the list of files we'll be uploading and compare to files already in the deposit to see if
+    # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
+    # version.
     
-    
-    # Get the list of files we'll be uploading and compare to files already in the deposition
+    if len(new_files) == 0:
+        print('Zenodo requires that there be at least one file')
+        raise ValueError('No files found')
 
 
-    # Convert each metadata.txt file to a metadata.json file
+    # Convert each metadata.txt file to a metadata.json file sorted with interesting stuff at the
+    # top of the file, so it appears on Zenodo's preview.
+
+    ### OrderedDict(sorted(foo.iteritems(), key=lambda x: x[1]['depth']))
 
 
-    # Get list of creators and keywords
+    # Get list of creators, keywords, and description
+
+    if description is None:
+        description = dedent("""\
+        Simulation of a black-hole binary system evolved by the <a href="">SpEC code</a>.
+        """)
 
 
     # Construct the Zenodo metadata
@@ -76,19 +92,18 @@ def publish_sxs_bbh_simulation(sxs_bbh_directory_name, sandbox=False, deposition
         'keywords': keywords,
         'creator': creators,
         'upload_type': 'dataset',
-        'access_right': 'open',
+        'access_right': access_right,
         'license': 'cc-by',
         'communities': [{'identifier': 'sxs'}],
     }
     metadata = d.metadata
-    metadata.update(new_metadata)
+    metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
+    d.update_metadata(metadata)
+
+    # Publish this version
+    d.publish()
+
+
 
     
-        
-
-
-
-    
-    OrderedDict(sorted(foo.iteritems(), key=lambda x: x[1]['depth']))
-
 
