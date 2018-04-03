@@ -7,8 +7,21 @@ class Login(object):
         a Session object that can be used to make requests which automatically include the
         credentials.  It can be used for generic requests, but note that other objects in this
         module make certain tasks easier -- such as creating or modifying a "deposit", which is
-        Zenodo's name for a new upload.  Thus, for most tasks you probably don't want to use this
-        object directly.
+        Zenodo's name for a new upload.  The Deposit object should be created from this object.
+
+        These actions require a Zenodo API access token.  These are obtained from the website --
+        either
+            https://zenodo.org/account/settings/applications/tokens/new/
+        or
+            https://sandbox.zenodo.org/account/settings/applications/tokens/new/
+        Note that zenodo.org and sandbox.zenodo.org use separate login systems and separate access
+        tokens.  The access token may either be passed as a string to this function (though that
+        means it will probably be found in some script file somewhere, which is probably not a good
+        idea for security), or can be read from a file.  By default the file from which the token is
+        read is '~/.credentials/zenodo/access_token' or the same name with '_sandbox' appended.
+        Thus, it is probably easiest to simply place your access tokens in those files, so that no
+        arguments need to be passed to this function.  As a basic security measure, please ensure
+        that those files are not readable by anyone but the user.
 
 
         Parameters
@@ -19,21 +32,13 @@ class Login(object):
             long.
 
         access_token: string or None [default: None]
-            If present this is used as the zenodo API access token.  These are obtained from the
-            website -- either
-                https://zenodo.org/account/settings/applications/tokens/new/
-            or
-                https://sandbox.zenodo.org/account/settings/applications/tokens/new/
-            Note that zenodo.org and sandbox.zenodo.org use separate login systems and separate
-            access tokens.
+            If present this is used as the Zenodo API access token.
 
         access_token_path: string or None [default: None]
             If `access_token` is not given, this file is read and the first line is used as the
             access token.  If this argument is None, it defaults to either
             '~/.credentials/zenodo/access_token' for the regular website or
-            '~/.credentials/zenodo/access_token_sandbox' for the sandbox website.  As a basic
-            security measure, please ensure that these files are not readable by anyone but the
-            user.
+            '~/.credentials/zenodo/access_token_sandbox' for the sandbox website.
 
         session: requests.Session or None [default: None]
             This is the object that handles all of the requests made to the API.  If `None`, a
