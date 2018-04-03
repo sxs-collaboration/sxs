@@ -1,4 +1,4 @@
-from .api import Login, Deposition
+from .api import Login, Deposit, Records
 from .creators import creators
 
 
@@ -41,7 +41,7 @@ def publish_sxs_bbh_simulation(sxs_bbh_directory_name, sandbox=False, deposition
             print('Multiple depositions titled "{0}" have been found.'.format(title))
             raise ValueError(title)
         elif len(matching_depositions) == 0:
-            # Check to see if this simulation is already in sxs
+            # Check to see if this simulation is already in sxs but not owned by this login
             r = l.session.get("https://zenodo.org/api/records/", params={'q': 'title: "{0}"'.format(title)})
             if r.status_code != 200:
                 print('An unknown error occurred when trying to access https://zenodo.org/api/records/.')
