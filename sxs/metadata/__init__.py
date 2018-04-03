@@ -271,18 +271,20 @@ class Metadata(collections.OrderedDict):
                 'relaxed_orbital_frequency',
                 'relaxed.*',
             ]
-        original = self.copy()
+        original_keys = list(self)
         new = type(self)()
         for ordered_key in order:
-            if ordered_key in original:
-                new[ordered_key] = original.pop(ordered_key)
+            if ordered_key in original_keys:
+                new[ordered_key] = self[ordered_key]
+                original_keys.remove(ordered_key)
             else:
                 key_pattern = re.compile(ordered_key)
-                for key in list(original):
+                for key in list(original_keys):  # Iterate over a *copy* of the original_keys list
                     if key_pattern.match(key):
-                        new[key] = original.pop(key)
-        for key in original:
-            new[key] = original[key]
+                        new[key] = self[key]
+                        original_keys.remove(key)
+        for key in original_keys:
+            new[key] = self[key]
         return new
 
     @classmethod
