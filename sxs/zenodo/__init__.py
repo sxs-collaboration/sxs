@@ -168,9 +168,8 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
     d.update_metadata(metadata)
 
-    # # Publish this version
-    # d.publish()
-    # print('Finished publishing {0} to {1}.'.format(title, d.website))
-    print('Skipped publishing {0} to {1}.'.format(title, d.website))
+    # Publish this version
+    d.publish()
+    print('Finished publishing {0} to {1}.'.format(title, d.website))
 
     return d
