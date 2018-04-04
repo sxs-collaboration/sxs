@@ -4,7 +4,8 @@ from .api import Login, Deposit, Records
 def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                                sandbox=False, deposition_id=None, access_token_path=None,
                                access_right='open', license='cc-by',
-                               creators=[], description='', keywords=[]):
+                               creators=[], description='', keywords=[],
+                               publish=False):
     """Publish or edit a Zenodo entry for an SXS:BBH simulation
 
 
@@ -141,16 +142,16 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                         creators.append({'name': '{0}, {1}'.format(last_name, first_name)})
                     else:
                         creators.append({'name': last_name})
-    print('Creators: {0}'.format(creators))
+    # print('Creators: {0}'.format(creators))
     keywords = list(set(keywords) | set(d.metadata.get('keywords', [])))
-    print('Keywords: {0}'.format(keywords))
+    # print('Keywords: {0}'.format(keywords))
     if not description:
         description = d.metadata.get('description', '')
         if not description:
             spec_url = "https://www.black-holes.org/code/SpEC.html"
             description = """Simulation of a black-hole binary system evolved by the <a href="{0}">SpEC code</a>."""
             description = description.format(spec_url)
-    print('Description: {0}'.format(description))
+    # print('Description: {0}'.format(description))
 
     # Construct the Zenodo metadata
     new_metadata = {
@@ -163,13 +164,20 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         'license': 'cc-by',
         'communities': [{'identifier': 'sxs'}],
     }
-    print('New metadata: {0}'.format(new_metadata))
+    # print('New metadata: {0}'.format(new_metadata))
     metadata = d.metadata
     metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
     d.update_metadata(metadata)
 
     # Publish this version
-    d.publish()
-    print('Finished publishing {0} to {1}.'.format(title, d.website))
+    if publish:
+        d.publish()
+        print('Finished publishing {0} to {1}.'.format(title, d.website))
+    else:
+        print('As requested, {0} has not yet been published.'.format(title))
+        print('If you want to publish it, you can simply take the object returned from')
+        print('this function and run its `.publish()` method.  Alternatively, you can')
+        print('publish this deposit via the web interface at')
+        print('  {0}'.format(d.website))
 
     return d
