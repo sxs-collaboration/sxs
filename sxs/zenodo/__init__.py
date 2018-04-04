@@ -86,7 +86,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
     # version.
     zenodo_filenames = d.file_names
-    local_paths_and_names = find_files(sxs_bbh_directory_name, exclude=exclude_files)
+    local_paths_and_names = find_files(sxs_bbh_directory_name, exclude=exclude)
     if len(local_paths_and_names) == 0:
         print('Zenodo requires that there be at least one file.  None found in {0}.'.format(sxs_bbh_directory_name))
         raise ValueError('No files found')
