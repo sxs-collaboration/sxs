@@ -1,7 +1,7 @@
 from .api import Login, Deposit, Records
 
 
-def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, excludes=[],
+def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                                sandbox=False, deposition_id=None, access_token_path=None,
                                access_right='open', license='cc-by',
                                creators=[], description='', keywords=[]):
@@ -71,7 +71,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, excludes=[],
     # Convert each metadata.txt file to a metadata.json file sorted with interesting stuff at the
     # top of the file, so it appears prominently on Zenodo's preview without scrolling.  Do this
     # before checking for new files in case these are new or get changed in the process.
-    paths_and_names = find_files(sxs_bbh_directory_name, excludes=excludes)
+    paths_and_names = find_files(sxs_bbh_directory_name, exclude=exclude)
     authors_emails = set()
     keywords = set(keywords)
     for path,_ in paths_and_names:
@@ -86,7 +86,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, excludes=[],
     # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
     # version.
     zenodo_filenames = d.file_names
-    local_paths_and_names = find_files(sxs_bbh_directory_name, excludes=exclude_files)
+    local_paths_and_names = find_files(sxs_bbh_directory_name, exclude=exclude_files)
     if len(local_paths_and_names) == 0:
         print('Zenodo requires that there be at least one file.  None found in {0}.'.format(sxs_bbh_directory_name))
         raise ValueError('No files found')
