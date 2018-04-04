@@ -86,6 +86,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             keywords |= set(m.get('keywords', []))
 
     # Get list of creators, keywords, and description
+    print('Constructing metadata')
     if not creators:
         creators = d.metadata.get('creators', [])
         if not creators:
@@ -117,6 +118,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             description = """Simulation of a black-hole binary system evolved by the <a href="{0}">SpEC code</a>."""
             description = description.format(spec_url)
     # print('Description: {0}'.format(description))
+    print('Finished constructing metadata')
 
     # Send Zenodo the metadata before messing with files, in case this deposit is interrupted (e.g.,
     # due to long upload times)
@@ -134,6 +136,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     metadata = d.metadata
     metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
     d.update_metadata(metadata)
+    print('Uploaded metadata')
 
     # Get the list of files we'll be uploading and compare to files already in the deposit to see if
     # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
@@ -177,7 +180,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     # Publish this version
     if publish:
         d.publish()
-        print('Finished publishing {0} to {1}.'.format(title, d.website))
+        print('Finished publishing "{0}" to {1}.'.format(title, d.website))
     else:
         print('As requested, {0} has not yet been published.'.format(title))
         print('If you want to publish it, you can simply take the object returned from')
