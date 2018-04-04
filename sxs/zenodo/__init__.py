@@ -105,6 +105,10 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, excludes=[],
     else:
         # We need to create a new deposit to change the files
         d = d.get_new_version()
+        for file_name in zenodo_filenames_to_delete:
+            d.delete_file(file_name)
+        for path, name in local_paths_and_names:
+            d.upload_file(path, name=name, skip_checksum=True)
 
     # Get list of creators, keywords, and description
     if not creators:
@@ -151,8 +155,9 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, excludes=[],
     metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
     d.update_metadata(metadata)
 
-    # Publish this version
-    d.publish()
-    print('Finished publishing {0} to {1}.'.format(title, d.website))
+    # # Publish this version
+    # d.publish()
+    # print('Finished publishing {0} to {1}.'.format(title, d.website))
+    print('Skipped publishing {0} to {1}.'.format(title, d.website))
 
     return d
