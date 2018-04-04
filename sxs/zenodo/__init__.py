@@ -67,6 +67,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                 print('Web link: {0}'.format(records[0]['links']['html']))
                 raise ValueError(title)
             d = l.new_deposit
+    print('Working on deposit "{0}"'.format(title))
 
     # Convert each metadata.txt file to a metadata.json file sorted with interesting stuff at the
     # top of the file, so it appears prominently on Zenodo's preview without scrolling.  Do this
@@ -77,6 +78,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     for path,_ in paths_and_names:
         if os.path.basename(path) == 'metadata.txt':
             json_path = os.path.join(os.path.dirname(path), 'metadata.json')
+            print('Converting metadata.txt to JSON in {0}'.format(json_path))
             m = Metadata.from_txt_file(path, cache_json=False).reorder_keys()
             m.to_json_file(json_path)
             authors_emails |= set(m.get('authors_emails', []))
@@ -101,13 +103,17 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                 local_paths_and_names.remove([path, name])
     if not zenodo_filenames_to_delete and not local_paths_and_names:
         # No files will change, so we just want to edit this Deposit
+        print('No files will change; just editing this deposit.')
         d.edit()
     else:
         # We need to create a new deposit to change the files
         d = d.get_new_version()
+        print('Changing files.')
         for file_name in zenodo_filenames_to_delete:
+            print('\tDeleting {0}'.format(file_name))
             d.delete_file(file_name)
         for path, name in local_paths_and_names:
+            print('\tUploading {0}'.format(name))
             d.upload_file(path, name=name, skip_checksum=True)
 
     # Get list of creators, keywords, and description
@@ -132,13 +138,16 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                         creators.append({'name': '{0}, {1}'.format(last_name, first_name)})
                     else:
                         creators.append({'name': last_name})
+    print('Creators: {0}'.format(creators))
     keywords = list(set(keywords) | set(d.metadata.get('keywords', [])))
+    print('Keywords: {0}'.format(keywords))
     if not description:
         description = d.metadata.get('description', '')
         if not description:
             spec_url = "https://www.black-holes.org/code/SpEC.html"
             description = """Simulation of a black-hole binary system evolved by the <a href="{0}">SpEC code</a>."""
             description = description.format(spec_url)
+    print('Description: {0}'.format(description))
 
     # Construct the Zenodo metadata
     new_metadata = {
@@ -151,6 +160,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         'license': 'cc-by',
         'communities': [{'identifier': 'sxs'}],
     }
+    print('New metadata: {0}'.format(new_metadata))
     metadata = d.metadata
     metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
     d.update_metadata(metadata)
