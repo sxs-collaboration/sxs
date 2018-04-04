@@ -237,6 +237,10 @@ class Deposit(object):
         return {d['filename']: d['checksum'] for d in self.files}
 
     @property
+    def file_ids(self):
+        return {d['filename']: d['id'] for d in self.files}
+
+    @property
     def file_names(self):
         return [d['filename'] for d in self.files]
 
@@ -564,6 +568,43 @@ class Deposit(object):
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         self.refresh_information
         return r
+
+    def delete_file(self, file_name):
+        file_ids = self.file_ids
+        if file_name not in file_ids:
+            print('File name "{0}" not found on Zenodo.'.format(file_name))
+            raise ValueError(file_name)
+        file_id = file_ids[file_name]
+        url = self.base_url+'/api/deposit/depositions/{0}/files/{1}'.format(self.id, file_id)
+        r = self._delete(url)
+        if r.status_code == 404:
+            print('File id "{0}" does not exist in deposition "{1}".'.format(file_id, self.id))
+            print('Try refreshing the information in this Deposit object, and trying again.')
+            try:
+                print(r.json())
+            except:
+                pass
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        elif r.status_code == 403:
+            print('Server replied with "Forbidden: Deleting an already published deposition file."')
+            print('Try get_new_version, and then delete the file from that version.')
+            try:
+                print(r.json())
+            except:
+                pass
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        elif r.status_code != 204:
+            print('Deleting file "{0}" from deposit "{1}" failed.'.format(file_name, self.id))
+            try:
+                print(r.json())
+            except:
+                pass
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        self.refresh_information
+        return r
         
     def upload_file(self, path, name=None, relpath_start=None, skip_checksum=False):
         """Upload a single file to the deposit
@@ -600,6 +641,8 @@ class Deposit(object):
             pardir_sep = os.pardir + os.sep
             while name.startswith(pardir_sep):
                 name = name[len(pardir_sep):]
+        if name in self.file_ids:
+            self.delete_file(name)
         if not skip_checksum:
             file_checksums = self.file_checksums
             if name in file_checksums:
@@ -676,7 +719,7 @@ class Deposit(object):
         self.refresh_information
         return r
     
-    def delete(self, confirmed=False):
+    def delete_deposit(self, confirmed=False):
         """Permanently delete this deposit from Zenodo
 
         If you are sure that you want to delete this deposit, you can pass `confirmed=True`.
