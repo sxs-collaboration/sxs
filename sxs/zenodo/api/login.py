@@ -131,6 +131,7 @@ class Login(object):
 
     def deposit(self, deposition_id=None):
         """Retrieve a deposit created with this login"""
+        from .deposit import Deposit
         return Deposit(self, deposition_id)
 
     def list_deposits(self, q=None, status=None, sort=None, page=None, size=None):
