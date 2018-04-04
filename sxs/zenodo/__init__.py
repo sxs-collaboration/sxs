@@ -4,7 +4,7 @@ from .api import Login, Deposit, Records
 def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, excludes=[],
                                sandbox=False, deposition_id=None, access_token_path=None,
                                access_right='open', license='cc-by',
-                               creators=None, description=None, keywords=None):
+                               creators=[], description='', keywords=[]):
     """Publish or edit a Zenodo entry for an SXS:BBH simulation
 
 
@@ -12,6 +12,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, excludes=[],
     import re
     import os
     from .api import md5checksum, find_files
+    from .creators import known_creators
     from ..metadata import Metadata
 
     if not os.path.isdir(sxs_bbh_directory_name):
@@ -67,17 +68,19 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, excludes=[],
                 raise ValueError(title)
             d = l.new_deposit
 
-
     # Convert each metadata.txt file to a metadata.json file sorted with interesting stuff at the
     # top of the file, so it appears prominently on Zenodo's preview without scrolling.  Do this
     # before checking for new files in case these are new or get changed in the process.
     paths_and_names = find_files(sxs_bbh_directory_name, excludes=excludes)
+    authors_emails = set()
+    keywords = set(keywords)
     for path,_ in paths_and_names:
         if path.endswith('metadata.txt'):
             json_path = os.path.join(os.path.dirname(path), 'metadata.json')
-            Metadata.from_txt_file(path, cache_json=False).reorder_keys().to_json_file(json_path)
-    ### OrderedDict(sorted(foo.iteritems(), key=lambda x: x[1]['depth']))
-
+            m = Metadata.from_txt_file(path, cache_json=False).reorder_keys()
+            m.to_json_file(json_path)
+            authors_emails |= set(m.get('authors_emails', []))
+            keywords |= set(m.get('keywords', []))
 
     # Get the list of files we'll be uploading and compare to files already in the deposit to see if
     # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
@@ -103,13 +106,30 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, excludes=[],
         # We need to create a new deposit to change the files
         d = d.get_new_version()
 
-
     # Get list of creators, keywords, and description
-    if creators is None:
-        raise NotImplementedError()
-    if keywords is None:
-        raise NotImplementedError()
-    if description is None:
+    if not creators:
+        creators = d.metadata.get('creators', [])
+        if not creators:
+            authors_emails = list(authors_emails)
+            if not authors_emails:
+                print("No creators found in input arguments, on Zenodo, or in any metadata.txt file.")
+                raise ValueError("Missing creators")
+            creators = []
+            for author_email in authors_emails:
+                name = ' '.join(author_email.split()[:-1])
+                if name in known_creators:
+                    creators.append(known_creators[name])
+                else:
+                    # We tried our best; let's just get this over with.  Sorry Dr. van Whatever.
+                    name_parts = name.split()
+                    first_name = ' '.join(name_parts[:-1])
+                    last_name = name_parts[-1]
+                    if first_name:
+                        creators.append({'name': '{0}, {1}'.format(last_name, first_name)})
+                    else:
+                        creators.append({'name': last_name})
+    keywords = list(set(keywords) | set(d.metadata.get('keywords', [])))
+    if not description:
         description = d.metadata.get('description', '')
         if not description:
             spec_url = "https://www.black-holes.org/code/SpEC.html"
