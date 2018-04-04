@@ -95,7 +95,8 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     local_filenames = [name for path, name in local_paths_and_names]
     zenodo_filenames_to_delete = [zf for zf in zenodo_filenames if not zf in local_filenames]
     file_checksums = d.file_checksums  # {filename: checksum}
-    for path, name in local_paths_and_names:
+    print('Comparing MD5 checksums')
+    for path, name in local_paths_and_names.copy():
         if name in file_checksums:
             zenodo_checksum = file_checksums[name]
             local_checksum = md5checksum(path)
@@ -109,6 +110,8 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         # We need to create a new deposit to change the files
         d = d.get_new_version()
         print('Changing files.')
+        print('Deleting {0}'.format(zenodo_filenames_to_delete))
+        print('Uploading {0}'.format([name for path, name in local_paths_and_names]))
         for file_name in zenodo_filenames_to_delete:
             print('\tDeleting {0}'.format(file_name))
             d.delete_file(file_name)
@@ -154,7 +157,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         'title': title,
         'description': description,
         'keywords': keywords,
-        'creator': creators,
+        'creators': creators,
         'upload_type': 'dataset',
         'access_right': access_right,
         'license': 'cc-by',
