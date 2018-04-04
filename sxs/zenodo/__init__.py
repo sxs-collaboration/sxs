@@ -70,19 +70,6 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             d = l.new_deposit
     print('Working on deposit "{0}"'.format(title))
 
-    # Tell Zenodo about the metadata fields we already know, in case this deposit is interrupted
-    # (e.g., due to long upload times)
-    new_metadata = {
-        'title': title,
-        'upload_type': 'dataset',
-        'access_right': access_right,
-        'license': 'cc-by',
-        'communities': [{'identifier': 'sxs'}],
-    }
-    metadata = d.metadata
-    metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
-    d.update_metadata(metadata)
-
     # Convert each metadata.txt file to a metadata.json file sorted with interesting stuff at the
     # top of the file, so it appears prominently on Zenodo's preview without scrolling.  Do this
     # before checking for new files in case these are new or get changed in the process.
@@ -97,6 +84,56 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             m.to_json_file(json_path)
             authors_emails |= set(m.get('authors_emails', []))
             keywords |= set(m.get('keywords', []))
+
+    # Get list of creators, keywords, and description
+    if not creators:
+        creators = d.metadata.get('creators', [])
+        if not creators:
+            authors_emails = list(authors_emails)
+            if not authors_emails:
+                print("No creators found in input arguments, on Zenodo, or in any metadata.txt file.")
+                raise ValueError("Missing creators")
+            creators = []
+            for author_email in authors_emails:
+                name = ' '.join(author_email.split()[:-1])
+                if name in known_creators:
+                    creators.append(known_creators[name])
+                else:
+                    # We tried our best; let's just get this over with.  Sorry Dr. van Whatever.
+                    name_parts = name.split()
+                    first_name = ' '.join(name_parts[:-1])
+                    last_name = name_parts[-1]
+                    if first_name:
+                        creators.append({'name': '{0}, {1}'.format(last_name, first_name)})
+                    else:
+                        creators.append({'name': last_name})
+    # print('Creators: {0}'.format(creators))
+    keywords = list(set(keywords) | set(d.metadata.get('keywords', [])))
+    # print('Keywords: {0}'.format(keywords))
+    if not description:
+        description = d.metadata.get('description', '')
+        if not description:
+            spec_url = "https://www.black-holes.org/code/SpEC.html"
+            description = """Simulation of a black-hole binary system evolved by the <a href="{0}">SpEC code</a>."""
+            description = description.format(spec_url)
+    # print('Description: {0}'.format(description))
+
+    # Send Zenodo the metadata before messing with files, in case this deposit is interrupted (e.g.,
+    # due to long upload times)
+    new_metadata = {
+        'title': title,
+        'upload_type': 'dataset',
+        'access_right': access_right,
+        'license': 'cc-by',
+        'communities': [{'identifier': 'sxs'}],
+        'description': description,
+        'keywords': keywords,
+        'creators': creators,
+    }
+    # print('New metadata: {0}'.format(new_metadata))
+    metadata = d.metadata
+    metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
+    d.update_metadata(metadata)
 
     # Get the list of files we'll be uploading and compare to files already in the deposit to see if
     # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
@@ -134,50 +171,6 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         for path, name in local_paths_and_names:
             print('\tUploading {0}'.format(name))
             d.upload_file(path, name=name, skip_checksum=True)
-
-    # Get list of creators, keywords, and description
-    if not creators:
-        creators = d.metadata.get('creators', [])
-        if not creators:
-            authors_emails = list(authors_emails)
-            if not authors_emails:
-                print("No creators found in input arguments, on Zenodo, or in any metadata.txt file.")
-                raise ValueError("Missing creators")
-            creators = []
-            for author_email in authors_emails:
-                name = ' '.join(author_email.split()[:-1])
-                if name in known_creators:
-                    creators.append(known_creators[name])
-                else:
-                    # We tried our best; let's just get this over with.  Sorry Dr. van Whatever.
-                    name_parts = name.split()
-                    first_name = ' '.join(name_parts[:-1])
-                    last_name = name_parts[-1]
-                    if first_name:
-                        creators.append({'name': '{0}, {1}'.format(last_name, first_name)})
-                    else:
-                        creators.append({'name': last_name})
-    # print('Creators: {0}'.format(creators))
-    keywords = list(set(keywords) | set(d.metadata.get('keywords', [])))
-    # print('Keywords: {0}'.format(keywords))
-    if not description:
-        description = d.metadata.get('description', '')
-        if not description:
-            spec_url = "https://www.black-holes.org/code/SpEC.html"
-            description = """Simulation of a black-hole binary system evolved by the <a href="{0}">SpEC code</a>."""
-            description = description.format(spec_url)
-    # print('Description: {0}'.format(description))
-
-    # Construct the more detailed Zenodo metadata
-    new_metadata = {
-        'description': description,
-        'keywords': keywords,
-        'creators': creators,
-    }
-    # print('New metadata: {0}'.format(new_metadata))
-    metadata = d.metadata
-    metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
-    d.update_metadata(metadata)
 
     # Publish this version
     if publish:

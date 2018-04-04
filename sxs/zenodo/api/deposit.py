@@ -754,7 +754,7 @@ class Deposit(object):
             from textwrap import dedent
             from warnings import warn
 
-            warning = r"""\
+            warning = r"""
             The Zenodo Deposit object has not been published.  The deposit id is '{deposition_id}'.
             If you want to publish this deposit, you can do it manually from the website by
             going to
