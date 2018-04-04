@@ -70,6 +70,19 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             d = l.new_deposit
     print('Working on deposit "{0}"'.format(title))
 
+    # Tell Zenodo about the metadata fields we already know, in case this deposit is interrupted
+    # (e.g., due to long upload times)
+    new_metadata = {
+        'title': title,
+        'upload_type': 'dataset',
+        'access_right': access_right,
+        'license': 'cc-by',
+        'communities': [{'identifier': 'sxs'}],
+    }
+    metadata = d.metadata
+    metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
+    d.update_metadata(metadata)
+
     # Convert each metadata.txt file to a metadata.json file sorted with interesting stuff at the
     # top of the file, so it appears prominently on Zenodo's preview without scrolling.  Do this
     # before checking for new files in case these are new or get changed in the process.
@@ -155,16 +168,11 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             description = description.format(spec_url)
     # print('Description: {0}'.format(description))
 
-    # Construct the Zenodo metadata
+    # Construct the more detailed Zenodo metadata
     new_metadata = {
-        'title': title,
         'description': description,
         'keywords': keywords,
         'creators': creators,
-        'upload_type': 'dataset',
-        'access_right': access_right,
-        'license': 'cc-by',
-        'communities': [{'identifier': 'sxs'}],
     }
     # print('New metadata: {0}'.format(new_metadata))
     metadata = d.metadata
