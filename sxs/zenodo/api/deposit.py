@@ -167,11 +167,12 @@ class Deposit(object):
     def state(self):
         """Current status of this deposit
 
-        May be one of:
+        The documentation states that this may be one of:
             * inprogress: Deposit metadata can be updated. If deposit is also unsubmitted (see
               submitted) files can be updated as well.
             * done: Deposit has been published. 
             * error: Deposit is in an error state - contact Zenodo support.
+        However, 'inprogress' seems to have been replaced by 'unsubmitted'.
 
         """
         return self.representation['state']

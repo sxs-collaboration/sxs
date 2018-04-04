@@ -163,13 +163,13 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     else:
         if d.published:
             # If this deposit already has files, we need to create a new deposit to change the files
-            print('Changing files that are already present in a published deposit.')
+            print('Changing files that are already present in a published deposit.  Getting a new version.')
             d = d.get_new_version()
         else:
             # Otherwise this is presumably a new deposit, so we can add files directly with no trouble
-            print('Uploading files to an unpublished deposit')
-        print('Deleting {0}'.format(zenodo_filenames_to_delete))
-        print('Uploading {0}'.format([name for path, name in local_paths_and_names]))
+            print('Uploading files to an unpublished deposit.')
+        print('Files to delete: {0}'.format(zenodo_filenames_to_delete))
+        print('Files to upload: {0}\n'.format([name for path, name in local_paths_and_names]))
         for file_name in zenodo_filenames_to_delete:
             print('\tDeleting {0}'.format(file_name))
             d.delete_file(file_name)
@@ -185,7 +185,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         print('As requested, {0} has not yet been published.'.format(title))
         print('If you want to publish it, you can simply take the object returned from')
         print('this function and run its `.publish()` method.  Alternatively, you can')
-        print('publish this deposit via the web interface at')
-        print('  {0}'.format(d.website))
+        print('publish this deposit via the web interface at\n')
+        print('    {0}\n'.format(d.website))
 
     return d
