@@ -18,7 +18,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     if not os.path.isdir(sxs_bbh_directory_name):
         print('The input directory name "{0}" does not appear to be a directory.'.format(sxs_bbh_directory_name))
         raise ValueError(sxs_bbh_directory_name)
-    sxs_bbh = os.path.basename(sxs_bbh_directory_name)
+    sxs_bbh = os.path.basename(os.path.normpath(sxs_bbh_directory_name))
     if not sxs_bbh.startswith('SXS:BBH:') or len(sxs_bbh) <= 8:
         print('Input directory "{0}" does not start with "SXS:BBH:" followed by some identifier.'.format(sxs_bbh))
         print('This function is only designed to handle SXS:BBH directories.')
@@ -75,7 +75,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     authors_emails = set()
     keywords = set(keywords)
     for path,_ in paths_and_names:
-        if path.endswith('metadata.txt'):
+        if os.path.basename(path) == 'metadata.txt':
             json_path = os.path.join(os.path.dirname(path), 'metadata.json')
             m = Metadata.from_txt_file(path, cache_json=False).reorder_keys()
             m.to_json_file(json_path)
