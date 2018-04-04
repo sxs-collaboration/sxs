@@ -158,11 +158,13 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         print('No files will change; just editing this deposit.')
         d.edit()
     else:
-        if d.files:
+        if d.published:
             # If this deposit already has files, we need to create a new deposit to change the files
+            print('Changing files that are already present.')
             d = d.get_new_version()
+        else:
             # Otherwise this is presumably a new deposit, so we can add files directly with no trouble
-        print('Changing files.')
+            print('Uploading files to an apparently new deposit')
         print('Deleting {0}'.format(zenodo_filenames_to_delete))
         print('Uploading {0}'.format([name for path, name in local_paths_and_names]))
         for file_name in zenodo_filenames_to_delete:

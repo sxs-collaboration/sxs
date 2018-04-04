@@ -559,7 +559,9 @@ class Deposit(object):
         url = "{0}api/deposit/depositions/{1}/actions/newversion".format(self.base_url, self.deposition_id)
         r = self._post(url)
         if r.status_code != 201:
-            print('Updating deposit {0} failed.'.format(self.deposition_id))
+            print('Failed to register new version of deposit {0}.'.format(self.deposition_id))
+            if r.status_code == 403:
+                print('This deposit may not have been published, in which case new versions are not allowed.')
             try:
                 print(r.json())
             except:
