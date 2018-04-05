@@ -19,12 +19,52 @@ def total_deposit_size(deposition_id=None, sandbox=False, access_token_path=None
 
 
 def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
-                               sandbox=False, deposition_id=None, access_token_path=None,
+                               sandbox=False, access_token_path=None,
+                               deposition_id=None, ignore_deletion=False,
                                access_right='open', license='cc-by',
                                creators=[], description='', keywords=[],
                                publish=False):
     """Publish or edit a Zenodo entry for an SXS:BBH simulation
 
+    This function should be able to safely handle
+      1) new deposits that Zenodo has not seen previously;
+      2) drafts that were started previously but failed for some reason, like a spurious Zenodo
+         server failure, or some problem in the data that has now been fixed; or
+      3) systems that have been published on Zenodo previously and have not changed at all, but you
+         want to verify that the local copy and the version on Zenodo are in sync.
+
+    Most of the parameters to this function are simply passed to other functions.  For more
+    explanation of these parameters, see the relevant function's documentation.
+
+    Parameters to `.api.utilities.find_files`
+    =========================================
+    sxs_bbh_directory_name: string
+        Absolute or relative path to a directory starting with 'SXS:BBH:' and containing at least
+        one 'metadata.txt' file somewhere in its file hierarchy.
+    exclude: list of strings [defaults to an empty list]
+
+    Parameters to `.api.login.Login`
+    ================================
+    sandbox: bool [defaults to False]
+    access_token_path: string or None [defaults to None]
+
+    Parameters to `.api.deposit.Deposit`
+    ====================================
+    deposition_id: string, int, or None [defaults to None]
+    ignore_deletion: bool [defaults to False]
+   
+    Parameters to `.api.deposit.Deposit.update_metadata`
+    ====================================================
+    access_right='open'
+    license='cc-by'
+    creators=[]
+    description=''
+    keywords=[]
+
+    Final parameter
+    ==================
+    publish: bool [defaults to False]
+        If True, and everything before it succeeds, publish the deposit on Zenodo.
 
     """
     import re
@@ -53,7 +93,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
 
     # Get this deposit and the title
     if deposition_id is not None:
-        d = l.deposit(deposition_id)
+        d = l.deposit(deposition_id, ignore_deletion=ignore_deletion)
         title = d.title
     else:
         # Check to see if this simulation exists in the list of the user's deposits or in the sxs community
@@ -63,7 +103,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             deposition_id = matching_deposits[0]['id']
             print('A deposit with title "{0}"'.format(title))
             print('has already been started with this login.  Opening it for editing.')
-            d = l.deposit(deposition_id)
+            d = l.deposit(deposition_id, ignore_deletion=ignore_deletion)
         elif len(matching_deposits) > 1:
             print('Multiple deposits titled "{0}" have been found.'.format(title))
             raise ValueError(title)
@@ -85,7 +125,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                 print('but is apparently not owned by you, nor is it in the "sxs" community.')
                 print('Web link: {0}'.format(records[0]['links']['html']))
                 raise ValueError(title)
-            d = l.new_deposit
+            d = l.deposit(deposition_id=None, ignore_deletion=ignore_deletion)
     print('Working on deposit "{0}"'.format(title))
 
     # Convert each metadata.txt file to a metadata.json file sorted with interesting stuff at the
@@ -144,7 +184,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         'title': title,
         'upload_type': 'dataset',
         'access_right': access_right,
-        'license': 'cc-by',
+        'license': license,
         'communities': [{'identifier': 'sxs'}],
         'description': description,
         'keywords': keywords,
@@ -154,8 +194,11 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     metadata = d.metadata.copy()
     metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
     changed_metadata = (metadata == d.metadata)
-    d.update_metadata(metadata)
-    print('Uploaded metadata')
+    if changed_metadata:
+        d.update_metadata(metadata)
+        print('Uploaded metadata')
+    else:
+        print('No metadata changed.  Updating it on Zenodo would produce an error, so skipping that.')
 
     # Get the list of files we'll be uploading and compare to files already in the deposit to see if
     # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
@@ -175,10 +218,10 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             local_checksum = md5checksum(path)
             if zenodo_checksum == local_checksum:
                 local_paths_and_names.remove([path, name])
-    if not zenodo_filenames_to_delete and not local_paths_and_names:
-        # No files will change, so we just want to edit this Deposit
-        print('No files will change; just editing this deposit.')
-        d.edit()
+
+    # Now, if needed do the file deletions and/or uploads, and publish
+    if not zenodo_filenames_to_delete and not local_paths_and_names and not changed_metadata:
+        print('Nothing will change in this deposit.  Just checking that it is published.')
     else:
         if d.published:
             # If this deposit already has files, we need to create a new deposit to change the files
@@ -198,8 +241,11 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
 
     # Publish this version
     if publish:
-        d.publish()
-        print('Finished publishing "{0}" to {1}.'.format(title, d.website))
+        if d.published:
+            print('Nothing has changed in this deposit, and it has already been published.')
+        else:
+            d.publish()
+            print('Finished publishing "{0}" to {1}.'.format(title, d.website))
     else:
         print('As requested, {0} has not yet been published.'.format(title))
         print('If you want to publish it, you can simply take the object returned from')
