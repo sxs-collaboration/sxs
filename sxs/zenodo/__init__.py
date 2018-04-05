@@ -261,7 +261,7 @@ def total_deposit_size(deposition_id=None, sandbox=False, access_token_path=None
     total_size = 0
     for deposition in depositions:
         id = deposition['id']
-        d = l.deposit(id)
+        d = l.deposit(id, ignore_deletion=True)
         d_total_size = sum([f['filesize'] for f in d.files])
         print(id, d_total_size)
         total_size += d_total_size
