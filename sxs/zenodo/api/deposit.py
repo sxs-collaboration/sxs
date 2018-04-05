@@ -475,24 +475,12 @@ class Deposit(object):
         """Unlock a previously submitted deposit for editing."""
         url = "{0}api/deposit/depositions/{1}/actions/edit".format(self.base_url, self.deposition_id)
         r = self._post(url)
-        if r.status_code == 400:
-            print('Deposit state does not allow for editing (e.g., deposits in state `inprogress`).')
-            try:
-                print(r.json())
-            except:
-                pass
-            r.raise_for_status()
-            raise RuntimeError()  # Will only happen if the response was not strictly an error
-        elif r.status_code == 409:
-            print('Deposit is in the process of being integrated.  Please wait 5 minutes before trying again.')
-            try:
-                print(r.json())
-            except:
-                pass
-            r.raise_for_status()
-            raise RuntimeError()  # Will only happen if the response was not strictly an error
-        elif r.status_code != 201:
+        if r.status_code != 201:
             print('Unlocking deposit {0} for editing failed.'.format(self.deposition_id))
+            if r.status_code == 400:
+                print('Deposit state does not allow for editing (e.g., deposits in state `inprogress`).')
+            if r.status_code == 409:
+                print('Deposit is in the process of being integrated.  Please wait 5 minutes before trying again.')
             try:
                 print(r.json())
             except:
@@ -506,16 +494,10 @@ class Deposit(object):
         """Discard changes in the current editing session."""
         url = "{0}api/deposit/depositions/{1}/actions/discard".format(self.base_url, self.deposition_id)
         r = self._post(url)
-        if r.status_code == 400:
-            print('Deposit is not being edited.')
-            try:
-                print(r.json())
-            except:
-                pass
-            r.raise_for_status()
-            raise RuntimeError()  # Will only happen if the response was not strictly an error
-        elif r.status_code != 201:
+        if r.status_code != 201:
             print('Discarding changes from the current editing session to deposit {0} failed.'.format(self.deposition_id))
+            if r.status_code == 400:
+                print('Deposit is not being edited.')
             try:
                 print(r.json())
             except:
@@ -585,26 +567,14 @@ class Deposit(object):
         file_id = file_ids[file_name]
         url = self.base_url+'/api/deposit/depositions/{0}/files/{1}'.format(self.id, file_id)
         r = self._delete(url)
-        if r.status_code == 404:
-            print('File id "{0}" does not exist in deposition "{1}".'.format(file_id, self.id))
-            print('Try refreshing the information in this Deposit object, and trying again.')
-            try:
-                print(r.json())
-            except:
-                pass
-            r.raise_for_status()
-            raise RuntimeError()  # Will only happen if the response was not strictly an error
-        elif r.status_code == 403:
-            print('Server replied with "Forbidden: Deleting an already published deposition file."')
-            print('Try get_new_version, and then delete the file from that version.')
-            try:
-                print(r.json())
-            except:
-                pass
-            r.raise_for_status()
-            raise RuntimeError()  # Will only happen if the response was not strictly an error
-        elif r.status_code != 204:
+        if r.status_code != 204:
             print('Deleting file "{0}" from deposit "{1}" failed.'.format(file_name, self.id))
+            if r.status_code == 403:
+                print('Server replied with "Forbidden: Deleting an already published deposition file."')
+                print('Try get_new_version, and then delete the file from that version.')
+            if r.status_code == 404:
+                print('File id "{0}" does not exist in deposition "{1}".'.format(file_id, self.id))
+                print('Try refreshing the information in this Deposit object, and trying again.')
             try:
                 print(r.json())
             except:
@@ -707,20 +677,14 @@ class Deposit(object):
         """
         url = '{0}api/deposit/depositions/{1}/actions/publish'.format(self.base_url, self.deposition_id)
         r = self._post(url)
-        if r.status_code == 500:
-            print('Server returned the code "500 Internal Server Error".')
-            print('This can have any number of causes, but frequently it is because not')
-            print('all of the required information is present.  In particular, every')
-            print('deposit must contain at least one file, and all of its metadata')
-            print('must be present.  See the warning in `Deposit.update_metadata`.')
-            try:
-                print(r.json())
-            except:
-                pass
-            r.raise_for_status()
-            raise RuntimeError()  # Will only happen if the response was not strictly an error
-        elif r.status_code != 202:
+        if r.status_code != 202:
             print('Publishing deposit {0} failed.'.format(self.deposition_id))
+            if r.status_code == 500:
+                print('Server returned the code "500 Internal Server Error".')
+                print('This can have any number of causes, but frequently it is because not')
+                print('all of the required information is present.  In particular, every')
+                print('deposit must contain at least one file, and all of its metadata')
+                print('must be present.  See the warning in `Deposit.update_metadata`.')
             try:
                 print(r.json())
             except:
