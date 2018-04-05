@@ -107,16 +107,12 @@ class Login(object):
         # Test to see if we can use the given access token
         url = "{0}api/deposit/depositions".format(self.base_url)
         r = self.session.get(url)
-        if r.status_code == 401:
-            print('The given Zenodo access token was not accepted by {0}.  Please ensure that it is still valid.'.format(self.base_url))
-            print('Also note that zenodo.org and sandbox.zenodo.org use separate logins and separate access tokens.')
-            try:
-                print(r.json())
-            except:
-                pass
-            r.raise_for_status()
-        elif r.status_code != 200:
-            print('An unknown error occurred when trying to access {0}.'.format(self.base_url))
+        if r.status_code != 200:
+            if r.status_code == 401:
+                print('The given Zenodo access token was not accepted by {0}.  Please ensure that it is still valid.'.format(self.base_url))
+                print('Also note that zenodo.org and sandbox.zenodo.org use separate logins and separate access tokens.')
+            else:
+                print('An unknown error occurred when trying to access {0}.'.format(self.base_url))
             try:
                 print(r.json())
             except:
