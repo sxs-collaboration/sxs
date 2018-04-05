@@ -1,6 +1,23 @@
 from .api import Login, Deposit, Records
 
 
+def total_deposit_size(deposition_id=None, sandbox=False, access_token_path=None):
+    from sxs.zenodo import Login
+    l = Login(sandbox=sandbox, access_token_path=access_token_path)
+    if deposition_id is None:
+        depositions = l.list_deposits(page=1, size=9999)
+    else:
+        depositions = [l.deposit(deposition_id, ignore_deletion=True).representation]
+    total_size = 0
+    for deposition in depositions:
+        id = deposition['id']
+        d = l.deposit(id)
+        d_total_size = sum([f['filesize'] for f in d.files])
+        print(id, d_total_size)
+        total_size += d_total_size
+    return total_size
+
+
 def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                                sandbox=False, deposition_id=None, access_token_path=None,
                                access_right='open', license='cc-by',
@@ -29,6 +46,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         print('as you wish, and submit a Pull Request if you feel that it would')
         print('make a useful addition to this module.')
         raise ValueError(sxs_bbh_directory_name)
+    print("Beginning work on {0}".format(sxs_bbh))
 
     # Log in to zenodo
     l = Login(sandbox=sandbox, access_token_path=access_token_path)
@@ -133,8 +151,9 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         'creators': creators,
     }
     # print('New metadata: {0}'.format(new_metadata))
-    metadata = d.metadata
+    metadata = d.metadata.copy()
     metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
+    changed_metadata = (metadata == d.metadata)
     d.update_metadata(metadata)
     print('Uploaded metadata')
 

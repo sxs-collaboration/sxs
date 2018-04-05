@@ -129,10 +129,10 @@ class Login(object):
         """Create a new Deposit object using this login"""
         return self.deposit()
 
-    def deposit(self, deposition_id=None):
+    def deposit(self, deposition_id=None, ignore_deletion=False):
         """Retrieve a deposit created with this login"""
         from .deposit import Deposit
-        return Deposit(self, deposition_id)
+        return Deposit(self, deposition_id, ignore_deletion)
 
     def list_deposits(self, q=None, status=None, sort=None, page=None, size=None):
         """Return list of dictionaries describing each deposit created with this login
