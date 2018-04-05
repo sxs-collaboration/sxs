@@ -1,6 +1,6 @@
 class Deposit(object):
 
-    def __init__(self, login, deposition_id=None):
+    def __init__(self, login, deposition_id=None, ignore_deletion=False):
         """Initialize a Deposit object for creating a new zenodo entry
 
         This object encapsulates all the actions you might want to take when creating, publishing,
@@ -16,8 +16,13 @@ class Deposit(object):
             If present, this is used as the id of the deposit to edit.  If `None`, a new
             deposit is created.
 
+        ignore_deletion: bool [default: False]
+            If True and this object has not yet been published, allow this object to be deleted
+            without printing a warning that it has not been published.
+
         """
         self.login = login
+        self.ignore_deletion = ignore_deletion
 
         # Now, create or reacquire the specific deposit we're looking for
         if deposition_id is not None:
@@ -657,6 +662,9 @@ class Deposit(object):
         if r.status_code != 200:
             print('Uploading {0} to deposit {1} failed.'.format(path, self.deposition_id))
             print('Upload url was {0}.'.format(url))
+            if r.status_code == 400:
+                if os.stat(path).st_size == 0:
+                    print('This file has size zero, which leads to an error response.')
             try:
                 print(r.json())
             except:
@@ -753,7 +761,7 @@ class Deposit(object):
         return r
 
     def __del__(self):
-        if not self.published:
+        if not self.published and not self.ignore_deletion:
             from textwrap import dedent
             from warnings import warn
 
