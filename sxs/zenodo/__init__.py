@@ -1,23 +1,6 @@
 from .api import Login, Deposit, Records
 
 
-def total_deposit_size(deposition_id=None, sandbox=False, access_token_path=None):
-    from sxs.zenodo import Login
-    l = Login(sandbox=sandbox, access_token_path=access_token_path)
-    if deposition_id is None:
-        depositions = l.list_deposits(page=1, size=9999)
-    else:
-        depositions = [l.deposit(deposition_id, ignore_deletion=True).representation]
-    total_size = 0
-    for deposition in depositions:
-        id = deposition['id']
-        d = l.deposit(id)
-        d_total_size = sum([f['filesize'] for f in d.files])
-        print(id, d_total_size)
-        total_size += d_total_size
-    return total_size
-
-
 def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                                sandbox=False, access_token_path=None,
                                deposition_id=None, ignore_deletion=False,
@@ -25,6 +8,9 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                                creators=[], description='', keywords=[],
                                publish=False):
     """Publish or edit a Zenodo entry for an SXS:BBH simulation
+
+    This is essentially a wrapper around many of the Zenodo API's functions, specialized for SXS:BBH
+    systems and intended to account for various possible errors or special conditions
 
     This function should be able to safely handle
       1) new deposits that Zenodo has not seen previously;
@@ -34,7 +20,13 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
          want to verify that the local copy and the version on Zenodo are in sync.
 
     Most of the parameters to this function are simply passed to other functions.  For more
-    explanation of these parameters, see the relevant function's documentation.
+    explanation of these parameters, see the relevant function's documentation.  Most commonly, the
+    only parameter you really need to pass is the first.  You may also wish to pass the last
+    parameter if you want the deposit to be published automatically.
+
+    This function returns a Deposit object, which may be used to examine the deposit, change it, or
+    publish it if the final parameter is not given as True.
+
 
     Parameters to `.api.utilities.find_files`
     =========================================
@@ -55,11 +47,14 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
    
     Parameters to `.api.deposit.Deposit.update_metadata`
     ====================================================
-    access_right='open'
-    license='cc-by'
-    creators=[]
-    description=''
-    keywords=[]
+    access_right: string [defaults to 'open']
+    license: string [defaults to 'cc-by']
+    creators: string [defaults to empty list]
+    description: string [defaults to '']
+    keywords: string [defaults to empty list]
+        Note that the last three parameters, if not passed to this function, will be derived
+        automatically from the 'metadata.txt' files found in the SXS:BBH directory; they will be the
+        union of the parameters found in each file if one are multiple such files.
 
     Final parameter
     ==================
@@ -254,3 +249,20 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         print('    {0}\n'.format(d.website))
 
     return d
+
+
+def total_deposit_size(deposition_id=None, sandbox=False, access_token_path=None):
+    from sxs.zenodo import Login
+    l = Login(sandbox=sandbox, access_token_path=access_token_path)
+    if deposition_id is None:
+        depositions = l.list_deposits(page=1, size=9999)
+    else:
+        depositions = [l.deposit(deposition_id, ignore_deletion=True).representation]
+    total_size = 0
+    for deposition in depositions:
+        id = deposition['id']
+        d = l.deposit(id)
+        d_total_size = sum([f['filesize'] for f in d.files])
+        print(id, d_total_size)
+        total_size += d_total_size
+    return total_size
