@@ -251,8 +251,23 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     return d
 
 
-def total_deposit_size(deposition_id=None, sandbox=False, access_token_path=None):
+def total_deposit_size(deposition_id=None, sandbox=False, access_token_path=None, human_readable=True):
+    import math
     from sxs.zenodo import Login
+
+    def convert_size(size_bytes):
+        if size_bytes == 0:
+            return "0B"
+        size_name = ("B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB")
+        i = int(math.floor(math.log(size_bytes, 1024)))
+        p = math.pow(1024, i)
+        s = round(size_bytes / p, 3)
+        return "{0:>8.3f} {1}".format(s, size_name[i])
+
+    if human_readable:
+        size = convert_size  # Note: the return type will be str
+    else:
+        size = lambda s: s  # Note: the return type will be int
     l = Login(sandbox=sandbox, access_token_path=access_token_path)
     if deposition_id is None:
         depositions = l.list_deposits(page=1, size=9999)
@@ -263,6 +278,6 @@ def total_deposit_size(deposition_id=None, sandbox=False, access_token_path=None
         id = deposition['id']
         d = l.deposit(id, ignore_deletion=True)
         d_total_size = sum([f['filesize'] for f in d.files])
-        print(id, d_total_size)
+        print('ID {0}: {1} in {2}'.format(id, size(d_total_size), d.title))
         total_size += d_total_size
-    return total_size
+    return size(total_size)

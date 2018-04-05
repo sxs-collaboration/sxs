@@ -130,7 +130,7 @@ class Login(object):
         from .deposit import Deposit
         return Deposit(self, deposition_id, ignore_deletion)
 
-    def list_deposits(self, q=None, status=None, sort=None, page=None, size=None):
+    def list_deposits(self, q=None, status=None, sort=None, page=None, size=9999):
         """Return list of dictionaries describing each deposit created with this login
 
         It is possible to filter the results use the optional parameters
@@ -151,7 +151,8 @@ class Login(object):
             Page number for pagination
 
         size: int
-            Number of results to return per page
+            Number of results to return per page.  Note that Zenodo (as of this writing) seems to
+            place a hard limit of 9999 responses.  Anything more will result in an error.
 
         """
         params={}
