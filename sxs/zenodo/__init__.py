@@ -1,5 +1,7 @@
 from .api import Login, Deposit, Records
 
+# See https://github.com/moble/nb-marine-science for other examples of the API
+
 
 def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                                sandbox=False, access_token_path=None,
@@ -65,7 +67,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     import re
     import os
     from .api import md5checksum, find_files
-    from .creators import known_creators
+    from .creators import known_creators, creators_emails, default_creators
     from ..metadata import Metadata
 
     if not os.path.isdir(sxs_bbh_directory_name):
@@ -87,9 +89,11 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     l = Login(sandbox=sandbox, access_token_path=access_token_path)
 
     # Get this deposit and the title
+    new_deposit = False
     if deposition_id is not None:
         d = l.deposit(deposition_id, ignore_deletion=ignore_deletion)
         title = d.title
+        new_deposit = False
     else:
         # Check to see if this simulation exists in the list of the user's deposits or in the sxs community
         title = 'Binary black-hole simulation {0}'.format(sxs_bbh)
@@ -99,6 +103,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             print('A deposit with title "{0}"'.format(title))
             print('has already been started with this login.  Opening it for editing.')
             d = l.deposit(deposition_id, ignore_deletion=ignore_deletion)
+            new_deposit = False
         elif len(matching_deposits) > 1:
             print('Multiple deposits titled "{0}" have been found.'.format(title))
             raise ValueError(title)
@@ -121,6 +126,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                 print('Web link: {0}'.format(records[0]['links']['html']))
                 raise ValueError(title)
             d = l.deposit(deposition_id=None, ignore_deletion=ignore_deletion)
+            new_deposit = True
     print('Working on deposit "{0}"'.format(title))
 
     # Convert each metadata.txt file to a metadata.json file sorted with interesting stuff at the
@@ -146,8 +152,16 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             authors_emails = list(authors_emails)
             if not authors_emails:
                 print("No creators found in input arguments, on Zenodo, or in any metadata.txt file.")
-                raise ValueError("Missing creators")
-            creators = []
+                point_of_contact_email = d.metadata.get('point_of_contact_email', '')
+                if point_of_contact_email in creators_emails:
+                    creators.append(creators_emails['point_of_contact_email'])
+                creators.extend(default_creators)
+                # if new_deposit:
+                #     try:
+                #         d.delete_deposit(confirmed=True)
+                #     except:
+                #         pass
+                # raise ValueError("Missing creators")
             for author_email in authors_emails:
                 name = ' '.join(author_email.split()[:-1])
                 if name in known_creators:
@@ -278,6 +292,7 @@ def total_deposit_size(deposition_id=None, sandbox=False, access_token_path=None
         id = deposition['id']
         d = l.deposit(id, ignore_deletion=True)
         d_total_size = sum([f['filesize'] for f in d.files])
-        print('ID {0}: {1} in {2}'.format(id, size(d_total_size), d.title))
+        print('{1} in {2} (Zenodo ID {0})'.format(id, convert_size(d_total_size), d.title))
         total_size += d_total_size
+    print('{0} in {1} deposits'.format(convert_size(total_size), len(depositions)))
     return size(total_size)
