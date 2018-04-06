@@ -134,6 +134,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     # before checking for new files in case these are new or get changed in the process.
     paths_and_names = find_files(sxs_bbh_directory_name, exclude=exclude)
     authors_emails = set()
+    point_of_contact_email = ''
     keywords = set(keywords)
     for path,_ in paths_and_names:
         if os.path.basename(path) == 'metadata.txt':
@@ -142,8 +143,9 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             m = Metadata.from_txt_file(path, cache_json=False).reorder_keys()
             m.to_json_file(json_path)
             authors_emails |= set(m.get('authors_emails', []))
+            point_of_contact_email = m.get('point_of_contact_email', '')
             keywords |= set(m.get('keywords', []))
-
+                
     # Get list of creators, keywords, and description
     print('Constructing metadata')
     if not creators:
@@ -152,29 +154,25 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             authors_emails = list(authors_emails)
             if not authors_emails:
                 print("No creators found in input arguments, on Zenodo, or in any metadata.txt file.")
-                point_of_contact_email = d.metadata.get('point_of_contact_email', '')
                 if point_of_contact_email in creators_emails:
                     creators.append(creators_emails['point_of_contact_email'])
+                    print('Using point-of-contact email to add', creators_emails['point_of_contact_email']['name'])
                 creators.extend(default_creators)
-                # if new_deposit:
-                #     try:
-                #         d.delete_deposit(confirmed=True)
-                #     except:
-                #         pass
-                # raise ValueError("Missing creators")
-            for author_email in authors_emails:
-                name = ' '.join(author_email.split()[:-1])
-                if name in known_creators:
-                    creators.append(known_creators[name])
-                else:
-                    # We tried our best; let's just get this over with.  Sorry Dr. van Whatever.
-                    name_parts = name.split()
-                    first_name = ' '.join(name_parts[:-1])
-                    last_name = name_parts[-1]
-                    if first_name:
-                        creators.append({'name': '{0}, {1}'.format(last_name, first_name)})
+                print('Adding default creators')
+            else:
+                for author_email in authors_emails:
+                    name = ' '.join(author_email.split()[:-1])
+                    if name in known_creators:
+                        creators.append(known_creators[name])
                     else:
-                        creators.append({'name': last_name})
+                        # We tried our best; let's just get this over with.  Sorry Dr. van Whatever.
+                        name_parts = name.split()
+                        first_name = ' '.join(name_parts[:-1])
+                        last_name = name_parts[-1]
+                        if first_name:
+                            creators.append({'name': '{0}, {1}'.format(last_name, first_name)})
+                        else:
+                            creators.append({'name': last_name})
     # print('Creators: {0}'.format(creators))
     keywords = list(set(keywords) | set(d.metadata.get('keywords', [])))
     # print('Keywords: {0}'.format(keywords))
