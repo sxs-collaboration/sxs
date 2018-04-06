@@ -143,7 +143,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             m = Metadata.from_txt_file(path, cache_json=False).reorder_keys()
             m.to_json_file(json_path)
             authors_emails |= set(m.get('authors_emails', []))
-            point_of_contact_email = m.get('point_of_contact_email', '')
+            point_of_contact_email = m.get('point_of_contact_email', point_of_contact_email)
             keywords |= set(m.get('keywords', []))
                 
     # Get list of creators, keywords, and description
@@ -155,8 +155,10 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             if not authors_emails:
                 print("No creators found in input arguments, on Zenodo, or in any metadata.txt file.")
                 if point_of_contact_email in creators_emails:
-                    creators.append(creators_emails['point_of_contact_email'])
-                    print('Using point-of-contact email to add', creators_emails['point_of_contact_email']['name'])
+                    creators.append(creators_emails[point_of_contact_email])
+                    print('Using point-of-contact email to add', creators_emails[point_of_contact_email]['name'])
+                elif point_of_contact_email:
+                    print('Unknown point-of-contact email: {0}'.format(point_of_contact_email))
                 creators.extend(default_creators)
                 print('Adding default creators')
             else:
