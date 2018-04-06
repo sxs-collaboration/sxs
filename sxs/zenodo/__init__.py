@@ -202,12 +202,12 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     # print('New metadata: {0}'.format(new_metadata))
     metadata = d.metadata.copy()
     metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
-    changed_metadata = (metadata == d.metadata)
-    if changed_metadata:
+    unchanged_metadata = (metadata == d.metadata)
+    if unchanged_metadata:
+        print('No metadata changed.  Updating it on Zenodo would produce an error, so skipping that.')
+    else:
         d.update_metadata(metadata)
         print('Uploaded metadata')
-    else:
-        print('No metadata changed.  Updating it on Zenodo would produce an error, so skipping that.')
 
     # Get the list of files we'll be uploading and compare to files already in the deposit to see if
     # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
