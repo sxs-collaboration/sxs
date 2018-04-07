@@ -6,7 +6,7 @@ from .api import Login, Deposit, Records
 def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                                sandbox=False, access_token_path=None,
                                deposition_id=None, ignore_deletion=False,
-                               access_right='open', license='cc-by',
+                               access_right='open', license='CC-BY-4.0',
                                creators=[], description='', keywords=[],
                                publish=False):
     """Publish or edit a Zenodo entry for an SXS:BBH simulation
@@ -185,6 +185,9 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
             description = """Simulation of a black-hole binary system evolved by the <a href="{0}">SpEC code</a>."""
             description = description.format(spec_url)
     # print('Description: {0}'.format(description))
+    communities = d.metadata.get('communities', [])
+    if 'sxs' not in [c['identifier'] for c in communities]:
+        communities.append({'identifier': 'sxs'})
     print('Finished constructing metadata')
 
     # Send Zenodo the metadata before messing with files, in case this deposit is interrupted (e.g.,
@@ -194,7 +197,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         'upload_type': 'dataset',
         'access_right': access_right,
         'license': license,
-        'communities': [{'identifier': 'sxs'}],
+        'communities': communities,
         'description': description,
         'keywords': keywords,
         'creators': creators,
@@ -206,6 +209,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     if unchanged_metadata:
         print('No metadata changed.  Updating it on Zenodo would produce an error, so skipping that.')
     else:
+        d.edit()
         d.update_metadata(metadata)
         print('Uploaded metadata')
 
@@ -229,7 +233,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
                 local_paths_and_names.remove([path, name])
 
     # Now, if needed do the file deletions and/or uploads, and publish
-    if not zenodo_filenames_to_delete and not local_paths_and_names and not changed_metadata:
+    if not zenodo_filenames_to_delete and not local_paths_and_names and unchanged_metadata:
         print('Nothing will change in this deposit.  Just checking that it is published.')
     else:
         if d.published:
@@ -292,7 +296,7 @@ def total_deposit_size(deposition_id=None, sandbox=False, access_token_path=None
         id = deposition['id']
         d = l.deposit(id, ignore_deletion=True)
         d_total_size = sum([f['filesize'] for f in d.files])
-        print('{1} in {2} (Zenodo ID {0})'.format(id, convert_size(d_total_size), d.title))
+        print('{1} in "{2}" (Zenodo ID {0})'.format(id, convert_size(d_total_size), d.title))
         total_size += d_total_size
     print('{0} in {1} deposits'.format(convert_size(total_size), len(depositions)))
     return size(total_size)
