@@ -181,6 +181,7 @@ class Login(object):
         return r.json()
 
     def delete_untitled_empty_deposits(self):
+        deleted_deposits = 0
         deposits = self.list_deposits(size=9999)
         for d in deposits:
             try:
@@ -188,8 +189,10 @@ class Login(object):
                     d = l.deposit(d['id'], ignore_deletion=True)
                     if not d.files:
                         d.delete_deposit(confirmed=True)
+                        deleted_deposits += 1
             except:
                 pass
+        print('Deleted {0} deposits'.format(deleted_deposits))
 
     def community_curate_accept(community_id, record_id):
         url = "https://zenodo.org/communities/{0}/curate/".format(community_id)
