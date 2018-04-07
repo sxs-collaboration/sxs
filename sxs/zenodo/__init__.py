@@ -209,7 +209,10 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     if unchanged_metadata:
         print('No metadata changed.  Updating it on Zenodo would produce an error, so skipping that.')
     else:
-        d.edit()
+        try:
+            d.edit()
+        except:
+            pass
         d.update_metadata(metadata)
         print('Uploaded metadata')
 
@@ -267,36 +270,3 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         print('    {0}\n'.format(d.website))
 
     return d
-
-
-def total_deposit_size(deposition_id=None, sandbox=False, access_token_path=None, human_readable=True):
-    import math
-    from sxs.zenodo import Login
-
-    def convert_size(size_bytes):
-        if size_bytes == 0:
-            return "0B"
-        size_name = ("B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB")
-        i = int(math.floor(math.log(size_bytes, 1024)))
-        p = math.pow(1024, i)
-        s = round(size_bytes / p, 3)
-        return "{0:>8.3f} {1}".format(s, size_name[i])
-
-    if human_readable:
-        size = convert_size  # Note: the return type will be str
-    else:
-        size = lambda s: s  # Note: the return type will be int
-    l = Login(sandbox=sandbox, access_token_path=access_token_path)
-    if deposition_id is None:
-        depositions = l.list_deposits(page=1, size=9999)
-    else:
-        depositions = [l.deposit(deposition_id, ignore_deletion=True).representation]
-    total_size = 0
-    for deposition in depositions:
-        id = deposition['id']
-        d = l.deposit(id, ignore_deletion=True)
-        d_total_size = sum([f['filesize'] for f in d.files])
-        print('{1} in "{2}" (Zenodo ID {0})'.format(id, convert_size(d_total_size), d.title))
-        total_size += d_total_size
-    print('{0} in {1} deposits'.format(convert_size(total_size), len(depositions)))
-    return size(total_size)

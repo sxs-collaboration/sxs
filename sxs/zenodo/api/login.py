@@ -180,6 +180,17 @@ class Login(object):
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         return r.json()
 
+    def delete_untitled_empty_deposits(self):
+        deposits = self.list_deposits(size=9999)
+        for d in deposits:
+            try:
+                if d['title']=='':
+                    d = l.deposit(d['id'], ignore_deletion=True)
+                    if not d.files:
+                        d.delete_deposit(confirmed=True)
+            except:
+                pass
+
     def community_curate_accept(community_id, record_id):
         url = "https://zenodo.org/communities/{0}/curate/".format(community_id)
         data = {"action": "accept", "recid": record_id}
@@ -193,3 +204,32 @@ class Login(object):
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         return r.json()
+
+    def total_deposit_size(self, deposition_id=None, human_readable=True):
+        import math
+
+        def convert_size(size_bytes):
+            if size_bytes == 0:
+                return "0B"
+            size_name = ("B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB")
+            i = int(math.floor(math.log(size_bytes, 1024)))
+            p = math.pow(1024, i)
+            s = round(size_bytes / p, 3)
+            return "{0:>8.3f} {1}".format(s, size_name[i])
+
+        if deposition_id is None:
+            depositions = self.list_deposits(page=1, size=9999)
+        else:
+            depositions = [self.deposit(deposition_id, ignore_deletion=True).representation]
+        total_size = 0
+        for deposition in depositions:
+            id = deposition['id']
+            d = self.deposit(id, ignore_deletion=True)
+            d_total_size = sum([f['filesize'] for f in d.files])
+            print('{1} in "{2}" (Zenodo ID {0})'.format(id, convert_size(d_total_size), d.title))
+            total_size += d_total_size
+        print('{0} in {1} deposits'.format(convert_size(total_size), len(depositions)))
+        if human_readable:
+            return convert_size(total_size)  # Note: the return type will be str
+        else:
+            return total_size  # Note: the return type will be int
