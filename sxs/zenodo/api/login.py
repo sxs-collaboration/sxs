@@ -1,6 +1,7 @@
 class Login(object):
 
-    def __init__(self, sandbox=False, access_token=None, access_token_path=None, session=None):
+    def __init__(self, sandbox=False, access_token=None, access_token_path=None,
+                 total_retry_count=50, backoff_factor=0.1, backoff_max=20.0, session=None):
         """Initialize a Login object for interacting with zenodo
 
         This object encapsulates the credentials needed to interact with the Zenodo API, and exposes
@@ -40,6 +41,23 @@ class Login(object):
             '~/.credentials/zenodo/access_token' for the regular website or
             '~/.credentials/zenodo/access_token_sandbox' for the sandbox website.
 
+        total_retry_count: int [default: 50]
+            Total number of times to retry requests that fail for retry-able reasons.
+
+        backoff_factor: float [default: 0.1]
+            A delay factor to apply between requests after the second try (most errors are resolved
+            immediately by a second try without a delay).  After a certain number of total retries,
+            the request Session will sleep for:
+
+                {backoff factor} * (2 ^ ({number of total retries} - 1))
+
+            seconds before trying again. For example, if the `backoff_factor` is 0.1, then the
+            session will sleep for [0.0s, 0.2s, 0.4s, ...] between retries.  It will never be longer
+            than `backoff_max`.
+
+        backoff_max: float [default: 20.0]
+            Longest time (in seconds) to wait between retries.
+
         session: requests.Session or None [default: None]
             This is the object that handles all of the requests made to the API.  If `None`, a
             Session is created for you, and sensible default headers (including the access token)
@@ -49,8 +67,10 @@ class Login(object):
                 {"Authorization": "Bearer <YourAccessTokenHere>"}
 
         """
-        import requests
         import os
+        import requests
+        from requests.adapters import HTTPAdapter
+        from requests.packages.urllib3.util.retry import Retry
         from . import url_sandbox, url_standard
 
         self.sandbox = sandbox
@@ -60,10 +80,7 @@ class Login(object):
             self.base_url = url_standard
 
         # The Session object will handle all requests we make.
-        if session is None:
-            self.session = requests.Session()
-        else:
-            self.session = session
+        self.session = session or requests.Session()
 
         # If the input session object succeeds at a `get`, we can skip a lot of the following
         r = self.session.get("{0}api/deposit/depositions".format(self.base_url))
@@ -103,6 +120,16 @@ class Login(object):
             "Content-Type": "application/json",
         }
         self.session.headers.update(default_headers)
+
+        ## Retry automatically on certain types of errors
+        Retry.BACKOFF_MAX = backoff_max  # Must be set on the class, not the instance
+        retry = Retry(
+            total=total_retry_count,
+            backoff_factor=backoff_factor,
+            status_forcelist=[502, 503, 504,],
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        self.session.mount(self.base_url, adapter)
 
         # Test to see if we can use the given access token
         url = "{0}api/deposit/depositions".format(self.base_url)
@@ -214,7 +241,7 @@ class Login(object):
         def convert_size(size_bytes):
             if size_bytes == 0:
                 return "0B"
-            size_name = ("B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB")
+            size_name = ("B  ", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB")
             i = int(math.floor(math.log(size_bytes, 1024)))
             p = math.pow(1024, i)
             s = round(size_bytes / p, 3)
