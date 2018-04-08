@@ -126,7 +126,7 @@ class Login(object):
         retry = Retry(
             total=total_retry_count,
             backoff_factor=backoff_factor,
-            status_forcelist=[502, 503, 504,],
+            status_forcelist=[500, 502, 503, 504,],
         )
         adapter = HTTPAdapter(max_retries=retry)
         self.session.mount(self.base_url, adapter)
