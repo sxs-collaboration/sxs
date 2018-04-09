@@ -23,6 +23,7 @@ class Deposit(object):
         """
         self.login = login
         self.ignore_deletion = ignore_deletion
+        self._representation = {}  # Just during construction, to prevent errors if construction fails
 
         # Now, create or reacquire the specific deposit we're looking for
         if deposition_id is not None:
