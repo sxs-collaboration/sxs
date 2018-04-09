@@ -3,15 +3,15 @@ from .api import Login, Deposit, Records
 # See https://github.com/moble/nb-marine-science for other examples of the API
 
 
-def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
+def deposit_sxs_system_simulation(sxs_system_directory_name, exclude=[],
                                sandbox=False, access_token_path=None,
                                deposition_id=None, ignore_deletion=False,
                                access_right='open', license='CC-BY-4.0',
                                creators=[], description='', keywords=[],
                                publish=False):
-    """Publish or edit a Zenodo entry for an SXS:BBH simulation
+    """Publish or edit a Zenodo entry for an SXS simulation
 
-    This is essentially a wrapper around many of the Zenodo API's functions, specialized for SXS:BBH
+    This is essentially a wrapper around many of the Zenodo API's functions, specialized for SXS
     systems and intended to account for various possible errors or special conditions
 
     This function should be able to safely handle
@@ -32,7 +32,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
 
     Parameters to `.api.utilities.find_files`
     =========================================
-    sxs_bbh_directory_name: string
+    sxs_system_directory_name: string
         Absolute or relative path to a directory starting with 'SXS:BBH:' and containing at least
         one 'metadata.txt' file somewhere in its file hierarchy.
     exclude: list of strings [defaults to an empty list]
@@ -70,20 +70,22 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     from .creators import known_creators, creators_emails, default_creators
     from ..metadata import Metadata
 
-    if not os.path.isdir(sxs_bbh_directory_name):
-        print('The input directory name "{0}" does not appear to be a directory.'.format(sxs_bbh_directory_name))
-        raise ValueError(sxs_bbh_directory_name)
-    sxs_bbh = os.path.basename(os.path.normpath(sxs_bbh_directory_name))
-    if not sxs_bbh.startswith('SXS:BBH:') or len(sxs_bbh) <= 8:
-        print('Input directory "{0}" does not start with "SXS:BBH:" followed by some identifier.'.format(sxs_bbh))
-        print('This function is only designed to handle SXS:BBH directories.')
-        print('Since the input directory does not conform to this specification,')
-        print('this function cannot construct the data with any robustness.')
-        print('Feel free to copy this function\'s source to publish to Zenodo')
-        print('as you wish, and submit a Pull Request if you feel that it would')
-        print('make a useful addition to this module.')
-        raise ValueError(sxs_bbh_directory_name)
-    print("Beginning work on {0}".format(sxs_bbh))
+    if not os.path.isdir(sxs_system_directory_name):
+        print('The input directory name "{0}" does not appear to be a directory.'.format(sxs_system_directory_name))
+        raise ValueError(sxs_system_directory_name)
+    sxs_system = os.path.basename(os.path.normpath(sxs_system_directory_name))
+    if sxs_system.startswith('BHNS:') or sxs_system.startswith('NSNS:'):
+        sxs_system = 'SXS:' + sxs_system
+    if not ((sxs_system.startswith('SXS:BBH:') and len(sxs_system) > 8)
+            or (sxs_system.startswith('SXS:BHNS:') and len(sxs_system) > 9)
+            or (sxs_system.startswith('SXS:NSNS:') and len(sxs_system) > 9)):
+        print('Input directory "{0}" does not start with "SXS:BBH:", "SXS:BHNS:", or "SXS:NSNS:" followed by some identifier.'.format(sxs_system))
+        print('This function is only designed to handle SXS directories.  Since the input directory does not conform to this')
+        print('specification, this function cannot construct the data with any robustness.  Feel free to copy this function\'s')
+        print('source to publish to Zenodo as you wish, and submit a Pull Request if you feel that it would make a useful')
+        print('addition to this module.')
+        raise ValueError(sxs_system_directory_name)
+    print("Beginning work on {0}".format(sxs_system))
 
     # Log in to zenodo
     l = Login(sandbox=sandbox, access_token_path=access_token_path)
@@ -96,7 +98,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
         new_deposit = False
     else:
         # Check to see if this simulation exists in the list of the user's deposits or in the sxs community
-        title = 'Binary black-hole simulation {0}'.format(sxs_bbh)
+        title = 'Binary black-hole simulation {0}'.format(sxs_system)
         matching_deposits = l.list_deposits(q='title: "{0}"'.format(title))
         if len(matching_deposits) == 1:
             deposition_id = matching_deposits[0]['id']
@@ -132,7 +134,7 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     # Convert each metadata.txt file to a metadata.json file sorted with interesting stuff at the
     # top of the file, so it appears prominently on Zenodo's preview without scrolling.  Do this
     # before checking for new files in case these are new or get changed in the process.
-    paths_and_names = find_files(sxs_bbh_directory_name, exclude=exclude)
+    paths_and_names = find_files(sxs_system_directory_name, exclude=exclude)
     authors_emails = set()
     point_of_contact_email = ''
     keywords = set(keywords)
@@ -220,9 +222,9 @@ def deposit_sxs_bbh_simulation(sxs_bbh_directory_name, exclude=[],
     # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
     # version.
     zenodo_filenames = d.file_names
-    local_paths_and_names = find_files(sxs_bbh_directory_name, exclude=exclude)
+    local_paths_and_names = find_files(sxs_system_directory_name, exclude=exclude)
     if len(local_paths_and_names) == 0:
-        print('Zenodo requires that there be at least one file.  None found in {0}.'.format(sxs_bbh_directory_name))
+        print('Zenodo requires that there be at least one file.  None found in {0}.'.format(sxs_system_directory_name))
         raise ValueError('No files found')
     local_filenames = [name for path, name in local_paths_and_names]
     zenodo_filenames_to_delete = [zf for zf in zenodo_filenames if not zf in local_filenames]
