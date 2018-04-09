@@ -1,14 +1,15 @@
 from .api import Login, Deposit, Records
 
-# See https://github.com/moble/nb-marine-science for other examples of the API
+# See https://github.com/moble/nb-marine-science for other examples using the Zenodo API
+# The other python API interface I found is here: https://github.com/moble/zenodo-python
 
 
-def deposit_sxs_system_simulation(sxs_system_directory_name, exclude=[],
-                               sandbox=False, access_token_path=None,
-                               deposition_id=None, ignore_deletion=False,
-                               access_right='open', license='CC-BY-4.0',
-                               creators=[], description='', keywords=[],
-                               publish=False):
+def deposit_sxs_simulation(sxs_system_directory_name, exclude=[],
+                           sandbox=False, access_token_path=None,
+                           deposition_id=None, ignore_deletion=False,
+                           access_right='open', license='CC-BY-4.0',
+                           creators=[], description='', keywords=[],
+                           publish=False):
     """Publish or edit a Zenodo entry for an SXS simulation
 
     This is essentially a wrapper around many of the Zenodo API's functions, specialized for SXS
@@ -33,8 +34,8 @@ def deposit_sxs_system_simulation(sxs_system_directory_name, exclude=[],
     Parameters to `.api.utilities.find_files`
     =========================================
     sxs_system_directory_name: string
-        Absolute or relative path to a directory starting with 'SXS:BBH:' and containing at least
-        one 'metadata.txt' file somewhere in its file hierarchy.
+        Absolute or relative path to a directory starting with 'SXS:BBH:', 'SXS:BHNS:', or
+        'SXS:NSNS:' and containing at least one 'metadata.txt' file somewhere in its file hierarchy.
     exclude: list of strings [defaults to an empty list]
 
     Parameters to `.api.login.Login`
@@ -55,8 +56,8 @@ def deposit_sxs_system_simulation(sxs_system_directory_name, exclude=[],
     description: string [defaults to '']
     keywords: string [defaults to empty list]
         Note that the last three parameters, if not passed to this function, will be derived
-        automatically from the 'metadata.txt' files found in the SXS:BBH directory; they will be the
-        union of the parameters found in each file if one are multiple such files.
+        automatically from the 'metadata.txt' files found in the SXS system directory; they will be
+        the union of the parameters found in each file if there are multiple such files.
 
     Final parameter
     ==================
