@@ -262,6 +262,7 @@ class Metadata(collections.OrderedDict):
                 'simulation_name',
                 'alternative_names',
                 'initial_data_type',
+                'eos',
                 'number_of_orbits',
                 'relaxed_mass1',
                 'relaxed_mass2',
