@@ -241,6 +241,8 @@ def deposit_sxs_simulation(sxs_system_directory_name, exclude=[],
     # Now, if needed do the file deletions and/or uploads, and publish
     if not zenodo_filenames_to_delete and not local_paths_and_names and unchanged_metadata:
         print('Nothing will change in this deposit.  Just checking that it is published.')
+    elif not zenodo_filenames_to_delete and not local_paths_and_names:
+        print('Only metadata will change in this deposit.  Proceeding to publication.')
     else:
         if d.published:
             # If this deposit already has files, we need to create a new deposit to change the files
