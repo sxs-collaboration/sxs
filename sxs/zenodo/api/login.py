@@ -110,8 +110,16 @@ class Login(object):
                     print('This is should be a Zenodo access token, which is need to make a Deposit.')
                     raise ValueError('Deposit requires a Zenodo access token')
 
-            # Ensure that, by default, this session sends the Authorization header
-            self.session.headers.update({"Authorization": "Bearer {0}".format(self.access_token)})
+            # Ensure that this session sends the Authorization header with every request to the base_url
+            class ZenodoAuth(requests.auth.AuthBase):
+                base_url = self.base_url
+                access_token = self.access_token
+                def __call__(self, r):
+                    if r.url.startswith(base_url):
+                        r.headers.update({"Authorization": "Bearer {0}".format(access_token)})
+                    return r
+            self.session.auth = ZenodoAuth()
+            # self.session.headers.update({"Authorization": "Bearer {0}".format(self.access_token)})
 
         # Note that some requests require different choices for 'Accept' and 'Content-Type'; these
         # are altered in the corresponding methods below.
@@ -212,7 +220,7 @@ class Login(object):
         deposits = self.list_deposits(size=9999)
         for d in deposits:
             try:
-                if d['title']=='':
+                if d['title'] == '':
                     d = l.deposit(d['id'], ignore_deletion=True)
                     if not d.files:
                         d.delete_deposit(confirmed=True)
@@ -220,6 +228,19 @@ class Login(object):
             except:
                 pass
         print('Deleted {0} deposits'.format(deleted_deposits))
+
+    def discard_all_drafts(self):
+        discarded_drafts = 0
+        deposits = self.list_deposits(size=9999)
+        for d in deposits:
+            try:
+                if d['state'] == 'inprogress':
+                    d = l.deposit(d['id'], ignore_deletion=True)
+                    d.discard()
+                    discarded_drafts += 1
+            except:
+                pass
+        print('Discarded {0} drafts'.format(discarded_drafts))
 
     def community_curate_accept(community_id, record_id):
         url = "https://zenodo.org/communities/{0}/curate/".format(community_id)
