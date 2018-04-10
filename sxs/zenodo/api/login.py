@@ -112,13 +112,15 @@ class Login(object):
 
             # Ensure that this session sends the Authorization header with every request to the base_url
             class ZenodoAuth(requests.auth.AuthBase):
-                base_url = self.base_url
-                access_token = self.access_token
+                def __init__(self, base_url, access_token):
+                    self.base_url = base_url
+                    self.access_token = access_token
+                    super().__init__()
                 def __call__(self, r):
-                    if r.url.startswith(base_url):
-                        r.headers.update({"Authorization": "Bearer {0}".format(access_token)})
+                    if r.url.startswith(self.base_url):
+                        r.headers.update({"Authorization": "Bearer {0}".format(self.access_token)})
                     return r
-            self.session.auth = ZenodoAuth()
+            self.session.auth = ZenodoAuth(self.base_url, self.access_token)
             # self.session.headers.update({"Authorization": "Bearer {0}".format(self.access_token)})
 
         # Note that some requests require different choices for 'Accept' and 'Content-Type'; these
