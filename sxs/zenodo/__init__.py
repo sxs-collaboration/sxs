@@ -144,6 +144,7 @@ def deposit_sxs_simulation(sxs_system_directory_name, exclude=[],
             json_path = os.path.join(os.path.dirname(path), 'metadata.json')
             print('Converting metadata.txt to JSON in {0}'.format(json_path))
             m = Metadata.from_txt_file(path, cache_json=False).reorder_keys()
+            del m['metadata_path']
             m.to_json_file(json_path)
             authors_emails |= set(m.get('authors_emails', []))
             point_of_contact_email = m.get('point_of_contact_email', point_of_contact_email)
