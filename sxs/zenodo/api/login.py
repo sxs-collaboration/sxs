@@ -62,8 +62,9 @@ class Login(object):
             This is the object that handles all of the requests made to the API.  If `None`, a
             Session is created for you, and sensible default headers (including the access token)
             are created.  If you need to adjust some of the Session parameters like proxies or SSL
-            verification, you can simply create your own and pass it in here.  Remember to set the
-            access token using a header like
+            verification, you can simply create your own and pass it in here.  Note that any `auth`
+            property on the passed object will be replaced by one that adds this to the header of
+            each request to the chosen Zenodo domain:
                 {"Authorization": "Bearer <YourAccessTokenHere>"}
 
         """
@@ -121,7 +122,6 @@ class Login(object):
                         r.headers.update({"Authorization": "Bearer {0}".format(self.access_token)})
                     return r
             self.session.auth = ZenodoAuth(self.base_url, self.access_token)
-            # self.session.headers.update({"Authorization": "Bearer {0}".format(self.access_token)})
 
         # Note that some requests require different choices for 'Accept' and 'Content-Type'; these
         # are altered in the corresponding methods below.
