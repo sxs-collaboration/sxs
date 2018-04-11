@@ -566,7 +566,7 @@ class Deposit(object):
             print('File name "{0}" not found on Zenodo.'.format(file_name))
             raise ValueError(file_name)
         file_id = file_ids[file_name]
-        url = self.base_url+'/api/deposit/depositions/{0}/files/{1}'.format(self.id, file_id)
+        url = '{0}api/deposit/depositions/{1}/files/{2}'.format(self.base_url, self.id, file_id)
         r = self._delete(url)
         if r.status_code != 204:
             print('Deleting file "{0}" from deposit "{1}" failed.'.format(file_name, self.id))
@@ -652,7 +652,7 @@ class Deposit(object):
             print('File name "{0}" not found on Zenodo.'.format(old_file_name))
             raise ValueError(old_file_name)
         file_id = file_ids[old_file_name]
-        url = self.base_url+'/api/deposit/depositions/{0}/files/{1}'.format(self.id, file_id)
+        url = '{0}api/deposit/depositions/{1}/files/{2}'.format(self.base_url, self.id, file_id)
         rename_data = {old_file_name: new_file_name}
         r = self._put(url, data=json.dumps(rename_data))
         if r.status_code != 204:
