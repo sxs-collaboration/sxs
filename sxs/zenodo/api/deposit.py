@@ -575,7 +575,7 @@ class Deposit(object):
                 print('Try get_new_version, and then delete the file from that version.')
             if r.status_code == 404:
                 print('File id "{0}" does not exist in deposition "{1}".'.format(file_id, self.id))
-                print('Try refreshing the information in this Deposit object, and trying again.')
+                print('Try refreshing the local information in this Deposit object, and trying again as relevant.')
             try:
                 print(r.json())
             except:
@@ -645,6 +645,32 @@ class Deposit(object):
         self.refresh_information
         return r
 
+    def rename_file(self, old_file_name, new_file_name):
+        file_ids = self.file_ids
+        if old_file_name not in file_ids:
+            print('File name "{0}" not found on Zenodo.'.format(old_file_name))
+            raise ValueError(old_file_name)
+        file_id = file_ids[old_file_name]
+        url = self.base_url+'/api/deposit/depositions/{0}/files/{1}'.format(self.id, file_id)
+        rename_data = {old_file_name: new_file_name}
+        r = self._put(url, data=json.dumps(rename_data))
+        if r.status_code != 204:
+            print('Deleting file "{0}" from deposit "{1}" failed.'.format(old_file_name, self.id))
+            if r.status_code == 403:
+                print('Server replied with "Forbidden: Deleting an already published deposition file."')
+                print('Try get_new_version, and then delete the file from that version.')
+            if r.status_code == 404:
+                print('File id "{0}" does not exist in deposition "{1}".'.format(file_id, self.id))
+                print('Try refreshing the local information in this Deposit object, and trying again as relevant.')
+            try:
+                print(r.json())
+            except:
+                pass
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        self.refresh_information
+        return r
+        
     def upload_all_files(self, top_directory, exclude=[], skip_checksum=False):
         """Recursively upload all files found in `top_directory`
 
