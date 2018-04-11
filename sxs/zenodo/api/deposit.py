@@ -646,6 +646,7 @@ class Deposit(object):
         return r
 
     def rename_file(self, old_file_name, new_file_name):
+        import json
         file_ids = self.file_ids
         if old_file_name not in file_ids:
             print('File name "{0}" not found on Zenodo.'.format(old_file_name))
