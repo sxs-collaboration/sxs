@@ -3,7 +3,24 @@ from distutils.command.build_py import build_py
 
 
 def calculate_version():
-    """Construct a version string from date, time, and short git hash"""
+    """Construct a version string from date, time, and short git hash
+
+    The resulting version looks something like "2018.4.11.12.56.27.dev71379535", where the first six
+    numbers are the date and time, while the part after "dev" is the short git hash converted to
+    decimal.  This version string has a few nice features:
+      * This is a valid PEP 440 version number
+      * It's automatic
+      * It's serial
+      * It contains all the information I can think of that might be needed
+
+    Unfortunately, in order to comply with PEP 440 (and more specifically, not break various python
+    tools that analyze version numbers), the short git hash must be converted from hexadecimal to
+    decimal.  To convert it back, you can run a python command like
+
+        >>> hex(71379535)[2:]
+        '4412a4f'
+
+    """
     import subprocess
     from warnings import warn
     from sys import platform
