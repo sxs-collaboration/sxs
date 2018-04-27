@@ -228,7 +228,7 @@ def main():
     else:
         r = func(*args, **kwargs)
         if r:
-            if isinstance(r, 'str'):
+            if isinstance(r, str):
                 print(r)
             else:
                 pprint(r)
