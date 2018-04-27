@@ -54,7 +54,7 @@ def upload(directory, exclude=[],
     elif sxs_system_type == 'BHNS':
         title = 'Black-hole neutron-star binary simulation {0}'.format(sxs_system)
     elif sxs_system_type == 'NSNS':
-        title = 'Neutron-star binary simulation {0}'.format(sxs_system)
+        title = 'Binary neutron-star simulation {0}'.format(sxs_system)
     else:
         raise ValueError('Did not recognize SXS system type "{0}"; should be BBH, BHNS, or NSNS.'.format(sxs_system_type))
     print("Beginning work on {0}".format(sxs_system))
