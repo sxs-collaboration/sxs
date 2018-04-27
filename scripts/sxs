@@ -141,7 +141,7 @@ def parse_arguments(command_line, package_name, subpackages, test_parsing=False)
         if kwarg_regex.search(word):
             kwarg_indices.append(i)
     kwarg_indices.append(len(words))
-    command_and_args = [s.replace('-', '_') for s in [package_name] + words[1:kwarg_indices[0]]]
+    command_and_args = [package_name] + words[1:kwarg_indices[0]]
     kwargs = [words[i:j] for i,j in zip(kwarg_indices[:-1], kwarg_indices[1:])]
 
     # Next, look for the longest subset of the first part of the args that matches a subpackage, and
@@ -187,7 +187,7 @@ def parse_arguments(command_line, package_name, subpackages, test_parsing=False)
 
     # Finalize the list of args
     combine_elements_beginning_or_ending_with_commas(args)
-    args = [argument_to_python_literal(arg) for arg in args]
+    args = [argument_to_python_literal(arg.replace('-', '_')) for arg in args]
 
     # Finalize the keyword arguments
     kwargs = OrderedDict([(k, v) for kwarg in kwargs for k,v in [process_kwarg(kwarg)]])
