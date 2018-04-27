@@ -1,0 +1,242 @@
+#! /usr/bin/env python
+
+"""Call python functions from the command line
+
+This script simply translates command-line calls into python calls, treating the first one or more
+arguments as elements of the python module name
+
+"""
+
+
+def find_callables_in_package(package):
+    """Finds functions and other objects that can be called inside a package
+
+    Returns a list of strings naming the callables.
+
+    """
+    import inspect
+    if isinstance(package, str):
+        package = import_module(package)
+    return [m[0] for m in inspect.getmembers(package) if callable(m[1])]
+    # return [m[0] for m in inspect.getmembers(package) if inspect.isfunction(m[1])]
+
+
+def argument_to_python_literal(arg):
+    """Convert argument strings to python objects if possible
+
+    All arguments on the command line are passed as strings, even if they represent numbers, etc.
+    Where possible, these arguments are converted to python literals.  Strings may be passed using
+    single or double quotation marks, or as the string itself if python does not know of any object
+    with that name.
+
+    This should correctly convert strings, numbers, tuples, lists, dicts, booleans, and None;
+    everything else will just be considered a string.
+
+    """
+    from ast import literal_eval
+
+    # # Maybe allow for some misspellings or standard alternatives, like `false` for `False`.
+    # if arg == 'false':
+    #     arg = 'False'
+    # elif arg == 'true':
+    #     arg = 'True'
+
+    # Don't let trailing commas make this argument into a tuple
+    if arg.endswith(','):
+        arg = arg[:-1]
+
+    try:
+        val = literal_eval(arg)
+    except ValueError as e:
+        if 'malformed node or string' in str(e):
+            val = arg  # The string should be interpreted as just a string
+        else:
+            raise
+    except SyntaxError as e:
+        if 'invalid syntax' in str(e):
+            val = arg  # The string should be interpreted as just a string
+        elif 'unexpected EOF while parsing' in str(e):
+            val = arg  # This probably happens to be a python keyword
+        else:
+            raise
+
+    return val
+
+
+def combine_elements_beginning_or_ending_with_commas(l):
+    """Operate in place to combine list elements starting or ending with a comma"""
+    initial_length = len(l)
+    def check_for_final_commas(l):
+        for i in range(len(l)):
+            if l[i].endswith(','):
+                return i
+        return initial_length
+    def check_for_initial_commas(l):
+        for i in range(len(l)):
+            if l[i].startswith(','):
+                return i
+        return 0
+    index = check_for_final_commas(l)
+    while index < initial_length:
+        l[index:index+2] = [l[index] + l[index+1]]
+        index = check_for_final_commas(l)
+    index = check_for_initial_commas(l)
+    while index > 0:
+        l[index-1:index+1] = [l[index-1] + l[index]]
+        index = check_for_initial_commas(l)
+    return l
+
+
+def process_kwarg(kwarg):
+    """Parse a single kwarg unit (the keyword and its args)
+
+    The following types of keywords are understood:
+      - without args
+        - prefixed with `no-`, set to False
+        - otherwise, default to True
+      - with equals sign
+      - without equals sign
+      - followed by multiple arguments
+
+    If the keyword is followed by multiple arguments, they are combined into a tuple by default,
+    unless they are surrounded by square brackets, in which case they become a list.
+
+    """
+    kw = kwarg[0]
+    if kw.startswith('-'):
+        kw = kw[1:]
+    if kw.startswith('-'):
+        kw = kw[1:]
+    if '=' in kw:
+        kw, arg0 = kw.split('=', 1)
+        args = [arg0] + kwarg[1:]
+    else:
+        args = kwarg[1:]
+    if not args:
+        if kw.startswith('no-'):
+            kw = kw[3:]
+            args = ['False']
+        else:
+            args = ['True']
+    combine_elements_beginning_or_ending_with_commas(args)
+    args = argument_to_python_literal(','.join(args))
+    return kw, args
+
+
+def parse_arguments(command_line, package_name, subpackages, test_parsing=False):
+    import sys
+    import os.path
+    import subprocess
+    import re
+    from importlib import import_module
+    from collections import OrderedDict
+
+    kwarg_regex = re.compile(r'^-{1,2}\D')  # Match one or two dashes followed by at least one non-digit character
+    
+    # First split list into the part before any keyword parameters and the rest
+    words = command_line[:]
+    kwarg_indices = []
+    for i, word in enumerate(words[1:], 1):
+        if kwarg_regex.search(word):
+            kwarg_indices.append(i)
+    kwarg_indices.append(len(words))
+    command_and_args = [package_name] + words[1:kwarg_indices[0]]
+    kwargs = [words[i:j] for i,j in zip(kwarg_indices[:-1], kwarg_indices[1:])]
+
+    # Next, look for the longest subset of the first part of the args that matches a subpackage, and
+    # consider the remainder to be args
+    subpackage = package_name
+    args = command_and_args[:]
+    main_index = 0
+    for i in range(len(command_and_args), 0, -1):
+        subpackage = '.'.join(command_and_args[:i])
+        args = command_and_args[i:]
+        main_index = i
+        if subpackage in subpackages:
+            break
+    subpackage = import_module(subpackage)
+
+    # The actual function that is called will be one of these:
+    #  1) The function inside `subpackage` named by the first argument
+    #  2) The function inside `subpackage` named `main`
+    #  3) The `__main__.py` file
+    # These options will be searched in order; if none is found a ValueError is raised.
+    # In the last case, the rest of the command line will simply be passed along to the script,
+    # without any parsing done here.
+    callables = find_callables_in_package(subpackage)
+    main_path = os.path.join(subpackage.__path__[0], '__main__.py')
+    if args and args[0] in callables:
+        func = getattr(subpackage, args[0])
+        args[0:1] = []
+    elif 'main' in callables:
+        func = getattr(subpackage, 'main')
+    elif os.path.isfile(main_path):
+        # Runs something along the lines of
+        #   /full/path/to/this/python /path/to/sub/package/__main__.py arg1 arg2 arg3 ...
+        func = sys.executable
+        args = main_path
+        kwargs = command_line[main_index+1:]
+        return func, args, kwargs
+    else:
+        if test_parsing:
+            print('Note: Only testing argument parsing')
+            func = subpackage.__name__ + '.main'
+        else:
+            raise ValueError("Could not find function to call in {0}".format(subpackage.__name__))
+
+    # Finalize the list of args
+    combine_elements_beginning_or_ending_with_commas(args)
+    args = [argument_to_python_literal(arg) for arg in args]
+
+    # Finalize the keyword arguments
+    kwargs = OrderedDict([(k, v) for kwarg in kwargs for k,v in [process_kwarg(kwarg)]])
+    
+    return func, args, kwargs
+
+def main():
+    import sys
+    import subprocess
+    import pkgutil
+    from pprint import pprint
+    from os.path import basename
+    from importlib import import_module
+
+    package_name = basename(__file__)
+    package = import_module(package_name)
+    subpackages = [package.__name__] + [p.name for p in pkgutil.walk_packages(package.__path__, package.__name__ + '.')]
+
+    argv = sys.argv[:]
+    if len(argv) > 1 and argv[1] == '--test-parsing':
+        argv[1:2] = []
+        test_parsing = True
+    else:
+        test_parsing = False
+
+    func, args, kwargs = parse_arguments(argv, package_name, subpackages, test_parsing=test_parsing)
+
+    if test_parsing:
+        print('func:', func)
+        print('args:', args)
+        print('kwargs:', kwargs)
+    elif func == sys.executable:
+        subprocess.call([func, args] + kwargs)
+    else:
+        r = func(*args, **kwargs)
+        pprint(r)
+
+
+
+# def func(a, b, c=5, *args, **kwargs):
+#     pass
+# print(inspect.getargspec(func))
+# callable(func)  # True if `func` can be called (a function or some other object with `__call__`)
+
+
+if __name__ == '__main__':
+    main()
+
+
+
+## Local Variables:
+## mode: python
+## End:
