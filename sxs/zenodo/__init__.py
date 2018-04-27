@@ -3,7 +3,7 @@ from .api import Login, Deposit, Records
 # See https://github.com/moble/nb-marine-science for other examples using the Zenodo API
 # The other python API interface I found is here: https://github.com/moble/zenodo-python
 
-def list(*args, **kwargs):
+def records(*args, **kwargs):
     """List all deposits"""
     q = kwargs.pop('q', None)
     status = kwargs.pop('status', None)
@@ -192,7 +192,7 @@ def upload(directory, exclude=[],
     # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
     # version.
     zenodo_filenames = d.file_names
-    local_paths_and_names = find_files(directory, exclude=exclude)
+    local_paths_and_names = find_files(directory, exclude=exclude, include_top_directory_in_name=False)
     if len(local_paths_and_names) == 0:
         print('Zenodo requires that there be at least one file.  None found in {0}.'.format(directory))
         raise ValueError('No files found')
