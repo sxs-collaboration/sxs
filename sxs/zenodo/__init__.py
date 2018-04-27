@@ -3,34 +3,79 @@ from .api import Login, Deposit, Records
 # See https://github.com/moble/nb-marine-science for other examples using the Zenodo API
 # The other python API interface I found is here: https://github.com/moble/zenodo-python
 
+def map_names(catalog_file_name, output_file_name, nginx=True):
+    """Create a mapping from SXS identifiers to Zenodo record numbers
+
+    Parameters
+    ==========
+    catalog_file_name: string
+        Relative or absolute path to catalog JSON file.  This is expected to have been created by
+        the `catalog` function.
+    output_file_name: string
+        Relative or absolute path to output file.
+    nginx: bool [defaults to True]
+
+        If True, output a map file suitable for use in nginx; if False output a JSON file
+
+    """
+    import json
+    with open(catalog_file_name, 'r') as f:
+        catalog = json.load(f)
+    raise NotImplementedError()
+
+
 def catalog(file_name, *args, **kwargs):
-    """Construct a catalog of SXS simulations"""
+    """Construct a catalog of SXS simulations hosted by Zenodo
+
+    NOTE: This function returns all records available to the user.  This may include closed-access
+    datasets.  If you want to create a public catalog, just loop through the output from this
+    function, and filter by each entry's ["metadata"]["access_right"] value.
+
+    This function creates or updates a JSON file containing information for each SXS simulation on
+    Zenodo.  It first looks through all records in the 'sxs' community on Zenodo.  Each one whose
+    title includes an SXS identifier like SXS:BBH:nnnn, etc., is included in the catalog.  The
+    catalog itself is a dictionary mapping the SXS identifier to a "representation".  This is mostly
+    the same as the Zenodo representation described at <http://developers.zenodo.org/#depositions>,
+    but also includes a 'files' field of <http://developers.zenodo.org/#deposition-files>, as well
+    as a 'sxs_metadata' field, containing the metadata from the highest Lev in the dataset.
+
+    """
     import re
     import json
     import os.path
     from .. import sxs_identifier_regex
-    sxs_identifier_regex = re.compile(sxs_identifier_regex)
+
     verbosity = kwargs.pop('verbosity', 2)
-    r = records(sxs=True)
+
+    sxs_identifier_regex = re.compile(sxs_identifier_regex)
+    # Download all records in the 'sxs' community from Zenodo
+    kwargs['sxs'] = True
+    r = records(*args, **kwargs)
+    del kwargs['sxs']
+    # Now start a Login object for better interaction with the 
     l = Login(*args, **kwargs)
-    if not os.path.isfile(file_name):
+    # Just to make sure the input file contains at least an empty dictionary
+    if not os.path.isfile(file_name) or not os.path.getsize(file_name) > 1:
         with open(file_name, 'w') as f:
-            f.write('{}')  # Just to make sure the path is writeable, give us an empty dictionary next...
+            f.write('{}')
+    # Load the catalog from the input file
     with open(file_name, 'r') as f:
         local_catalog = json.load(f)
-    zenodo_catalog = {}
-    for record in r:
-        sxs_identifier = sxs_identifier_regex.search(record['title'])
-        if verbosity > 1:
-            print('Working on {0}'.format(sxs_identifier))
-        if not sxs_identifier:
-            print('No SXS identifier found in {0}'.format(record['title']))
+    # Step through the records, making sure we've got everything
+    for i, record in enumerate(r, 1):
+        # Get the SXS identifier
+        sxs_identifier_match = sxs_identifier_regex.search(record['title'])
+        if not sxs_identifier_match:
+            print('No SXS identifier found in {0}; skipping.'.format(record['title']))
             continue
-        sxs_identifier = sxs_identifier['sxs_identifier']
-        simulation_type = sxs_identifier['simulation_type']
+        sxs_identifier = sxs_identifier_match['sxs_identifier']
+        simulation_type = sxs_identifier_match['simulation_type']
+        if verbosity > 0:
+            print('Working on {0} ({1}/{2})'.format(sxs_identifier, i, len(r)))
         if sxs_identifier not in local_catalog:
             update = True
         else:
+            # Check to make sure that the local copy is the latest one
             local_latest = local_catalog[sxs_identifier]['links']['latest_html']
             zenodo_latest = record['links']['latest_html']
             if local_latest != zenodo_latest:
@@ -41,12 +86,27 @@ def catalog(file_name, *args, **kwargs):
         if update:
             if verbosity > 1:
                 print('\tUpdating {0}'.format(sxs_identifier))
+            # Get the most recent Deposit object for this record
             d = l.deposit(record['id'], ignore_deletion=True)
-            d = d.get_latest()
+            if not d.published:
+                print('Record titled "{0}" has not yet been published; skipping.'.format(record['title']))
+                continue
+            if not d.is_latest:
+                d = d.get_latest()
+            # Add the Zenodo representation
             local_catalog[sxs_identifier] = d.representation
+            # Add the list of files, along with their MD5 checksums and list of links
             local_catalog[sxs_identifier]['files'] = d.files
+            # Download and add the SXS metadata
+            metadata_url = sorted([f['links']['download']
+                                   for f in local_catalog[sxs_identifier]['files']
+                                   if 'metadata.json' in f['filename']])[-1]  # Use highest Lev, for no good reason
+            local_catalog[sxs_identifier]['sxs_metadata'] = l.session.get(metadata_url).json()
+        # # Write a temporary copy of the JSON file, to ensure that the work isn't lost
+        # with open(file_name+'.tmp', 'w') as f:
+        #     json.dump(local_catalog, f, indent=4, separators=(',', ': '))
     with open(file_name, 'w') as f:
-        json.dump(f, local_catalog, indent=4, separators=(',', ': '))
+        json.dump(local_catalog, f, indent=4, separators=(',', ': '))
     if verbosity > 2:
         return local_catalog
     else:
@@ -67,6 +127,16 @@ def records(*args, **kwargs):
     size = kwargs.pop('size', 9999)
     l = Login(*args, **kwargs)
     r = l.list_deposits(q, status, sort, page, size)
+    if page is None and len(r) == size:
+        # Continue until we've gotten all the records
+        last_response = r
+        last_page = 1
+        while len(last_response) == size:
+            last_page = 1
+            last_response = l.list_deposits(q, status, sort, last_page+1, size)
+            if last_response:
+                last_page += 1
+                r += last_response
     if json_output:
         return json.dumps(r, indent=4, separators=(',', ': '))
     else:
