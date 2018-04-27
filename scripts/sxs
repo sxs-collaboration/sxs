@@ -222,7 +222,8 @@ def main():
         subprocess.call([func, args] + kwargs)
     else:
         r = func(*args, **kwargs)
-        pprint(r)
+        if r:
+            pprint(r)
 
 
 

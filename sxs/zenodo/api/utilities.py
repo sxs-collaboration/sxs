@@ -1,4 +1,5 @@
 def md5checksum(file_name):
+    """Compute MD5 checksum on a file, even if it is quite large"""
     from hashlib import md5
     hash_md5 = md5()
     with open(file_name, "rb") as f:
@@ -6,7 +7,7 @@ def md5checksum(file_name):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
-def find_files(top_directory, exclude=[]):
+def find_files(top_directory, exclude=[], include_top_directory_in_name=True):
     """Recursively find all files in `top_directory` and give them relative names
 
     This function returns a list of pairs.  Each pair gives (first) the full path to the file, and
@@ -23,13 +24,16 @@ def find_files(top_directory, exclude=[]):
         Each string is compiled as a regular expression.  The path to each directory and file
         relative to `top_directory` is searched for a match, and if found that item is excluded.
         In particular, if a directory matches, no files from that directory will be uploaded.
+    include_top_directory_in_name: bool [defaults to True]
+        If True, the name of the top_directory (relative to its parent) will be included in the
+        output names.
 
     """
     import os
     import re
     paths_and_names = []
     exclude = [re.compile(exclusion) for exclusion in exclude]
-    top_directory = os.path.abspath(top_directory)
+    top_directory = os.path.abspath(os.path.expanduser(top_directory))
     parent_directory = os.path.dirname(top_directory)
     for root, dirs, files in os.walk(top_directory, topdown=True):
         dirs.sort(key=str.lower)  # Go in case-insensitive alphabetical order
@@ -43,6 +47,9 @@ def find_files(top_directory, exclude=[]):
                     files.remove(f)
         for f in files:
             path = os.path.join(root, f)
-            name = os.path.relpath(path, parent_directory)
+            if include_top_directory_in_name:
+                name = os.path.relpath(path, parent_directory)
+            else:
+                name = os.path.relpath(path, top_directory)
             paths_and_names.append([path, name])
     return paths_and_names

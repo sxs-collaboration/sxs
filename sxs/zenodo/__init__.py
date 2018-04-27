@@ -28,6 +28,7 @@ def upload(directory, exclude=[],
     from .api.utilities import md5checksum, find_files
     from .creators import known_creators, creators_emails, default_creators
     from ..metadata import Metadata
+    default_creators = [{'name': 'SXS Collaboration'}]
 
     if not os.path.isdir(directory):
         print('The input directory name "{0}" does not appear to be a directory.'.format(directory))
@@ -102,10 +103,7 @@ def upload(directory, exclude=[],
     # Convert each metadata.txt file to a metadata.json file sorted with interesting stuff at the
     # top of the file, so it appears prominently on Zenodo's preview without scrolling.  Do this
     # before checking for new files in case these are new or get changed in the process.
-    paths_and_names = find_files(directory, exclude=exclude)
-    for pn in paths_and_names:
-        print(pn)
-    return
+    paths_and_names = find_files(directory, exclude=exclude, include_top_directory_in_name=False)
     authors_emails = set()
     point_of_contact_email = ''
     keywords = set(keywords)
@@ -232,11 +230,8 @@ def upload(directory, exclude=[],
             d.upload_file(path, name=name, skip_checksum=True)
 
     # Publish this version
-    if d.published:
-        print('Nothing has changed in this deposit, and it has already been published.')
-    else:
-        d.publish()
-        print('Finished publishing "{0}" to {1}.'.format(title, d.website))
+    d.publish()
+    print('Finished publishing "{0}" to {1}.'.format(title, d.website))
 
     return d
 
