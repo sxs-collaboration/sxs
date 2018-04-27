@@ -197,15 +197,20 @@ def main():
     import sys
     import subprocess
     import pkgutil
-    from pprint import pprint
     from os.path import basename
     from importlib import import_module
+    from pprint import pprint
 
     package_name = basename(__file__)
     package = import_module(package_name)
     subpackages = [package.__name__] + [p.name for p in pkgutil.walk_packages(package.__path__, package.__name__ + '.')]
 
     argv = sys.argv[:]
+
+    # Upgrade through pip
+    if len(argv) > 1 and argv[1] == '--upgrade':
+        return subprocess.call(['pip', 'install', '--upgrade', '--no-cache', '--force', package.__name__])
+
     if len(argv) > 1 and argv[1] == '--test-parsing':
         argv[1:2] = []
         test_parsing = True
@@ -219,11 +224,16 @@ def main():
         print('args:', args)
         print('kwargs:', kwargs)
     elif func == sys.executable:
-        subprocess.call([func, args] + kwargs)
+        return subprocess.call([func, args] + kwargs)
     else:
         r = func(*args, **kwargs)
         if r:
-            pprint(r)
+            if isinstance(r, 'str'):
+                print(r)
+            else:
+                pprint(r)
+
+    return 0
 
 
 
@@ -234,7 +244,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import sys
+    sys.exit(main())
 
 
 
