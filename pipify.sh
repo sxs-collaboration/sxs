@@ -1,1 +1,1 @@
-python setup.py bdist_wheel --universal upload
+python setup.py bdist_wheel --no-autoreq --universal upload
