@@ -53,7 +53,7 @@ def argument_to_python_literal(arg):
         else:
             raise
     except SyntaxError as e:
-        if 'invalid syntax' in str(e):
+        if 'invalid syntax' in str(e) or 'invalid token' in str(e):
             val = arg  # The string should be interpreted as just a string
         elif 'unexpected EOF while parsing' in str(e):
             val = arg  # This probably happens to be a python keyword
