@@ -17,8 +17,8 @@ class Deposit(object):
             deposit is created.
 
         ignore_deletion: bool [default: False]
-            If True and this object has not yet been published, allow this object to be deleted
-            without printing a warning that it has not been published.
+            If True and this object is deleted before the record is published, issue a warning
+            explaining that and suggesting how it might be published by the user.
 
         """
         self.login = login
@@ -611,6 +611,7 @@ class Deposit(object):
 
         """
         import os
+        from .utilities import md5checksum
         if relpath_start is None:
             relpath_start = os.curdir
         if name is None:

@@ -9,3 +9,5 @@ import sxs.doxygen
 import sxs.metadata
 import sxs.references
 import sxs.zenodo
+
+sxs_identifier_regex = r'(?P<sxs_identifier>SXS:(?P<simulation_type>BBH|BHNS|NSNS):(?P<sxs_number>[0-9]*))'

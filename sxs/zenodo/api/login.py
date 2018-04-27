@@ -193,7 +193,7 @@ class Login(object):
 
         """
         params={}
-        if q is not None:
+        if q is not None and q:
             params['q'] = q
         if status is not None:
             params['status'] = status
