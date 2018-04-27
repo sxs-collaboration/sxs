@@ -3,6 +3,15 @@ from .api import Login, Deposit, Records
 # See https://github.com/moble/nb-marine-science for other examples using the Zenodo API
 # The other python API interface I found is here: https://github.com/moble/zenodo-python
 
+def list(*args, **kwargs):
+    q = kwargs.pop('q', None)
+    status = kwargs.pop('status', None)
+    sort = kwargs.pop('sort', None)
+    page = kwargs.pop('page', None)
+    size = kwargs.pop('size', 9999)
+    l = Login(*args, **kwargs)
+    return l.list_deposits(q, status, sort, page, size)
+
 
 def deposit_sxs_simulation(sxs_system_directory_name, exclude=[],
                            sandbox=False, access_token_path=None,
@@ -144,7 +153,7 @@ def deposit_sxs_simulation(sxs_system_directory_name, exclude=[],
             json_path = os.path.join(os.path.dirname(path), 'metadata.json')
             print('Converting metadata.txt to JSON in {0}'.format(json_path))
             m = Metadata.from_txt_file(path, cache_json=False).reorder_keys()
-            del m['metadata_path']
+            del m['metadata_path']  # Don't bother recording the local path to the metadata file
             m.to_json_file(json_path)
             authors_emails |= set(m.get('authors_emails', []))
             point_of_contact_email = m.get('point_of_contact_email', point_of_contact_email)

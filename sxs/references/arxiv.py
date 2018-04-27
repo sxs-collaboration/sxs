@@ -1,14 +1,9 @@
-import requests
-import re
-import feedparser
-
 arxiv_api_url = 'https://export.arxiv.org/api/query'
 
-publication_comment_regex = re.compile(
-    r"""(?P<comment>[Aa]ccepted (?:for publication )?(?:by|in|to) |[Ss]ubmitted to |[Ii]n press (?:with )?)(?P<publication>[^,;]*)""")
 
 
 def request_data(search_query='', id_list='', start=0, max_results=10):
+    import requests
     data = {
         'search_query': search_query,
         'id_list': id_list,
@@ -19,12 +14,14 @@ def request_data(search_query='', id_list='', start=0, max_results=10):
 
 
 def get_entry_by_arxiv_id(id):
+    import feedparser
     response = request_data(id_list=id)
     parsed = feedparser.parse(response)
     return parsed['entries'][0]
 
 
 def get_all_entries(search_query='', id_list='', start=0, max_results=100):
+    import requests
     data = {
         'search_query': search_query,
         'id_list': id_list,
@@ -60,7 +57,10 @@ def get_journal_reference(entry):
 
 
 def get_submission_comment(entry):
+    import re
     if 'arxiv_comment' in entry:
+        publication_comment_regex = re.compile(
+            r"""(?P<comment>[Aa]ccepted (?:for publication )?(?:by|in|to) |[Ss]ubmitted to |[Ii]n press (?:with )?)(?P<publication>[^,;]*)""")
         comment = entry['arxiv_comment']
         search = publication_comment_regex.search(comment)
         if search:

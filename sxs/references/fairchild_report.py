@@ -1,13 +1,13 @@
-import re
-import textwrap
-from pylatexenc.latexencode import utf8tolatex
 from .references import limit_author_list
 from .arxiv import get_entry_by_arxiv_id, get_journal_reference, get_submission_comment
 
-wrapper = textwrap.TextWrapper(initial_indent='  ', subsequent_indent='    ', width=70,
-                               break_long_words=False, break_on_hyphens=False)
 
 def format_paper_list_entry(arxiv_id, submission_comment='', desired_authors=None, author_list_length_limit=10):
+    import re
+    from pylatexenc.latexencode import utf8tolatex
+    import textwrap
+    wrapper = textwrap.TextWrapper(initial_indent='  ', subsequent_indent='    ', width=70,
+                                   break_long_words=False, break_on_hyphens=False)
     entry = get_entry_by_arxiv_id(arxiv_id)
     authors = [author['name'] for author in entry['authors']]
     authors = limit_author_list(authors, desired_authors=desired_authors, author_list_length_limit=author_list_length_limit)

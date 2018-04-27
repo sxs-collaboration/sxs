@@ -1,4 +1,5 @@
-ads
-requests
-pylatexenc
-lxml
+requests  # For interacting over HTTP
+ads  # For searching ADS via the API
+pylatexenc  # For converting unicode to latex  
+lxml  # For parsing doxygen
+feedparser  # For parsing arxiv responses

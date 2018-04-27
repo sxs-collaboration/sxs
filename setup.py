@@ -71,7 +71,7 @@ class build_py_and_copy_version(build_py):
 setup(
     name = 'sxs',
     packages = ['sxs', 'sxs.metadata', 'sxs.doxygen', 'sxs.references', 'sxs.zenodo', 'sxs.zenodo.api'],
-    scripts = ['sxs/doxygen/validate_xml.py'],
+    scripts = ['scripts/sxs'],
     version=calculate_version(),
     cmdclass={'build_py': build_py_and_copy_version},
     description = 'A collection of python code used by the SXS collaboration',
