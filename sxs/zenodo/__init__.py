@@ -58,7 +58,7 @@ def catalog(catalog_file_name, public_catalog_file_name, *args, **kwargs):
     kwargs['sxs'] = True
     r = records(*args, **kwargs)
     del kwargs['sxs']
-    # Now start a Login object for better interaction with the 
+    # Now start a Login object for better interaction with the website
     l = Login(*args, **kwargs)
     # Just to make sure the input file contains at least an empty dictionary
     if not os.path.isfile(catalog_file_name) or not os.path.getsize(catalog_file_name) > 1:
@@ -90,7 +90,7 @@ def catalog(catalog_file_name, public_catalog_file_name, *args, **kwargs):
             else:
                 local_catalog[sxs_identifier].update(record)  # Just in case there've been metadata changes
                 update = False
-        if update:
+        if update or 'files' not in local_catalog[sxs_identifier]:
             if verbosity > 1:
                 print('\tUpdating {0}'.format(sxs_identifier))
             # Get the most recent Deposit object for this record
@@ -106,7 +106,7 @@ def catalog(catalog_file_name, public_catalog_file_name, *args, **kwargs):
             local_catalog[sxs_identifier]['files'] = d.files
         if update or 'sxs_metadata' not in local_catalog[sxs_identifier]:
             if verbosity > 1 and not update:
-                print('\Getting SXS metadata for {0}'.format(sxs_identifier))
+                print('\tGetting SXS metadata for {0}'.format(sxs_identifier))
             # Download and add the SXS metadata
             metadata_url = sorted([f['links']['download']
                                    for f in local_catalog[sxs_identifier]['files']
