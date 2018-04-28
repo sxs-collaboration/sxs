@@ -1,3 +1,4 @@
+from __future__ import print_function  # Because apparently print(..., file=f) is the only thing stopping python 2.7
 from .api import Login, Deposit, Records
 
 # See https://github.com/moble/nb-marine-science for other examples using the Zenodo API
@@ -15,7 +16,6 @@ def map(catalog_file_name, map_file_name):
         Relative or absolute path to output file.
 
     """
-    from __future__ import print_function  # Because apparently print(..., file=f) is the only thing stopping python 2.7
     import json
     import math
     with open(catalog_file_name, 'r') as f:
