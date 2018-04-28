@@ -15,6 +15,7 @@ def map(catalog_file_name, map_file_name):
         Relative or absolute path to output file.
 
     """
+    from __future__ import print_function  # Because apparently print(..., file=f) is the only thing stopping python 2.7
     import json
     import math
     with open(catalog_file_name, 'r') as f:
@@ -103,6 +104,9 @@ def catalog(catalog_file_name, public_catalog_file_name, *args, **kwargs):
             local_catalog[sxs_identifier] = d.representation
             # Add the list of files, along with their MD5 checksums and list of links
             local_catalog[sxs_identifier]['files'] = d.files
+        if update or 'sxs_metadata' not in local_catalog[sxs_identifier]:
+            if verbosity > 1 and not update:
+                print('\Getting SXS metadata for {0}'.format(sxs_identifier))
             # Download and add the SXS metadata
             metadata_url = sorted([f['links']['download']
                                    for f in local_catalog[sxs_identifier]['files']
