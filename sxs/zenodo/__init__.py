@@ -3,7 +3,7 @@ from .api import Login, Deposit, Records
 # See https://github.com/moble/nb-marine-science for other examples using the Zenodo API
 # The other python API interface I found is here: https://github.com/moble/zenodo-python
 
-def map_names(catalog_file_name, output_file_name, nginx=True):
+def map(catalog_file_name, map_file_name):
     """Create a mapping from SXS identifiers to Zenodo record numbers
 
     Parameters
@@ -11,20 +11,25 @@ def map_names(catalog_file_name, output_file_name, nginx=True):
     catalog_file_name: string
         Relative or absolute path to catalog JSON file.  This is expected to have been created by
         the `catalog` function.
-    output_file_name: string
+    map_file_name: string
         Relative or absolute path to output file.
-    nginx: bool [defaults to True]
-
-        If True, output a map file suitable for use in nginx; if False output a JSON file
 
     """
     import json
+    import math
     with open(catalog_file_name, 'r') as f:
         catalog = json.load(f)
-    raise NotImplementedError()
+    size = 2**math.ceil(math.log2(len(catalog)))
+    with open(map_file_name, 'w') as f:
+        print("map_hash_max_size {0};".format(size), file=f)
+        print("map $sxs_identifier $zenodo_identifier {", file=f)
+        # print("    default https://zenodo.org/communities/sxs/search?page=1&size=20;", file=f)
+        for sxs_identifier in sorted(catalog):
+            print("    {0} {1};".format(sxs_identifier, catalog[sxs_identifier]['id']), file=f)
+        print("}", file=f)
 
 
-def catalog(file_name, *args, **kwargs):
+def catalog(catalog_file_name, public_catalog_file_name, *args, **kwargs):
     """Construct a catalog of SXS simulations hosted by Zenodo
 
     NOTE: This function returns all records available to the user.  This may include closed-access
@@ -55,12 +60,13 @@ def catalog(file_name, *args, **kwargs):
     # Now start a Login object for better interaction with the 
     l = Login(*args, **kwargs)
     # Just to make sure the input file contains at least an empty dictionary
-    if not os.path.isfile(file_name) or not os.path.getsize(file_name) > 1:
-        with open(file_name, 'w') as f:
+    if not os.path.isfile(catalog_file_name) or not os.path.getsize(catalog_file_name) > 1:
+        with open(catalog_file_name, 'w') as f:
             f.write('{}')
     # Load the catalog from the input file
-    with open(file_name, 'r') as f:
+    with open(catalog_file_name, 'r') as f:
         local_catalog = json.load(f)
+    public_catalog = {}
     # Step through the records, making sure we've got everything
     for i, record in enumerate(r, 1):
         # Get the SXS identifier
@@ -102,11 +108,15 @@ def catalog(file_name, *args, **kwargs):
                                    for f in local_catalog[sxs_identifier]['files']
                                    if 'metadata.json' in f['filename']])[-1]  # Use highest Lev, for no good reason
             local_catalog[sxs_identifier]['sxs_metadata'] = l.session.get(metadata_url).json()
+        if local_catalog[sxs_identifier]['metadata']['access_right'] == 'open':
+            public_catalog[sxs_identifier] = local_catalog[sxs_identifier]
         # # Write a temporary copy of the JSON file, to ensure that the work isn't lost
-        # with open(file_name+'.tmp', 'w') as f:
+        # with open(catalog_file_name+'.tmp', 'w') as f:
         #     json.dump(local_catalog, f, indent=4, separators=(',', ': '))
-    with open(file_name, 'w') as f:
+    with open(catalog_file_name, 'w') as f:
         json.dump(local_catalog, f, indent=4, separators=(',', ': '))
+    with open(public_catalog_file_name, 'w') as f:
+        json.dump(public_catalog, f, indent=4, separators=(',', ': '))
     if verbosity > 2:
         return local_catalog
     else:
