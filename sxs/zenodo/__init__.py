@@ -4,7 +4,7 @@ from .api import Login, Deposit, Records
 # See https://github.com/moble/nb-marine-science for other examples using the Zenodo API
 # The other python API interface I found is here: https://github.com/moble/zenodo-python
 
-def map(catalog_file_name, map_file_name):
+def map(catalog_file_name='complete_catalog.json', map_file_name='sxs_to_zenodo.map'):
     """Create a mapping from SXS identifiers to Zenodo record numbers
 
     Parameters
@@ -30,7 +30,7 @@ def map(catalog_file_name, map_file_name):
         print("}", file=f)
 
 
-def catalog(catalog_file_name, public_catalog_file_name, *args, **kwargs):
+def catalog(catalog_file_name='complete_catalog.json', public_catalog_file_name='public_catalog.json', *args, **kwargs):
     """Construct a catalog of SXS simulations hosted by Zenodo
 
     NOTE: This function returns all records available to the user.  This may include closed-access
