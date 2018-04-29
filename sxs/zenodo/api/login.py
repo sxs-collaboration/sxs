@@ -175,7 +175,8 @@ class Login(object):
         Optional parameters
         ===================
         q: string
-            Search query (using Elasticsearch query string syntax)
+            Search query, using Elasticsearch query string syntax.  See
+            https://help.zenodo.org/guides/search/ for details.
 
         status: string
             Filter result based on deposit status (either 'draft' or 'published')
@@ -244,14 +245,33 @@ class Login(object):
                 pass
         print('Discarded {0} drafts'.format(discarded_drafts))
 
-    def community_curate_accept(community_id, record_id):
-        url = "https://zenodo.org/communities/{0}/curate/".format(community_id)
-        data = {"action": "accept", "recid": record_id}
-        r = self.session.post(url, data=data)
-        if r.status_code != 201:
-            print('Unable to accept record id {0} into community {1}.'.format(record_id, community_id))
+    def awaiting_approval(self, community_id):
+        """List all records awaiting approval for the given community"""
+        url = '{0}/api/records/?q=provisional_communities:{1}'.format(self.base_url, community_id)
+        r = self.session.get(url)
+        if r.status_code != 200:
+            print('Unable to find any records for community {0}.'.format(community_id))
             try:
                 print(r.json())
+            except:
+                pass
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        return r.json()
+
+    def community_curate_accept(self, community_id, record_id):
+        """Accept a record into the community"""
+        import json
+        import requests
+        url = "{0}/communities/{1}/curaterecord/".format(self.base_url, community_id)
+        data = {"recid": int(record_id), "action": "accept"}
+        r = self.session.post(url, json=data)
+        if r.status_code != 200:
+            print('Unable to accept record id {0} into community {1}; status code={2}.'.format(record_id, community_id, r.status_code))
+            try:
+                r_json = r.json()
+                print('Response JSON:')
+                print(r_json)
             except:
                 pass
             r.raise_for_status()

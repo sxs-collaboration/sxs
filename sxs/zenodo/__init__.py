@@ -5,14 +5,16 @@ from .api import Login, Deposit, Records
 # The other python API interface I found is here: https://github.com/moble/zenodo-python
 
 def map(catalog_file_name='complete_catalog.json', map_file_name='sxs_to_zenodo.map'):
-    """Create a mapping from SXS identifiers to Zenodo record numbers
+    """Create a mapping from SXS identifiers to Zenodo record numbers for nginx
+
+    The output is formatted for inclusion into an nginx configuration.
 
     Parameters
     ==========
-    catalog_file_name: string
+    catalog_file_name: string [defaults to 'complete_catalog.json']
         Relative or absolute path to catalog JSON file.  This is expected to have been created by
         the `catalog` function.
-    map_file_name: string
+    map_file_name: string [defaults to 'sxs_to_zenodo.map']
         Relative or absolute path to output file.
 
     """
@@ -127,7 +129,41 @@ def catalog(catalog_file_name='complete_catalog.json', public_catalog_file_name=
         return
 
 def records(*args, **kwargs):
-    """List all deposits"""
+    """List all published records
+
+    By default, this function lists all deposits by the current user, logging in by default as with
+    the sxs.zenodo.Login class.  Optional parameters allow for different searches.
+
+    A list of dicts is returned, each of which contains the "representation" of the record, as
+    described in the API documentation: http://developers.zenodo.org/#depositions.
+
+    Parameters
+    ==========
+    json_output: bool [defaults to False]
+       If True, this function returns a JSON string; otherwise, it returns a python dict.
+    sxs: bool [defaults to False]
+       If True, this function looks for all records in the 'sxs' community on Zenodo.
+
+    Parameters for .api.Login.list_deposits
+    =======================================
+    q: string
+        Search query, using Elasticsearch query string syntax.  See
+        https://help.zenodo.org/guides/search/ for details.  If the above argument `sxs` is True,
+        the string ' communities: "sxs" ' is added to the query.
+    status: string
+        Filter result based on deposit status (either 'draft' or 'published')
+    sort: string
+        Sort order ('bestmatch' or 'mostrecent').  Prefix with minus to change form ascending to
+        descending (e.g., '-mostrecent').
+    page: int
+        Page number for pagination
+    size: int
+        Number of results to return per page.  Note that Zenodo (as of this writing) seems to
+        place a hard limit of 9999 responses.  Anything more will result in an error.
+
+    All remaining parameters are passed to .api.Login.
+
+    """
     import sys
     import json
     json_output = kwargs.pop('json', False)

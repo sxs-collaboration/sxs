@@ -12,26 +12,24 @@ class Records(object):
         Example queries
         ===============
         'title "SXS:BBH:0003"'  # Finds titles with given string; use quotes for robustness
+        'communities:sxs'  # Records in the 'sxs' Zenodo community
         'provisional_communities:sxs'  # Records awaiting approval by the community curator
         'owners: 38418'  # Find records by id number of owner
 
         Optional parameters
         ===================
         q: string
-            Search query (using Elasticsearch query string syntax)
-
+            Search query, using Elasticsearch query string syntax.  See
+            https://help.zenodo.org/guides/search/ for details.
         sort: string
             Sort order ('bestmatch' or 'mostrecent').  Prefix with minus to change form ascending to
             descending (e.g., '-mostrecent').
-
         page: int
             Page number for pagination
-
         size: int
             Number of results to return per page
-
         sandbox: bool [defaults to False]
-            If true use sandbox.zenodo.org instead of the standard site.
+            If True use sandbox.zenodo.org instead of the standard site.
 
         """
         import requests
