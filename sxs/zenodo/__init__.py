@@ -22,13 +22,15 @@ def map(catalog_file_name='complete_catalog.json', map_file_name='sxs_to_zenodo.
     import math
     with open(catalog_file_name, 'r') as f:
         catalog = json.load(f)
-    size = 2**math.ceil(math.log2(len(catalog)))
+    size = 256 * 2**math.ceil(math.log2(len(catalog)+1))
     with open(map_file_name, 'w') as f:
         print("map_hash_max_size {0};".format(size), file=f)
-        print("map $sxs_identifier $zenodo_identifier {", file=f)
+        print("map $uri $zenodo_identifier {", file=f)
         # print("    default https://zenodo.org/communities/sxs/search?page=1&size=20;", file=f)
         for sxs_identifier in sorted(catalog):
-            print("    {0} {1};".format(sxs_identifier, catalog[sxs_identifier]['id']), file=f)
+            print("    /waveforms/data/{0} {1};".format(sxs_identifier, catalog[sxs_identifier]['id']), file=f)
+        for sxs_identifier in sorted(catalog):
+            print("    ~/waveforms/data/{0}(/files/.*) {1}$1;".format(sxs_identifier, catalog[sxs_identifier]['id']), file=f)
         print("}", file=f)
 
 
