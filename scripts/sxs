@@ -156,6 +156,7 @@ def parse_arguments(command_line, package_name, subpackages, test_parsing=False)
         if subpackage in subpackages:
             break
     subpackage = import_module(subpackage)
+    subpackage_path = subpackage.__path__[0] if hasattr(subpackage, '__path__') else subpackage.__file__
 
     # The actual function that is called will be one of these:
     #  1) The function inside `subpackage` named by the first argument
@@ -165,7 +166,7 @@ def parse_arguments(command_line, package_name, subpackages, test_parsing=False)
     # In the last case, the rest of the command line will simply be passed along to the script,
     # without any parsing done here.
     callables = find_callables_in_package(subpackage)
-    main_path = os.path.join(subpackage.__path__[0], '__main__.py')
+    main_path = os.path.join(subpackage_path, '__main__.py')
     if args and args[0] in callables:
         func = getattr(subpackage, args[0])
         args[0:1] = []
