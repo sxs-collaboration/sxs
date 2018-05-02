@@ -216,6 +216,37 @@ class Deposit(object):
         return self.login.deposit(self.id_latest_draft)
 
     @property
+    def versions(self):
+        """Get information for all versions of this deposit
+
+        The versions are returned from oldest to newest.  If versions were actually named, those
+        names will appear in the metadata for each deposit.  Otherwise, they are usually just
+        numbered.
+
+        """
+        url = "{0}api/deposit/depositions".format(self.base_url)
+        conceptrecid = self.representation['conceptrecid']
+        params = {
+            'q': 'conceptrecid:{0}'.format(conceptrecid),
+            'all_versions': '',
+            'sort': 'version',
+        }
+        r = self._get(url, params=params)
+        if r.status_code != 200:
+            print('All versions for this deposit (id "{0}") could not be accessed on {1}.'.format(self.deposition_id, url))
+            try:
+                print(r.json())
+            except:
+                pass
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+        version_list = r.json()
+        for v, version in enumerate(version_list, 1):
+            if 'version' not in version['metadata']:
+                version['metadata']['version'] = v
+        return version_list
+
+    @property
     def title(self):
         return self.representation['title']
 
