@@ -219,9 +219,9 @@ class Deposit(object):
     def versions(self):
         """Get information for all versions of this deposit
 
-        The versions are returned from oldest to newest.  If versions were actually named, those
-        names will appear in the metadata for each deposit.  Otherwise, they are usually just
-        numbered.
+        The versions are returned as a list of record data from oldest to newest.  The only change
+        that this function makes to the data is to add a version number to the metadata if it is not
+        present already.
 
         """
         url = "{0}api/deposit/depositions".format(self.base_url)
@@ -233,7 +233,7 @@ class Deposit(object):
         }
         r = self._get(url, params=params)
         if r.status_code != 200:
-            print('All versions for this deposit (id "{0}") could not be accessed on {1}.'.format(self.deposition_id, url))
+            print('The list of versions for this deposit (id "{0}") could not be accessed on {1}.'.format(self.deposition_id, url))
             try:
                 print(r.json())
             except:
