@@ -3,8 +3,8 @@ from .api import Login, Deposit, Records
 # See https://github.com/moble/nb-marine-science for other examples using the Zenodo API
 # The other python API interface I found is here: https://github.com/moble/zenodo-python
 
-def equivalent(sxs_identifier, url=False):
-    """Query data.black-holes.org to get the current Zenodo equivalent of the 
+def translate(sxs_identifier, url=False):
+    """Query data.black-holes.org to get the current Zenodo equivalent of the given SXS ID
 
     Parameters
     ==========

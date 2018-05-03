@@ -2,7 +2,7 @@
 class Records(object):
 
     @classmethod
-    def search(cls, q=None, sort=None, page=None, size=None, sandbox=False):
+    def search(cls, q=None, sort=None, page=None, size=None, sandbox=False, all_records=False):
         """Search public records
 
         It is possible to filter the results use the optional parameters.  Note that the web interface
@@ -30,6 +30,8 @@ class Records(object):
             Number of results to return per page
         sandbox: bool [defaults to False]
             If True use sandbox.zenodo.org instead of the standard site.
+        all_records: bool [defaults to False]
+            If True return all records, including older versions of published records.
 
         """
         import requests
@@ -50,6 +52,8 @@ class Records(object):
             params['page'] = page
         if size is not None:
             params['size'] = size
+        if all_records:
+            params['all_records'] = ''
 
         r = requests.get(url, params=params, headers={'Accept': 'application/json'})
         if r.status_code != 200:

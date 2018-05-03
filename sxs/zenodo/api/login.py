@@ -167,30 +167,28 @@ class Login(object):
         from .deposit import Deposit
         return Deposit(self, deposition_id, ignore_deletion)
 
-    def list_deposits(self, q=None, status=None, sort=None, page=None, size=9999):
+    def list_deposits(self, q=None, status=None, sort=None, page=None, size=9999, all_records=False):
         """Return list of dictionaries describing each deposit created with this login
 
-        It is possible to filter the results use the optional parameters
+        It is possible to filter the results using the optional parameters.
 
         Optional parameters
         ===================
         q: string
             Search query, using Elasticsearch query string syntax.  See
             https://help.zenodo.org/guides/search/ for details.
-
         status: string
             Filter result based on deposit status (either 'draft' or 'published')
-
         sort: string
             Sort order ('bestmatch' or 'mostrecent').  Prefix with minus to change form ascending to
             descending (e.g., '-mostrecent').
-
         page: int
             Page number for pagination
-
         size: int
             Number of results to return per page.  Note that Zenodo (as of this writing) seems to
             place a hard limit of 9999 responses.  Anything more will result in an error.
+        all_records: bool [defaults to False]
+            If True return all records, including older versions of published records.
 
         """
         params={}
@@ -204,6 +202,8 @@ class Login(object):
             params['page'] = page
         if size is not None:
             params['size'] = size
+        if all_records:
+            params['all_records'] = ''
         
         url = "{0}api/deposit/depositions".format(self.base_url)
         r = self.session.get(url, params=params)
