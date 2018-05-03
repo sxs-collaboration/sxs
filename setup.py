@@ -35,7 +35,20 @@ with open('_version.py', 'w') as f:
     f.write('__version__ = "{0}"'.format(version))
 
 
-# long_description = """"""
+long_description = """\
+This package provides a number of utilities for use by the SXS collaboration, and others who use our data.
+For example, the `metadata` subpackage provides functions for reading and analyzing the metadata files
+provided with SXS simulations for describing the physics they represent.  Another important subpackage is
+`zenodo`, which provides handy functions for interacting with zenodo.org in general, and in particular our
+collection of simulation data on that site.
+
+A handy command-line interface is also installed when you install this package.  It enables direct calling to
+any function in this package.  For example, if you want to upload a directory to Zenodo, you could use the
+`sxs.zenodo.upload` function through python, or you could just run the command `sxs zenodo upload`.  Any
+arguments to these functions should be passed immediately following the function name, followed by any keyword
+arguments in the usual `--keyword=value` format.  Run `sxs --help` for more information.
+
+"""
 
 if __name__ == "__main__":
     from os import getenv
@@ -48,6 +61,6 @@ if __name__ == "__main__":
           url='https://github.com/moble/sxs',
           author='Michael Boyle',
           author_email='mob22@cornell.edu',
-          # long_description=long_description,
+          long_description=long_description,
           # download_url = 'https://github.com/moble/sxs/archive/master.tar.gz',
     )
