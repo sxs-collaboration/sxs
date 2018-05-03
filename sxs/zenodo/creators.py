@@ -35,6 +35,7 @@ known_creators = {
     'Geoffrey Lovelace': {
         'name': 'Lovelace, Geoffrey',
         'affiliation': 'Cal State Fullerton',
+        'orcid': '0000-0002-7084-1070',
     },
     'Ilana MacDonald': {
         'name': 'MacDonald, Ilana',
@@ -45,6 +46,7 @@ known_creators = {
     'Harald Pfeiffer': {
         'name': 'Pfeiffer, Harald',
         'affiliation': 'AEI Potsdam',
+        'orcid': '0000-0001-9288-519X',
     },
     'Mark Scheel': {
         'name': 'Scheel, Mark',
