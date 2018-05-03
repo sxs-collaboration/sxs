@@ -1,4 +1,43 @@
 
+catalog_description = """
+        This JSON file has the following format.  Comments are, of course, not present (since JSON
+        does not support comments).  Single quotes here are, of course, double quotes in the rest of
+        the file (since JSON encloses strings in double quotes).  Anything inside <angle brackets>
+        is just standing in for the relevant value.  An ellipsis ... suggests that the preceding
+        structure can be repeated.
+
+          {
+              'catalog_description': '<this description>',
+              '<sxs_id>': {
+                  'conceptrecid': '<conceptrecid>',  # The Zenodo ID of the 'concept' record, which resolves to the current version
+                  'versions': [
+                      {  # Oldest version
+                        'representation': {  # As described here: http://developers.zenodo.org/#depositions
+
+                          }
+                          'files': [
+                              {
+                                  'checksum': '<checksum>',  # MD5 checksum of file on Zenodo
+                                  'filename': '<filename>',  # Name of file
+                                  'filesize': <filesize>,  # Number of bytes in the file
+                                  'id': '<id>',  # A standard UUID (hexadecimal with characters in the form 8-4-4-4-12)
+                                  'links': {
+                                      'download': '<download>',  # The URL 
+                                      'self': 'https://zenodo.org/api/deposit/depositions/1228291/files/9b589900-ed31-4ba7-83a8-54ab33e26714'
+                                  }
+                              },
+                              ...  # Other file descriptions in the order in which they were uploaded (not necessarily a meaningful order)
+                          ]
+                          'sxs_metadata': {
+
+                          }
+                      },
+                      ...  # Progressively newer versions.  There may only be one.  To get the newest in every case, just use ['versions'][-1]
+                  ]
+              },
+              ...  # More SXS IDs
+          }
+          """
 
 def map(catalog_file_name='complete_catalog.json', map_file_name='sxs_to_zenodo.map'):
     """Create a mapping from SXS identifiers to Zenodo record numbers for nginx
