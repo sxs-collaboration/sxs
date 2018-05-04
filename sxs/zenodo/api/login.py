@@ -167,7 +167,7 @@ class Login(object):
         from .deposit import Deposit
         return Deposit(self, deposition_id, ignore_deletion)
 
-    def list_deposits(self, q=None, status=None, sort=None, page=None, size=9999, all_records=False):
+    def list_deposits(self, q=None, status=None, sort=None, page=None, size=9999, all_versions=False):
         """Return list of dictionaries describing each deposit created with this login
 
         It is possible to filter the results using the optional parameters.
@@ -187,7 +187,7 @@ class Login(object):
         size: int
             Number of results to return per page.  Note that Zenodo (as of this writing) seems to
             place a hard limit of 9999 responses.  Anything more will result in an error.
-        all_records: bool [defaults to False]
+        all_versions: bool [defaults to False]
             If True return all records, including older versions of published records.
 
         """
@@ -202,8 +202,8 @@ class Login(object):
             params['page'] = page
         if size is not None:
             params['size'] = size
-        if all_records:
-            params['all_records'] = ''
+        if all_versions:
+            params['all_versions'] = ''
         
         url = "{0}api/deposit/depositions".format(self.base_url)
         r = self.session.get(url, params=params)
