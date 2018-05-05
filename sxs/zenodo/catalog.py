@@ -11,13 +11,28 @@ catalog_file_description = """
               '<sxs_id>': {  # The SXS ID is a string like SXS:BHNS:0001 or SXS:BBH:1234
                   'conceptrecid': '<conceptrecid>',  # The Zenodo ID of the 'concept' record, which resolves to the current version
                   'versions': [
-                      {  # Oldest version first
+                      {  # Oldest version first (speficically, with respect to 'created' timestamp)
                           'representation': {  # More details about this object at http://developers.zenodo.org/#depositions
                               'conceptdoi': '10.5281/zenodo.<conceptrecid>',  # Permanent DOI for all versions of this record
                               'conceptrecid': '<conceptrecid>',  # ~7-digit integer identifying collectively all versions of this record
                               'created': '<YYYY-MM-DDThh:mm:ss.ssssss>',  # UTC time of creation of this record on Zenodo
                               'doi': '10.5281/zenodo.<id>',  # Permanent DOI for this record
                               'doi_url': 'https://doi.org/10.5281/zenodo.<id>',  # URL for permanent DOI of this record
+                              'files': [
+                                  # See https://data.black-holes.org/waveforms/documentation.html for
+                                  # detailed descriptions of the *contents* of the files in each record.
+                                  {
+                                      'checksum': '<checksum>',  # MD5 checksum of file on Zenodo
+                                      'filename': '<filename>',  # Name of file; may contain slashes denoting directories
+                                      'filesize': <filesize>,  # Number of bytes in the file
+                                      'id': '<fileid>',  # A standard UUID (hexadecimal with characters in the pattern 8-4-4-4-12)
+                                      'links': {
+                                          'download': 'https://zenodo.org/api/files/<bucket>/<filename>',  # The URL to use to download this file
+                                          'self': 'https://zenodo.org/api/deposit/depositions/<deposition_id>/files/<fileid>'  # Ignore this
+                                      }
+                                  },
+                                  ...  # Other file descriptions in the order in which they were uploaded (not necessarily a meaningful order)
+                              ]
                               'id': <id>,  # ~7-digit integer uniquely identifying this record
                               'links': {
                                    'badge': 'https://zenodo.org/badge/doi/10.5281/zenodo.<id>.svg',
@@ -69,21 +84,6 @@ catalog_file_description = """
                               'submitted': <submitted>,  # True or false (always true for published records)
                               'title': '<title>'  # Same as ['metadata']['title']
                           }
-                          'files': [
-                              # See https://data.black-holes.org/waveforms/documentation.html for
-                              # detailed descriptions of the *contents* of the files in each record.
-                              {
-                                  'checksum': '<checksum>',  # MD5 checksum of file on Zenodo
-                                  'filename': '<filename>',  # Name of file; may contain slashes denoting directories
-                                  'filesize': <filesize>,  # Number of bytes in the file
-                                  'id': '<fileid>',  # A standard UUID (hexadecimal with characters in the pattern 8-4-4-4-12)
-                                  'links': {
-                                      'download': 'https://zenodo.org/api/files/<bucket>/<filename>',  # The URL to use to download this file
-                                      'self': 'https://zenodo.org/api/deposit/depositions/<deposition_id>/files/<fileid>'  # Ignore this
-                                  }
-                              },
-                              ...  # Other file descriptions in the order in which they were uploaded (not necessarily a meaningful order)
-                          ]
                           'sxs_metadata': {
                               # Variable content describing (mostly) physical parameters of the system.  It's basically
                               # a python-compatible version of the information contained in 'metadata.txt' from the
@@ -130,6 +130,59 @@ catalog_file_description = """
               ...  # More SXS IDs
           }
           """
+
+
+def compare_catalogs(c1, c2):
+    from copy import deepcopy
+    # First, copy the catalogs so we can modify them without screwing other things up
+    c1 = deepcopy(c1)
+    c2 = deepcopy(c2)
+    # Remove keys that are allowed to differ
+    for c in [c1, c2]:
+        del c['catalog_file_description']
+        del c['last_file_modification']
+        for sxs_id in c:
+            if 'versions' in c[sxs_id]:
+                for i in range(len(c[sxs_id]['versions'])):
+                    files = c[sxs_id]['versions'][i]['representation']['files']
+                    for j in range(len(files)):
+                        del files[j]['links']['self']
+    # Now we're ready to compare
+    return c1 == c2
+
+
+def catalog_from_representation_list(representation_list):
+    """Convert list of representations from Zenodo into catalog dictionary
+
+    Given a list of "representation" dictionaries as returned by Zenodo, this function returns a "catalog" dictionary,
+    as described by `catalog_file_description`.  In brief, this dictionary contains the `catalog_file_description`
+    itself under that key, the UTC timestamp of the last modification of any item in the list, and then a series of keys
+    given by the SXS identifiers of all the simulations in the input list, values for which are just the representations
+    themselves.
+
+    """
+    import re
+    from collections import OrderedDict, defaultdict
+    from sxs import sxs_identifier_regex
+    sxs_identifier_regex = re.compile(sxs_identifier_regex)
+    repr_by_sxs_id = defaultdict(list)
+    for r in representation_list:
+        m = sxs_identifier_regex.search(r['title'])
+        if m:
+            sxs_id = m['sxs_identifier']
+            repr_by_sxs_id[sxs_id].append(r)
+    catalog = OrderedDict()
+    catalog['catalog_file_description'] = catalog_file_description
+    catalog['last_file_modification'] = sorted([r['modified'] for sxs_id in repr_by_sxs_id for r in repr_by_sxs_id[sxs_id]])[-1]
+    for sxs_id in sorted(repr_by_sxs_id):
+        catalog[sxs_id] = {}
+        catalog[sxs_id]['conceptrecid'] = repr_by_sxs_id[sxs_id][0]['conceptrecid']
+        catalog[sxs_id]['versions'] = [
+            {'representation': r, 'sxs_metadata': {}}
+            for r in sorted(repr_by_sxs_id[sxs_id], key=lambda r: r['created'])
+        ]
+    return catalog
+
 
 def map(catalog_file_name='complete_catalog.json', map_file_name='sxs_to_zenodo.map'):
     """Create a mapping from SXS identifiers to Zenodo record numbers for nginx
