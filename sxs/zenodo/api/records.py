@@ -22,7 +22,7 @@ class Records(object):
             Search query, using Elasticsearch query string syntax.  See
             https://help.zenodo.org/guides/search/ for details.
         sort: string
-            Sort order ('bestmatch' or 'mostrecent').  Prefix with minus to change form ascending to
+            Sort order ('bestmatch' or 'mostrecent').  Prefix with minus to change from ascending to
             descending (e.g., '-mostrecent').
         page: int
             Page number for pagination

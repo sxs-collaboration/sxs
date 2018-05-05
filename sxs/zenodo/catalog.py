@@ -76,10 +76,10 @@ catalog_file_description = """
                                   'checksum': '<checksum>',  # MD5 checksum of file on Zenodo
                                   'filename': '<filename>',  # Name of file; may contain slashes denoting directories
                                   'filesize': <filesize>,  # Number of bytes in the file
-                                  'id': '<id>',  # A standard UUID (hexadecimal with characters in the pattern 8-4-4-4-12)
+                                  'id': '<fileid>',  # A standard UUID (hexadecimal with characters in the pattern 8-4-4-4-12)
                                   'links': {
                                       'download': 'https://zenodo.org/api/files/<bucket>/<filename>',  # The URL to use to download this file
-                                      'self': 'https://zenodo.org/api/deposit/depositions/<deposition_id>/files/<id>'  # Ignore this
+                                      'self': 'https://zenodo.org/api/deposit/depositions/<deposition_id>/files/<fileid>'  # Ignore this
                                   }
                               },
                               ...  # Other file descriptions in the order in which they were uploaded (not necessarily a meaningful order)
