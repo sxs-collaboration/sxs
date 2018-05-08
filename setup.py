@@ -56,6 +56,7 @@ if __name__ == "__main__":
     setup(name='sxs',
           packages = ['sxs', 'sxs.metadata', 'sxs.doxygen', 'sxs.references', 'sxs.zenodo', 'sxs.zenodo.api'],
           scripts = ['scripts/sxs'],
+          include_package_data=True,
           version=version,
           description = 'A collection of python code used by the SXS collaboration',
           url='https://github.com/moble/sxs',
