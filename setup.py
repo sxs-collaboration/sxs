@@ -54,7 +54,8 @@ if __name__ == "__main__":
     from os import getenv
     from setuptools import setup
     setup(name='sxs',
-          packages = ['sxs', 'sxs.metadata', 'sxs.doxygen', 'sxs.references', 'sxs.zenodo', 'sxs.zenodo.api'],
+          packages = ['sxs', 'sxs.metadata', 'sxs.doxygen', 'sxs.references',
+                      'sxs.zenodo', 'sxs.zenodo.catalog', 'sxs.zenodo.api'],
           scripts = ['scripts/sxs'],
           include_package_data=True,
           version=version,
