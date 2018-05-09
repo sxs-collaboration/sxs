@@ -177,8 +177,9 @@ class Login(object):
         q: string
             Search query, using Elasticsearch query string syntax.  See
             https://help.zenodo.org/guides/search/ for details.
-        status: string
-            Filter result based on deposit status (either 'draft' or 'published')
+        status: string [default: None]
+            Filter result based on deposit status (either 'draft' or 'published').  If None, don't
+            filter.
         sort: string
             Sort order ('bestmatch' or 'mostrecent').  Prefix with minus to change form ascending to
             descending (e.g., '-mostrecent').
