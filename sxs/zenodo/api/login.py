@@ -116,7 +116,7 @@ class Login(object):
                 def __init__(self, base_url, access_token):
                     self.base_url = base_url
                     self.access_token = access_token
-                    super().__init__()
+                    super(ZenodoAuth, self).__init__()
                 def __call__(self, r):
                     if r.url.startswith(self.base_url):
                         r.headers.update({"Authorization": "Bearer {0}".format(self.access_token)})
