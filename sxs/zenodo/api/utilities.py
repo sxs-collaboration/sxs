@@ -1,3 +1,17 @@
+def download(url, local_filename):
+    """Download large file without using much RAM
+
+    This function is mostly here just to remind me how to do this.
+
+    """
+    from shutil import copyfileobj
+    from requests import get
+    r = get(url, stream=True)
+    with open(local_filename, 'wb') as f:
+        copyfileobj(r.raw, f)
+    return local_filename
+
+
 def md5checksum(file_name):
     """Compute MD5 checksum on a file, even if it is quite large"""
     from hashlib import md5
@@ -6,6 +20,7 @@ def md5checksum(file_name):
         for chunk in iter(lambda: f.read(32768), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
+
 
 def find_files(top_directory, exclude=[], include_top_directory_in_name=True):
     """Recursively find all files in `top_directory` and give them relative names
