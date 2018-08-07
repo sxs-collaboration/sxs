@@ -166,7 +166,7 @@ class Login(object):
             The URL to download from.  Redirects are followed.
         path: string
             Relative or absolute path to the file in which the download will be stored.  If this is
-            a existing directory or ends in a path separator, the "path" component of the URL will
+            an existing directory or ends in a path separator, the "path" component of the URL will
             be used as the file name, and the full directory path will be created.
 
         """
