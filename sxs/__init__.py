@@ -63,7 +63,7 @@ def uses_new_initial_data(system, raise_on_missing_file=False):
     import ast
     import warnings
     
-    tar_file_path = os.path.join(system, 'EvID/ID_Files.tgz')
+    tar_file_path = os.path.join(system, 'EvID', 'ID_Files.tgz')
 
     # Open the tarfile for reading
     try:
