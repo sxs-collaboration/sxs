@@ -38,7 +38,7 @@ catalog_file_description = """
                          'record_html': 'https://zenodo.org/record/<id>',  # Webpage for this particular version; only present for author
                          'self': 'https://zenodo.org/api/deposit/depositions/<id>'
                     },
-                    'metadata': {  # Note that this is Zenodo metadata, and is different from the SXS metadata
+                    'metadata': {  # Note that this is Zenodo metadata, and is different from the SXS metadata found below
                         'access_right': '<access>',  # Can be 'open', 'closed', 'embargoed', or 'restricted'
                         'communities': [
                             {'identifier': '<community_name>'},  # Names may include 'sxs' and 'zenodo'
@@ -183,7 +183,7 @@ def read(catalog_file_name=None, private_metadata_file_name=None):
         if exists('catalog.json'):
             catalog_file_name = 'catalog.json'
         else:
-            catalog_file_name = join(sxs.__file__, 'sxs', 'zenodo', 'catalog.json')
+            catalog_file_name = join(dirname(sxs.__file__), 'zenodo', 'catalog.json')
             if not exists(catalog_file_name):
                 raise ValueError("Cannot find 'catalog.json' file in current directory or module's data directory.")
     if private_metadata_file_name is None:
@@ -192,7 +192,7 @@ def read(catalog_file_name=None, private_metadata_file_name=None):
         elif exists('catalog_private_metadata.json'):
             private_metadata_file_name = 'catalog_private_metadata.json'
         else:
-            private_metadata_file_name = join(sxs.__file__, 'sxs', 'zenodo', 'catalog_private_metadata.json')
+            private_metadata_file_name = join(dirname(sxs.__file__), 'zenodo', 'catalog_private_metadata.json')
             if not exists(private_metadata_file_name):
                 private_metadata_file_name = ''
     with open(catalog_file_name, 'r') as f:
@@ -231,7 +231,7 @@ def write(catalog, catalog_file_name=None, private_metadata_file_name=None):
     from json import dump
     import sxs
     if catalog_file_name == 'sxs/zenodo/catalog.json':
-        catalog_file_name = join(sxs.__file__, 'sxs', 'zenodo', 'catalog.json')
+        catalog_file_name = join(dirname(sxs.__file__), 'zenodo', 'catalog.json')
     elif catalog_file_name is None:
         catalog_file_name = 'catalog.json'
     if private_metadata_file_name is None:
@@ -275,13 +275,14 @@ def order_version_list(representation_dict, versions):
     return sorted([str(v) for v in versions], key=lambda v: representation_dict[v]['created'])
 
 
-def simulations(catalog, representation_list, login=None, *args, **kwargs):
+def update_simulations(catalog, representation_list, login=None, *args, **kwargs):
+    from copy import deepcopy
     import re
     from collections import OrderedDict
     # from .. import sxs_identifier_regex
     from sxs import sxs_identifier_regex
     sxs_identifier_regex = re.compile(sxs_identifier_regex)
-    simulations = catalog['simulations'].copy()
+    simulations = deepcopy(catalog['simulations'])
     verbosity = kwargs.pop('verbosity', 2)
     for i, r in enumerate(representation_list, 1):
         print('{0:6} of {1}: {2}'.format(i, len(representation_list), r['id']))
@@ -327,7 +328,7 @@ def simulations(catalog, representation_list, login=None, *args, **kwargs):
     return OrderedDict([(s, simulations[s]) for s in sorted(simulations)])
 
 
-def catalog_from_representation_list(representation_list, simulations={}, login=None, *args, **kwargs):
+def catalog_from_representation_list(representation_list, simulation_dict={}, login=None, *args, **kwargs):
     """Convert list of representations from Zenodo into catalog dictionary
 
     Given a list of "representation" dictionaries as returned by Zenodo, this function returns a "catalog" dictionary,
@@ -341,11 +342,11 @@ def catalog_from_representation_list(representation_list, simulations={}, login=
     from collections import OrderedDict
     from textwrap import dedent
     catalog = OrderedDict()
-    catalog['catalog_file_description'] = dedent(catalog_file_description).split('\n')[1:]
+    catalog['catalog_file_description'] = dedent(catalog_file_description).split('\n')[1:-1]
     catalog['modified'] = modification_time(representation_list)
     catalog['records'] = OrderedDict(sorted([(str(r['id']), r) for r in representation_list], key=lambda kv:kv[0]))
-    catalog['simulations'] = deepcopy(simulations)
-    catalog['simulations'] = simulations(catalog, representation_list=representation_list, login=login, *args, **kwargs)
+    catalog['simulations'] = deepcopy(simulation_dict)
+    catalog['simulations'] = update_simulations(catalog, representation_list=representation_list, login=login, *args, **kwargs)
     return catalog
 
 
