@@ -2,7 +2,7 @@
 class Records(object):
 
     @classmethod
-    def search(cls, q=None, sort=None, page=None, size=None, sandbox=False, all_versions=False):
+    def search(cls, q=None, sort=None, page=None, size=9999, sandbox=False, all_versions=False):
         """Search public records
 
         It is possible to filter the results use the optional parameters.  Note that the web interface
@@ -27,7 +27,9 @@ class Records(object):
         page: int
             Page number for pagination
         size: int
-            Number of results to return per page
+            Number of results to return per page.  Note that Zenodo (as of this writing) seems to
+            place a hard limit of 9999 responses.  Anything more will result in an error.  Use
+            multiple pages to get more results.
         sandbox: bool [defaults to False]
             If True use sandbox.zenodo.org instead of the standard site.
         all_versions: bool [defaults to False]
@@ -50,8 +52,7 @@ class Records(object):
             params['sort'] = sort
         if page is not None:
             params['page'] = page
-        if size is not None:
-            params['size'] = size
+        params['size'] = size
         if all_versions:
             params['all_versions'] = ''
 

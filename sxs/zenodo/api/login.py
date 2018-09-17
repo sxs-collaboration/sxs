@@ -237,7 +237,8 @@ class Login(object):
             Page number for pagination
         size: int
             Number of results to return per page.  Note that Zenodo (as of this writing) seems to
-            place a hard limit of 9999 responses.  Anything more will result in an error.
+            place a hard limit of 9999 responses.  Anything more will result in an error.  Use
+            multiple pages to get more results.
         all_versions: bool [defaults to False]
             If True return all records, including older versions of published records.
 

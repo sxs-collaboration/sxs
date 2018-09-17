@@ -40,7 +40,6 @@ def backup(catalog_file_name='complete_catalog.json', checksum_map_file_name='ch
             raise ValueError(error_message.format(backup_directory, top_directory))
 
 
-    
 def main(*args, **kwargs):
-    __doc__ = backup.__doc__
+    # __doc__ = backup.__doc__
     return backup(*args, **kwargs)

@@ -3,155 +3,245 @@ catalog_file_description = """
         This JSON file has the following format.  Comments are, of course, not present (since JSON does not support
         comments).  Single quotes here are, of course, double quotes in the rest of the file (since JSON encloses
         strings in double quotes).  Anything inside <angle brackets> is just standing in for the relevant value.  An
-        ellipsis ... indicates that the preceding structure can be repeated.
+        ellipsis ... indicates that the preceding structure can be repeated.  Also note that the metadata entries for
+        simulations may not be present if the record on zenodo is closed-access; see catalog_private_metadata.json if
+        you have access to those simulations, which will contain the missing information.  That file should be read
+        and written automatically by functions in this module, so that the catalog dict returned will contain all
+        available information.
 
-          {
-              'catalog_file_description': '<this description>',
-              'modified': '<YYYY-MM-DDThh:mm:ss.ssssss>',  # UTC time of last-modified record in this file
-              'records': {  # Includes *all* versions of *all* records published in the 'sxs' community, not just simulations
-                  '<id>': {  # This Zenodo ID key is the same as the 'id' value inside this object
-                      # More details about this 'representation' object at http://developers.zenodo.org/#depositions
-                      'conceptdoi': '10.5281/zenodo.<conceptrecid>',  # Permanent DOI for all versions of this record
-                      'conceptrecid': '<conceptrecid>',  # ~7-digit integer identifying collectively all versions of this record
-                      'created': '<YYYY-MM-DDThh:mm:ss.ssssss>',  # UTC time of creation of this record on Zenodo
-                      'doi': '10.5281/zenodo.<id>',  # Permanent DOI for this record
-                      'doi_url': 'https://doi.org/10.5281/zenodo.<id>',  # URL for permanent DOI of this record
-                      'files': [
-                          # See https://data.black-holes.org/waveforms/documentation.html for
-                          # detailed descriptions of the *contents* of the files in each record.
-                          {
-                              'checksum': '<checksum>',  # MD5 checksum of file on Zenodo
-                              'filename': '<filename>',  # Name of file; may contain slashes denoting directories
-                              'filesize': <filesize>,  # Number of bytes in the file
-                              'id': '<fileid>',  # A standard UUID (hexadecimal with characters in the pattern 8-4-4-4-12)
-                              'links': {
-                                  'download': 'https://zenodo.org/api/files/<bucket>/<filename>',  # The URL to use to download this file
-                                  'self': 'https://zenodo.org/api/deposit/depositions/<deposition_id>/files/<fileid>'  # Ignore this
-                              }
-                          },
-                          ...  # Other file descriptions in the order in which they were uploaded (not necessarily a meaningful order)
-                      ]
-                      'id': <id>,  # ~7-digit integer uniquely identifying this record
-                      'links': {
-                           'badge': 'https://zenodo.org/badge/doi/10.5281/zenodo.<id>.svg',
-                           'bucket': 'https://zenodo.org/api/files/<uuid>',  # Base URL for file uploads and downloads
-                           'conceptbadge': 'https://zenodo.org/badge/doi/10.5281/zenodo.<conceptrecid>.svg',
-                           'conceptdoi': 'https://doi.org/10.5281/zenodo.<conceptrecid>',  # Permanent link to webpage for most-recent version
-                           'discard': 'https://zenodo.org/api/deposit/depositions/<id>/actions/discard',  # API action to discard a draft
-                           'doi': 'https://doi.org/10.5281/zenodo.<id>',  # Permanent URL for this version
-                           'edit': 'https://zenodo.org/api/deposit/depositions/<id>/actions/edit',  # API action to edit this record
-                           'files': 'https://zenodo.org/api/deposit/depositions/<id>/files',
-                           'html': 'https://zenodo.org/deposit/<id>',  # Webpage for this version
-                           'latest': 'https://zenodo.org/api/records/<id>',  # API endpoint for most-recent version
-                           'latest_html': 'https://zenodo.org/record/<id>',  # Webpage for most-recent version
-                           'publish': 'https://zenodo.org/api/deposit/depositions/<id>/actions/publish',
-                           'record': 'https://zenodo.org/api/records/<id>',
-                           'record_html': 'https://zenodo.org/record/<id>',  # Webpage for this particular version
-                           'self': 'https://zenodo.org/api/deposit/depositions/<id>'
-                      },
-                      'metadata': {  # Note that this is Zenodo metadata, and is different from the SXS metadata
-                          'access_right': '<access>',  # Can be 'open', 'closed', 'embargoed', or 'restricted'
-                          'communities': [
-                              {'identifier': '<community_name>'},  # Names may include 'sxs' and 'zenodo'
-                              ...
-                          ],
-                          'creators': [
-                              {
-                                  'name': '<name>',  # Name of this creator in the format Family name, Given names
-                                  'affiliation': '<affiliation>',  # (Optional) Affiliation of this creator
-                                  'orcid': '<orcid>',  # (Optional) ORCID identifier of this creator
-                                  'gnd': '<gnd>'  # (Optional) GND identifier of this creator
-                              },
-                              ...
-                          ],
-                          'description': '<description>',  # Text description of this record
-                          'doi': '10.5281/zenodo.<id>',  # Permanent DOI of this record
-                          'keywords': [
-                              '<keyword>',  # Optional; this array may be empty
-                              ...
-                          ],
-                          'prereserve_doi': {'doi': '10.5281/zenodo.<id>', 'recid': <id>},
-                          'publication_date': '<YYYY-MM-DD>',  # Possibly meaningless date (UTC)
-                          'title': '<title>',
-                          'upload_type': 'dataset'
-                      },
-                      'modified': '<YYYY-MM-DDThh:mm:ss.ssssss>',  # (UTC) Last modification of this record (possibly just Zenodo metadata)
-                      'owner': <user_id>,  # ~5-digit integer identifying the user who owns this record
-                      'record_id': <id>,  # Same as 'id'
-                      'state': '<state>',  # Can be 'done', 'inprogress', 'error', 'unsubmitted', possibly others
-                      'submitted': <submitted>,  # True or false (always true for published records)
-                      'title': '<title>'  # Same as ['metadata']['title']
-                  },
-                  ...
-              },
-              'simulations': {
-                  '<sxs_id>': {  # The SXS ID is a string like SXS:BHNS:0001 or SXS:BBH:1234
-                      'conceptrecid': '<conceptrecid>',  # The Zenodo ID of the 'concept' record, which *resolves to* the most-recent version
-                      'versions': [  # Zenodo IDs of each version.  There may only be one; index this list with [-1] to always get the most recent
-                          '<id1>',  # Oldest version first
-                          ...
-                      ],
-                      'metadata': {
-                          # Variable content describing (mostly) physical parameters of the system.  It's basically a
-                          # python-compatible version of the information contained in 'metadata.txt' from the
-                          # highest-resolution run in the most-recent version of this simulation.  That file is meant to
-                          # be more-or-less as suggested in <https://arxiv.org/abs/0709.0093>.  The conversion to a
-                          # python-compatible format means that keys like 'simulation-name' have had hyphens replaced by
-                          # underscores so that they can be used as variable names in python and any other sane language
-                          # (with apologies to Lisp).  As far as possible, values that are just strings in that file
-                          # have been converted into the relevant types -- like numbers, integers, and arrays.  Note
-                          # that some keys like eccentricity are sometimes numbers and sometimes the string '<number'
-                          # (meaning that the eccentricity is less than the number), which is necessarily a string.
-                          #
-                          # Below are just the first few keys that *may* be present.  Note that closed-access
-                          # simulations will have empty dictionaries here.
-                          #
-                          'simulation_name': '<directory_name>',  # This may be distinctly uninformative
-                          'alternative_names': '<sxs_id>',  # This may be a list of strings
-                          'initial_data_type': '<type>',  # Something like 'BBH_CFMS'
-                          'number_of_orbits': <number>,  # This is a float
-                          'relaxed_mass1': <m2>,
-                          'relaxed_mass2': <m1>,
-                          'relaxed_dimensionless_spin1': [
-                              <chi1_x>,
-                              <chi1_y>,
-                              <chi1_z>
-                          ],
-                          'relaxed_dimensionless_spin2': [
-                              <chi2_x>,
-                              <chi2_y>,
-                              <chi2_z>
-                          ],
-                          'relaxed_eccentricity': <eccentricity>,  # Or maybe a string...
-                          'relaxed_orbital_frequency': [
-                              <omega_x>,
-                              <omega_y>,
-                              <omega_z>
-                          ],
-                          'relaxed_measurement_time': <time>,
-                          ...
-                      },
-                  },
-                  ...
-              }
-          }
-          """
+        {
+            'catalog_file_description': '<this description>',
+            'modified': '<YYYY-MM-DDThh:mm:ss.ssssss>',  # UTC time of last-modified record in this file
+            'records': {  # Includes *all* versions of *all* records published in the 'sxs' community, not just simulations
+                '<id>': {  # This Zenodo ID key is a *string* containing the 'id' value inside this object (JSON requires keys to be strings)
+                    # More details about this 'representation' object at http://developers.zenodo.org/#depositions
+                    'conceptdoi': '10.5281/zenodo.<conceptrecid>',  # Permanent DOI for all versions of this record
+                    'conceptrecid': '<conceptrecid>',  # ~7-digit integer (as string) collectively identifying all versions of this record
+                    'created': '<YYYY-MM-DDThh:mm:ss.ssssss>',  # UTC time of creation of this record on Zenodo
+                    'doi': '10.5281/zenodo.<id>',  # Permanent DOI for this record
+                    'doi_url': 'https://doi.org/10.5281/zenodo.<id>',  # URL for permanent DOI of this record
+                    'id': <id>,  # ~7-digit integer uniquely identifying this record
+                    'links': {
+                         'badge': 'https://zenodo.org/badge/doi/10.5281/zenodo.<id>.svg',
+                         'bucket': 'https://zenodo.org/api/files/<uuid>',  # Base URL for file uploads and downloads
+                         'conceptbadge': 'https://zenodo.org/badge/doi/10.5281/zenodo.<conceptrecid>.svg',
+                         'conceptdoi': 'https://doi.org/10.5281/zenodo.<conceptrecid>',  # Permanent link to webpage for most-recent version
+                         'discard': 'https://zenodo.org/api/deposit/depositions/<id>/actions/discard',  # API action to discard a draft
+                         'doi': 'https://doi.org/10.5281/zenodo.<id>',  # Permanent URL for this version
+                         'edit': 'https://zenodo.org/api/deposit/depositions/<id>/actions/edit',  # API action to edit this record
+                         'files': 'https://zenodo.org/api/deposit/depositions/<id>/files',  # Only present for author
+                         'html': 'https://zenodo.org/deposit/<id>',  # Webpage for this version
+                         'latest': 'https://zenodo.org/api/records/<id>',  # API endpoint for most-recent version
+                         'latest_html': 'https://zenodo.org/record/<id>',  # Webpage for most-recent version
+                         'publish': 'https://zenodo.org/api/deposit/depositions/<id>/actions/publish',  # Only present for author
+                         'record': 'https://zenodo.org/api/records/<id>',  # Only present for author
+                         'record_html': 'https://zenodo.org/record/<id>',  # Webpage for this particular version; only present for author
+                         'self': 'https://zenodo.org/api/deposit/depositions/<id>'
+                    },
+                    'metadata': {  # Note that this is Zenodo metadata, and is different from the SXS metadata
+                        'access_right': '<access>',  # Can be 'open', 'closed', 'embargoed', or 'restricted'
+                        'communities': [
+                            {'identifier': '<community_name>'},  # Names may include 'sxs' and 'zenodo'
+                            ...
+                        ],
+                        'creators': [
+                            {
+                                'name': '<name>',  # Name of this creator in the format Family name, Given names
+                                'affiliation': '<affiliation>',  # (Optional) Affiliation of this creator
+                                'orcid': '<orcid>',  # (Optional) ORCID identifier of this creator
+                                'gnd': '<gnd>'  # (Optional) GND identifier of this creator
+                            },
+                            ...
+                        ],
+                        'description': '<description>',  # Text description of this record
+                        'doi': '10.5281/zenodo.<id>',  # Permanent DOI of this record
+                        'keywords': [
+                            '<keyword>',  # Optional; this array may be empty
+                            ...
+                        ],
+                        'license': '<license_type>',  # Usually 'CC-BY-4.0' for SXS
+                        'prereserve_doi': {'doi': '10.5281/zenodo.<id>', 'recid': <id>},
+                        'publication_date': '<YYYY-MM-DD>',  # Possibly meaningless date (UTC)
+                        'title': '<title>',
+                        'upload_type': 'dataset'
+                    },
+                    'modified': '<YYYY-MM-DDThh:mm:ss.ssssss>',  # (UTC) Last modification of this record (possibly just Zenodo metadata modified)
+                    'owner': <user_id>,  # ~5-digit integer identifying the user who owns this record
+                    'record_id': <id>,  # Same as 'id'
+                    'state': '<state>',  # Can be 'done', 'inprogress', 'error', 'unsubmitted', possibly others
+                    'submitted': <submitted>,  # True or false (always true for published records)
+                    'title': '<title>'  # Same as ['metadata']['title'],
+                    'files': [  # May not be present if this simulation is closed-access; see catalog_private_metadata.json as noted above
+                        # See https://data.black-holes.org/waveforms/documentation.html for
+                        # detailed descriptions of the *contents* of the files in each record.
+                        {
+                            'checksum': '<checksum>',  # MD5 checksum of file on Zenodo
+                            'filename': '<filename>',  # Name of file; may contain slashes denoting directories
+                            'filesize': <filesize>,  # Number of bytes in the file
+                            'id': '<fileid>',  # A standard UUID (hexadecimal with characters in the pattern 8-4-4-4-12)
+                            'links': {
+                                'download': 'https://zenodo.org/api/files/<bucket>/<filename>',  # The URL to use to download this file
+                                'self': 'https://zenodo.org/api/deposit/depositions/<deposition_id>/files/<fileid>'  # Ignore this
+                            }
+                        },
+                        ...  # Other file descriptions in the order in which they were uploaded (not necessarily a meaningful order)
+                    ]
+                },
+                ...
+            },
+            'simulations': {
+                '<sxs_id>': {  # The SXS ID is a string like SXS:BHNS:0001 or SXS:BBH:1234
+                    'conceptrecid': '<conceptrecid>',  # The Zenodo ID of the 'concept' record, which *resolves to* the most-recent version
+                    'versions': [  # Zenodo IDs of each version.  There may only be one; index this list with [-1] to always get the most recent
+                        '<id1>',  # Oldest version first
+                        ...
+                    ],
+                    'metadata': {  # May not be present if this simulation is closed-access; see catalog_private_metadata.json as noted above
+                        # Variable content describing (mostly) physical parameters of the system.  It's basically a
+                        # python-compatible version of the information contained in 'metadata.txt' from the
+                        # highest-resolution run in the most-recent version of this simulation.  That file is meant to
+                        # be more-or-less as suggested in <https://arxiv.org/abs/0709.0093>.  The conversion to a
+                        # python-compatible format means that keys like 'simulation-name' have had hyphens replaced by
+                        # underscores so that they can be used as variable names in python and any other sane language
+                        # (with apologies to Lisp).  As far as possible, values that are just strings in that file
+                        # have been converted into the relevant types -- like numbers, integers, and arrays.  Note
+                        # that some keys like eccentricity are sometimes numbers and sometimes the string '<number'
+                        # (meaning that the eccentricity is less than the number), which is necessarily a string.
+                        #
+                        # Below are just the first few keys that *may* be present.  Note that closed-access
+                        # simulations will have empty dictionaries here.
+                        #
+                        'simulation_name': '<directory_name>',  # This may be distinctly uninformative
+                        'alternative_names': '<sxs_id>',  # This may be a list of strings
+                        'initial_data_type': '<type>',  # Something like 'BBH_CFMS'
+                        'number_of_orbits': <number>,  # This is a float
+                        'relaxed_mass1': <m2>,
+                        'relaxed_mass2': <m1>,
+                        'relaxed_dimensionless_spin1': [
+                            <chi1_x>,
+                            <chi1_y>,
+                            <chi1_z>
+                        ],
+                        'relaxed_dimensionless_spin2': [
+                            <chi2_x>,
+                            <chi2_y>,
+                            <chi2_z>
+                        ],
+                        'relaxed_eccentricity': <eccentricity>,  # Or maybe a string...
+                        'relaxed_orbital_frequency': [
+                            <omega_x>,
+                            <omega_y>,
+                            <omega_z>
+                        ],
+                        'relaxed_measurement_time': <time>,
+                        ...
+                    },
+                },
+                ...
+            }
+        }
+"""
 
 
-def read(catalog_file_name=None):
-    from os.path import exists, join
+def split_to_public_and_private(catalog):
+    from collections import OrderedDict
+    from copy import deepcopy
+    public = deepcopy(catalog)
+    private = {'records': OrderedDict(), 'simulations': OrderedDict()}
+    for record_id in catalog['records']:
+        is_public = (catalog['records'][record_id]['metadata']['access_right'] == 'open')
+        if not is_public:
+            private['records'][record_id] = {'files': deepcopy(catalog['records'][record_id]['files'])}
+            public['records'][record_id].pop('files', None)
+    for sxs_id in catalog['simulations']:
+        version = str(catalog['simulations'][sxs_id]['versions'][-1])
+        record = catalog['records'][version]
+        is_public = (record['metadata']['access_right'] == 'open')
+        if not is_public:
+            private['simulations'][sxs_id] = {'metadata': deepcopy(catalog['simulations'][sxs_id]['metadata'])}
+            public['simulations'][sxs_id].pop('metadata', None)
+    return public, private
+
+
+def join_public_and_private(public, private):
+    from copy import deepcopy
+    catalog = deepcopy(public)
+    for record_id in private['records']:
+        if record_id in public['records']:
+            catalog['records'][record_id]['files'] = deepcopy(private['records'][record_id]['files'])
+    for sxs_id in private['simulations']:
+        if sxs_id in public['simulations']:
+            catalog['simulations'][sxs_id]['metadata'] = deepcopy(private['simulations'][sxs_id]['metadata'])
+    return catalog
+
+
+def read(catalog_file_name=None, private_metadata_file_name=None):
+    from os.path import exists, join, dirname
     from json import load
     import sxs
     if catalog_file_name is None:
         if exists('catalog.json'):
             catalog_file_name = 'catalog.json'
         else:
-            catalog_file_name = join(sxs.__file__, 'data', 'catalog.json')
+            catalog_file_name = join(sxs.__file__, 'sxs', 'zenodo', 'catalog.json')
             if not exists(catalog_file_name):
                 raise ValueError("Cannot find 'catalog.json' file in current directory or module's data directory.")
+    if private_metadata_file_name is None:
+        if exists(join(dirname(catalog_file_name), 'catalog_private_metadata.json')):
+            private_metadata_file_name = join(dirname(catalog_file_name), 'catalog_private_metadata.json')
+        elif exists('catalog_private_metadata.json'):
+            private_metadata_file_name = 'catalog_private_metadata.json'
+        else:
+            private_metadata_file_name = join(sxs.__file__, 'sxs', 'zenodo', 'catalog_private_metadata.json')
+            if not exists(private_metadata_file_name):
+                private_metadata_file_name = ''
     with open(catalog_file_name, 'r') as f:
         catalog = load(f)
+    if private_metadata_file_name:
+        with open(private_metadata_file_name, 'r') as f:
+            private = load(f)
+        catalog = join_public_and_private(catalog, private)
     return catalog
+
+
+def write(catalog, catalog_file_name=None, private_metadata_file_name=None):
+    """Write catalog dictionary to file
+    
+    This function separates the catalog into a public part and any private SXS metadata.  If the
+    latter exists, it gets written to the file given as the third parameter, or simply the file
+    'catalog_private_metadata.json' in the same directory as the public part.
+
+    Parameters
+    ==========
+    catalog: dict
+        The catalog information in the format described by the string
+        `sxs.zenodo.catalog.catalog_file_description`.
+    catalog_file_name: str or None
+        Path to the output public JSON file describing this catalog.  If None, the file is
+        'catalog.json' in the working directory.  If the string is precisely
+        'sxs/zenodo/catalog.json', the file will be placed in the sxs module's path, which is
+        typically in some directory like .../lib/python3.x/site-packages/sxs/zenodo.
+    private_metadata_file_name: str or None
+        Path to the output private JSON file describing any private metadata.  If None, the file
+        will be placed alongside the 'catalog.json' file, and named 'catalog_private_metadata.json'.
+        Note that this file will not be written at all if there are no private metadata sets.
+
+    """
+    from os.path import join, dirname
+    from json import dump
+    import sxs
+    if catalog_file_name == 'sxs/zenodo/catalog.json':
+        catalog_file_name = join(sxs.__file__, 'sxs', 'zenodo', 'catalog.json')
+    elif catalog_file_name is None:
+        catalog_file_name = 'catalog.json'
+    if private_metadata_file_name is None:
+        private_metadata_file_name = join(dirname(catalog_file_name), 'catalog_private_metadata.json')
+    public, private = split_to_public_and_private(catalog)
+    with open(catalog_file_name, 'r') as f:
+        dump(public, f)
+    if private['simulations']:
+        with open(private_metadata_file_name, 'r') as f:
+            dump(private, f)
 
 
 def modification_time(representation_list):
@@ -170,6 +260,7 @@ def sxs_metadata_file_description(representation):
 
 
 def fetch_metadata(url, login, *args, **kwargs):
+    from .api import Login
     login = login or Login(*args, **kwargs)
     r = login.session.get(url)
     if r.status_code != 200:
@@ -181,18 +272,19 @@ def fetch_metadata(url, login, *args, **kwargs):
 
 
 def order_version_list(representation_dict, versions):
-    return sorted(versions, key=lambda v: representation_dict[v]['created'])
+    return sorted([str(v) for v in versions], key=lambda v: representation_dict[v]['created'])
 
 
-def simulations(catalog, representation_list=[], login=None, *args, **kwargs):
+def simulations(catalog, representation_list, login=None, *args, **kwargs):
     import re
     from collections import OrderedDict
     # from .. import sxs_identifier_regex
     from sxs import sxs_identifier_regex
     sxs_identifier_regex = re.compile(sxs_identifier_regex)
     simulations = catalog['simulations'].copy()
+    verbosity = kwargs.pop('verbosity', 2)
     for i, r in enumerate(representation_list, 1):
-        print('{0:5} of {1}: {2}'.format(i, len(representation_list), r['id']))
+        print('{0:6} of {1}: {2}'.format(i, len(representation_list), r['id']))
         sxs_id_match = sxs_identifier_regex.search(r['title'])
         if sxs_id_match:
             sxs_id = sxs_id_match['sxs_identifier']
@@ -201,12 +293,12 @@ def simulations(catalog, representation_list=[], login=None, *args, **kwargs):
             if sxs_id in simulations:
                 if zenodo_id not in simulations[sxs_id]['versions']:
                     # First, get the information for the current most-recent metadata
-                    last_record_id = simulations[sxs_id]['versions'][-1]
+                    last_record_id = str(simulations[sxs_id]['versions'][-1])
                     last_representation = catalog['records'][last_record_id]
                     last_metadata_file_description = sxs_metadata_file_description(last_representation)
                     # Now, create the new sorted version list
                     simulations[sxs_id]['versions'] = order_version_list(catalog['records'], simulations[sxs_id]['versions'] + [zenodo_id])
-                    new_last_record_id = simulations[sxs_id]['versions'][-1]
+                    new_last_record_id = str(simulations[sxs_id]['versions'][-1])
                     if last_record_id != new_last_record_id:
                         # Only if the most-recent Zenodo ID has changed do we need to check any more
                         new_last_representation = catalog['records'][new_last_record_id]
@@ -217,7 +309,7 @@ def simulations(catalog, representation_list=[], login=None, *args, **kwargs):
                             simulations[sxs_id]['metadata'] = fetch_metadata(url, login, *args, **kwargs)
                 elif not simulations[sxs_id]['metadata']:
                     # Try to download the most-recent metadata; nothing else has changed.
-                    last_record_id = simulations[sxs_id]['versions'][-1]
+                    last_record_id = str(simulations[sxs_id]['versions'][-1])
                     last_representation = catalog['records'][last_record_id]
                     last_metadata_file = sxs_metadata_file_description(last_representation)
                     url = last_metadata_file['links']['download']
@@ -235,7 +327,7 @@ def simulations(catalog, representation_list=[], login=None, *args, **kwargs):
     return OrderedDict([(s, simulations[s]) for s in sorted(simulations)])
 
 
-def catalog_from_representation_list(representation_list, login=None, *args, **kwargs):
+def catalog_from_representation_list(representation_list, simulations={}, login=None, *args, **kwargs):
     """Convert list of representations from Zenodo into catalog dictionary
 
     Given a list of "representation" dictionaries as returned by Zenodo, this function returns a "catalog" dictionary,
@@ -245,12 +337,14 @@ def catalog_from_representation_list(representation_list, login=None, *args, **k
     themselves.
 
     """
+    from copy import deepcopy
     from collections import OrderedDict
+    from textwrap import dedent
     catalog = OrderedDict()
-    catalog['catalog_file_description'] = catalog_file_description
+    catalog['catalog_file_description'] = dedent(catalog_file_description).split('\n')[1:]
     catalog['modified'] = modification_time(representation_list)
-    catalog['records'] = OrderedDict(sorted([(r['id'], r) for r in representation_list], key=lambda kv:kv[0]))
-    catalog['simulations'] = {}
+    catalog['records'] = OrderedDict(sorted([(str(r['id']), r) for r in representation_list], key=lambda kv:kv[0]))
+    catalog['simulations'] = deepcopy(simulations)
     catalog['simulations'] = simulations(catalog, representation_list=representation_list, login=login, *args, **kwargs)
     return catalog
 
@@ -403,8 +497,13 @@ def map(catalog_file_name='complete_catalog.json', map_file_name='sxs_to_zenodo.
 #     with open(complete_catalog_file_name, 'r') as f:
 #         complete_catalog = json.load(f)
 #     public_catalog = {}
+#     # Initialize the catalogs
+#     complete_catalog['catalog_file_description'] = catalog_file_description
+#     public_catalog['catalog_file_description'] = catalog_file_description
+    
 #     # Step through the records, making sure we've got everything
 #     for i, record in enumerate(r, 1):
+#         complete_catalog['records'][record['id']] = record
 #         # Get the SXS identifier
 #         sxs_identifier_match = sxs_identifier_regex.search(record['title'])
 #         if not sxs_identifier_match:
@@ -418,12 +517,12 @@ def map(catalog_file_name='complete_catalog.json', map_file_name='sxs_to_zenodo.
 #             update = True
 #         else:
 #             # Check to make sure that the local copy is the latest one
-#             local_latest = complete_catalog[sxs_identifier]['links']['latest_html']
+#             local_latest = complete_catalog['simulations'][sxs_identifier]['links']['latest_html']
 #             zenodo_latest = record['links']['latest_html']
 #             if local_latest != zenodo_latest:
 #                 update = True
 #             else:
-#                 complete_catalog[sxs_identifier].update(record)  # Just in case there've been metadata changes
+#                 complete_catalog['simulations'][sxs_identifier].update(record)  # Just in case there've been metadata changes
 #                 update = False
 #         if update or 'files' not in complete_catalog[sxs_identifier]:
 #             if verbosity > 1:

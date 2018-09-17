@@ -105,3 +105,4 @@ ENV/
 
 
 _version.py
+catalog_private_metadata.json

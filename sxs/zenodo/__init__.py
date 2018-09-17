@@ -1,4 +1,5 @@
 from .api import Login, Deposit, Records
+from . import catalog
 
 # See https://github.com/moble/nb-marine-science for other examples using the Zenodo API
 # The other python API interface I found is here: https://github.com/moble/zenodo-python
