@@ -175,14 +175,68 @@ def join_public_and_private(public, private):
     return catalog
 
 
+def update(path='~/.sxs/catalog/catalog.json'):
+    """Update a local copy of the SXS catalog
+
+    Because git has better handling of revision history with incremental updates, and because most
+    users will have set up their credentials for github, we prefer git to simply re-downloading the
+    catalog from black-holes.  Specifically, we try to update the catalog in the following order.
+
+    1) Private copy via github (git scheme)
+    2) Private copy via github (https scheme)
+    3) Public copy via direct download (https://data.black-holes.org/catalog.json)
+
+    """
+    from os.path import expanduser, isdir, join, dirname, basename, exists
+    from os import makedirs, chdir, rename, getcwd
+    from subprocess import call, check_call
+    from warnings import warn
+    from .api.utilities import download
+    path = expanduser(path)
+    if not path.endswith('.json'):
+        path = join(path, 'catalog.json')
+    directory = dirname(path)
+    if not exists(directory):
+        makedirs(directory)
+    chdir(directory)
+    if exists(path):
+        rename(path, path+'.bak')
+    try:
+        git_success = False
+        try:
+            if call("git status .", shell=True):
+                check_call("git init .", shell=True)
+            call("git remote add origin_git git@github.com:sxs-collaboration/zenodo_catalog.git", shell=True)
+            call("git remote add origin_https https://github.com/sxs-collaboration/zenodo_catalog.git", shell=True)
+            for remote in ["origin_git", "origin_https"]:
+                if not call("git pull {0} master".format(remote), shell=True):
+                    git_success = True
+                    break
+        except:  # If for *any* reason git failed...
+            pass
+        if not git_success:  # ...fall back to direct download
+            warn("Failed to pull private copy of catalog; downloading public version")
+            download('https://data.black-holes.org/catalog.json', basename(path))
+    except:  # If for *any* reason that failed...
+        if exists(path+'.bak'):  # ... move the original file (if it exists) back into place
+            rename(path+'.bak', path)
+        raise
+
+
 def read(catalog_file_name=None, private_metadata_file_name=None):
-    from os.path import exists, join, dirname
+    from os.path import expanduser, exists, join, dirname
     from json import load
     import sxs
     if catalog_file_name is None:
-        if exists('catalog.json'):
+        if exists(expanduser('~/.sxs/catalog/catalog.json')):
+            catalog_file_name = expanduser('~/.sxs/catalog/catalog.json')
+        elif exists('catalog.json'):
             catalog_file_name = 'catalog.json'
         else:
+            # NOTE: Hopefully this will work; I don't want to have to do this:
+            #   from pkg_resources import resource_string
+            #   catalog = json.loads(resource_string('sxs', 'zenodo/catalog.json'))
+            # because then I don't see how it can be updated
             catalog_file_name = join(dirname(sxs.__file__), 'zenodo', 'catalog.json')
             if not exists(catalog_file_name):
                 raise ValueError("Cannot find 'catalog.json' file in current directory or module's data directory.")
@@ -237,10 +291,10 @@ def write(catalog, catalog_file_name=None, private_metadata_file_name=None):
     if private_metadata_file_name is None:
         private_metadata_file_name = join(dirname(catalog_file_name), 'catalog_private_metadata.json')
     public, private = split_to_public_and_private(catalog)
-    with open(catalog_file_name, 'r') as f:
+    with open(catalog_file_name, 'w') as f:
         dump(public, f)
     if private['simulations']:
-        with open(private_metadata_file_name, 'r') as f:
+        with open(private_metadata_file_name, 'w') as f:
             dump(private, f)
 
 
@@ -260,6 +314,7 @@ def sxs_metadata_file_description(representation):
 
 
 def fetch_metadata(url, login, *args, **kwargs):
+    """Get the json file from zenodo"""
     from .api import Login
     login = login or Login(*args, **kwargs)
     r = login.session.get(url)
@@ -276,6 +331,23 @@ def order_version_list(representation_dict, versions):
 
 
 def update_simulations(catalog, representation_list, login=None, *args, **kwargs):
+    """Update list of simulations (and SXS metadata) from list of representations
+
+    This function can be used to refresh the information about simulations found in the catalog from
+    a list of "representation" objects as returned by zenodo.  Thus, if you search for new records
+    on zenodo, and get that list back, you can simply run this function on the catalog and that
+    list, and it will update all the information about simulations.  Note that this function returns
+    the updated 'simulations' dictionary, rather than modifying it in place.
+
+    Parameters
+    ==========
+    catalog: dict
+        The catalog information in the format described by the string
+        `sxs.zenodo.catalog.catalog_file_description`.
+    representation_list: list
+        List of "representation" dictionaries as returned by Zenodo.
+
+    """
     from copy import deepcopy
     import re
     from collections import OrderedDict
