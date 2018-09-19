@@ -150,14 +150,14 @@ def split_to_public_and_private(catalog):
     private = {'records': OrderedDict(), 'simulations': OrderedDict()}
     for record_id in catalog['records']:
         is_public = (catalog['records'][record_id]['metadata']['access_right'] == 'open')
-        if not is_public:
+        if not is_public and 'files' in catalog['records'][record_id]:
             private['records'][record_id] = {'files': deepcopy(catalog['records'][record_id]['files'])}
             public['records'][record_id].pop('files', None)
     for sxs_id in catalog['simulations']:
         version = str(catalog['simulations'][sxs_id]['versions'][-1])
         record = catalog['records'][version]
         is_public = (record['metadata']['access_right'] == 'open')
-        if not is_public:
+        if not is_public and 'metadata' in catalog['simulations'][sxs_id]:
             private['simulations'][sxs_id] = {'metadata': deepcopy(catalog['simulations'][sxs_id]['metadata'])}
             public['simulations'][sxs_id].pop('metadata', None)
     return public, private
@@ -188,7 +188,8 @@ def update(path='~/.sxs/catalog/catalog.json'):
 
     """
     from os.path import expanduser, isdir, join, dirname, basename, exists
-    from os import makedirs, chdir, rename, getcwd
+    from os import makedirs, chdir, getcwd
+    from shutil import copyfile
     from subprocess import call, check_call
     from warnings import warn
     from .api.utilities import download
@@ -200,7 +201,7 @@ def update(path='~/.sxs/catalog/catalog.json'):
         makedirs(directory)
     chdir(directory)
     if exists(path):
-        rename(path, path+'.bak')
+        copyfile(path, path+'.bak')
     try:
         git_success = False
         try:
@@ -210,12 +211,13 @@ def update(path='~/.sxs/catalog/catalog.json'):
             call("git remote add origin_https https://github.com/sxs-collaboration/zenodo_catalog.git", shell=True)
             for remote in ["origin_git", "origin_https"]:
                 if not call("git pull {0} master".format(remote), shell=True):
+                    call("git reset --hard HEAD", shell=True)
                     git_success = True
                     break
         except:  # If for *any* reason git failed...
             pass
         if not git_success:  # ...fall back to direct download
-            warn("Failed to pull private copy of catalog; downloading public version")
+            warn("\n  Failed to pull private copy of catalog; downloading public version")
             download('https://data.black-holes.org/catalog.json', basename(path))
     except:  # If for *any* reason that failed...
         if exists(path+'.bak'):  # ... move the original file (if it exists) back into place
@@ -292,10 +294,10 @@ def write(catalog, catalog_file_name=None, private_metadata_file_name=None):
         private_metadata_file_name = join(dirname(catalog_file_name), 'catalog_private_metadata.json')
     public, private = split_to_public_and_private(catalog)
     with open(catalog_file_name, 'w') as f:
-        dump(public, f)
+        dump(public, f, indent=4, separators=(',', ': '), ensure_ascii=True)
     if private['simulations']:
         with open(private_metadata_file_name, 'w') as f:
-            dump(private, f)
+            dump(private, f, indent=4, separators=(',', ': '), ensure_ascii=True)
 
 
 def modification_time(representation_list):
