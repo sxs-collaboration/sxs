@@ -6,7 +6,9 @@ def download(url, local_filename):
     """
     from shutil import copyfileobj
     from requests import get
-    r = get(url, stream=True)
+    from functools import partial
+    r = get(url, stream=True, allow_redirects=True)
+    r.raw.read = partial(r.raw.read, decode_content=True)
     with open(local_filename, 'wb') as f:
         copyfileobj(r.raw, f)
     return local_filename
