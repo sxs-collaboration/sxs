@@ -71,17 +71,53 @@ def get_submission_comment(entry):
     return ''
 
 
-def get_journal_reference_from_doi(doi):
+def get_journal_reference_from_doi(doi, string=''):
+    if 'PhysRev' in doi:
+        jr = get_journal_reference_from_phys_rev(doi)
+    else:
+        jr = get_journal_reference_from_ads(doi)
+    if string:
+        return string.format(jr)
+    else:
+        return jr
+
+
+def get_journal_reference_from_phys_rev(doi):
+    import re
+    import urllib.request
+    reference = {}
+    pr = re.search('PhysRev([A-Z])', doi)
+    fields = re.compile(' (' + '|'.join(['title', 'pub', 'volume', 'issue', 'year', 'pages'])
+                        + ') = {(.*)}')
+    if pr:
+        reference['pub'] = 'Phys. Rev. {0}'.format(pr.groups()[0])
+        url = 'https://journals.aps.org/pr{0}/export/{1}'.format(pr.groups()[0].lower(), doi)
+        with urllib.request.urlopen(url) as response:
+            html = response.read().decode()
+        for line in html.split('\n'):
+            f = fields.search(line)
+            if f:
+                field, value = f.groups()[0], f.groups()[1]
+                reference[field] = value
+    return reference
+
+
+def get_journal_reference_from_ads(doi):
     import ads
-    from .journal_abbreviations import journal_abbreviation_pairs
-    fields = ['title', 'pub', 'volume', 'issue', 'year', 'page']
+    import difflib
+    from sxs.references.journal_abbreviations import journal_abbreviation_pairs
+    reference = {'title':'', 'pub':'', 'volume':'', 'issue':'', 'year':'', 'page':''}
     try:
-        article = ads.SearchQuery(q="doi:{0}".format(doi), fl=fields).next()
-    except Error as e:
+        article = ads.SearchQuery(q="doi:{0}".format(doi), fl=list(reference)).next()
+        reference['title'] = article.title
+        reference['pub'] = article.pub
+        reference['volume'] = article.volume
+        reference['issue'] = article.issue
+        reference['year'] = article.year
+        reference['page'] = article.page
+    except Exception as e:
         print('Failed to get ADS entry for doi "{0}"'.format(doi))
-        print('Error: ', e.strerror)
-    pub = article.pub
-    closest_match = difflib.get_close_matches(pub, references.journal_abbreviation_pairs, n=1)
+    closest_match = difflib.get_close_matches(reference['pub'], journal_abbreviation_pairs, n=1)
     if closest_match:
-        pub = journal_abbreviation_pairs[closest_match[0]]
-    return r'{0} \textbf{{{1.volume}}}, {1.issue} ({1.year})'.format(pub, article)
+        reference['pub'] = journal_abbreviation_pairs[closest_match[0]]
+    return reference

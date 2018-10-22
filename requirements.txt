@@ -1,4 +1,5 @@
 requests  # For interacting over HTTP
+requests_toolbelt  # For dumping information about requests/responses
 ads  # For searching ADS via the API
 pylatexenc  # For converting unicode to latex  
 lxml  # For parsing doxygen
