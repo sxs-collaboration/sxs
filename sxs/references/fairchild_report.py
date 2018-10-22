@@ -16,7 +16,7 @@ def format_paper_list_entry(arxiv_id, submission_comment='', desired_authors=Non
     title = r'\textit{{{0}}}'.format(entry['title'])
     submission_comment = submission_comment.strip()
     if not submission_comment:
-        journal_ref = get_journal_reference(entry)
+        journal_ref = get_journal_reference(entry, r'{pub} \textbf{{{volume}}}, {issue} ({year})')
         if journal_ref:
             submission_comment = ', published as ' + journal_ref.strip()
         else:

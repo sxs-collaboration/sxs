@@ -43,14 +43,14 @@ def get_all_entries(search_query='', id_list='', start=0, max_results=100):
     return entries
 
 
-def get_journal_reference(entry):
+def get_journal_reference(entry, string=''):
     if 'journal_ref' in entry:
         return entry['journal_ref']
     if 'arxiv_journal_ref' in entry:
         return entry['arxiv_journal_ref']
     if 'arxiv_doi' in entry:
         try:
-            return get_journal_reference_from_doi(entry['arxiv_doi'])
+            return get_journal_reference_from_doi(entry['arxiv_doi'], string)
         except:
             pass  # Didn't work for some reason; oh well...
     return ''
