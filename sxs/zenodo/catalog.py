@@ -175,7 +175,7 @@ def join_public_and_private(public, private):
     return catalog
 
 
-def update(path='~/.sxs/catalog/catalog.json'):
+def update(path='~/.sxs/catalog/catalog.json', verbosity=1):
     """Update a local copy of the SXS catalog
 
     Because git has better handling of revision history with incremental updates, and because most
@@ -186,9 +186,21 @@ def update(path='~/.sxs/catalog/catalog.json'):
     2) Private copy via github (https scheme)
     3) Public copy via direct download (https://data.black-holes.org/catalog.json)
 
+    Parameters
+    ==========
+    path: str, defaults to '~/.sxs/catalog/catalog.json'
+        Absolute or relative path to JSON file containing the catalog.  If the path does not end
+        with '.json', it is assumed to be a directory containing a 'catalog.json' file.
+    verbosity: int, defaults to 1
+
+        Amount of information to output.  Less than 1 corresponds to no output; 1 to only print a
+        notice if the private file cannot be retrieved; greater than 1 to print a notice about
+        wherever the file is retrieved; greater than 2 shows the stdout/stderr from external calls;
+        and greater than 3 also asks git to be verbose.
+
     """
     from os.path import expanduser, isdir, join, dirname, basename, exists
-    from os import makedirs, chdir, getcwd
+    from os import makedirs, chdir, getcwd, remove
     from shutil import copyfile
     from subprocess import call, check_call
     from warnings import warn
@@ -200,63 +212,65 @@ def update(path='~/.sxs/catalog/catalog.json'):
     if not exists(directory):
         makedirs(directory)
     chdir(directory)
+    if verbosity > 2:
+        stdout = None
+        stderr = None
+    else:
+        stdout = subprocess.DEVNULL
+        stderr = subprocess.DEVNULL
+    if verbosity > 3:
+        git_verbosity = '-v'
+    else:
+        git_verbosity = ''
     if exists(path):
         copyfile(path, path+'.bak')
     try:
         git_success = False
         try:
-            if call("git status .", shell=True):
-                check_call("git init .", shell=True)
-            call("git remote add origin_git git@github.com:sxs-collaboration/zenodo_catalog.git", shell=True)
-            call("git remote add origin_https https://github.com/sxs-collaboration/zenodo_catalog.git", shell=True)
+            if call("git status {0} .".format(git_verbosity), shell=True, stdout=stdout, stderr=stderr):
+                check_call("git init {0} .".format(git_verbosity), shell=True, stdout=stdout, stderr=stderr)
+            call("git remote {0} add origin_git git@github.com:sxs-collaboration/zenodo_catalog.git".format(git_verbosity),
+                 shell=True, stdout=stdout, stderr=stderr)
+            call("git remote {0} add origin_https https://github.com/sxs-collaboration/zenodo_catalog.git".format(git_verbosity),
+                 shell=True, stdout=stdout, stderr=stderr)
             for remote in ["origin_git", "origin_https"]:
-                if not call("git pull {0} master".format(remote), shell=True):
-                    call("git reset --hard HEAD", shell=True)
+                if not call("git pull {0} {1} master".format(git_verbosity, remote), shell=True, stdout=stdout, stderr=stderr):
+                    call("git reset {0} --hard HEAD".format(git_verbosity), shell=True, stdout=stdout, stderr=stderr)
                     git_success = True
+                    if verbosity>1:
+                        print('Retrieved catalog from {0}.'.format(remote))
                     break
         except:  # If for *any* reason git failed...
             pass
         if not git_success:  # ...fall back to direct download
-            warn("\n  Failed to pull private copy of catalog; downloading public version")
-            download('https://data.black-holes.org/catalog.json', basename(path))
+            print("Failed to pull private copy of catalog; downloading public version.")
+            if verbosity >= 1:
+                verbose = 1
+            download('https://data.black-holes.org/catalog.json', basename(path), verbose)
     except:  # If for *any* reason that failed...
         if exists(path+'.bak'):  # ... move the original file (if it exists) back into place
             rename(path+'.bak', path)
         raise
+    else:  # If everything went well...
+        if exists(path+'.bak'):  # ... remove the backup
+            remove(path+'.bak')
 
 
-def read(catalog_file_name=None, private_metadata_file_name=None):
+def read(path=None):
     from os.path import expanduser, exists, join, dirname
     from json import load
     import sxs
-    if catalog_file_name is None:
-        if exists(expanduser('~/.sxs/catalog/catalog.json')):
-            catalog_file_name = expanduser('~/.sxs/catalog/catalog.json')
-        elif exists('catalog.json'):
-            catalog_file_name = 'catalog.json'
+    if path is None:
+        if exists('catalog.json'):
+            path = 'catalog.json'
+        elif exists(expanduser('~/.sxs/catalog/catalog.json')):
+            path = expanduser('~/.sxs/catalog/catalog.json')
         else:
-            # NOTE: Hopefully this will work; I don't want to have to do this:
-            #   from pkg_resources import resource_string
-            #   catalog = json.loads(resource_string('sxs', 'zenodo/catalog.json'))
-            # because then I don't see how it can be updated
-            catalog_file_name = join(dirname(sxs.__file__), 'zenodo', 'catalog.json')
-            if not exists(catalog_file_name):
-                raise ValueError("Cannot find 'catalog.json' file in current directory or module's data directory.")
-    if private_metadata_file_name is None:
-        if exists(join(dirname(catalog_file_name), 'catalog_private_metadata.json')):
-            private_metadata_file_name = join(dirname(catalog_file_name), 'catalog_private_metadata.json')
-        elif exists('catalog_private_metadata.json'):
-            private_metadata_file_name = 'catalog_private_metadata.json'
-        else:
-            private_metadata_file_name = join(dirname(sxs.__file__), 'zenodo', 'catalog_private_metadata.json')
-            if not exists(private_metadata_file_name):
-                private_metadata_file_name = ''
-    with open(catalog_file_name, 'r') as f:
+            raise ValueError("Cannot find 'catalog.json' file in current directory or ~/.sxs/catalog/catalog.json.")
+    else:
+        path = expanduser(path)
+    with open(path, 'r') as f:
         catalog = load(f)
-    if private_metadata_file_name:
-        with open(private_metadata_file_name, 'r') as f:
-            private = load(f)
-        catalog = join_public_and_private(catalog, private)
     return catalog
 
 
