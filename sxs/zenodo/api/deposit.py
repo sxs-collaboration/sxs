@@ -312,6 +312,8 @@ class Deposit(object):
             * 'image'
             * 'video'
             * 'software'
+            * 'lesson'
+            * 'other'
 
         publication_type: string, required if 'upload_type' is 'publication'
             * 'book'
@@ -320,6 +322,9 @@ class Deposit(object):
             * 'article'
             * 'patent'
             * 'preprint'
+            * 'deliverable'
+            * 'milestone'
+            * 'proposal'
             * 'report'
             * 'softwaredocumentation'
             * 'thesis'
