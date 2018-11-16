@@ -155,7 +155,10 @@ class Metadata(collections.OrderedDict):
                         quantity = '[]'
                     else:
                         q = quantity.strip()
-                        if ((q.startswith('"') and q.endswith('"'))
+                        if '[unknown]' in q.lower():
+                            metadata[variable] = float('nan')
+                            continue
+                        elif ((q.startswith('"') and q.endswith('"'))
                             or (q.startswith("'") and q.endswith("'"))):
                             # If the whole thing is quoted, just leave it as is
                             quantity = q
