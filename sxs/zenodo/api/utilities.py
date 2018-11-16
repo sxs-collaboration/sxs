@@ -1,4 +1,4 @@
-def download(url, local_filename):
+def download(url, local_filename, verbosity=0):
     """Download large file without using much RAM
 
     This function is mostly here just to remind me how to do this.
@@ -11,6 +11,10 @@ def download(url, local_filename):
     r.raw.read = partial(r.raw.read, decode_content=True)
     with open(local_filename, 'wb') as f:
         copyfileobj(r.raw, f)
+    if verbosity>0:
+        from requests_toolbelt.utils import dump
+        data = dump.dump_all(r)
+        print(data.decode('utf-8'))
     return local_filename
 
 
