@@ -106,11 +106,20 @@ def create_web_files(catalog_root_directory='.',
                       (k+'_x', v[0]), (k+'_y', v[1]), (k+'_z', v[2])]
             else:
                 if k == 'object1':  # Insert combined type first
-                    m += [('object_types', ''.join(sorted([metadata[k].upper(), metadata['object2'].upper()])))]
+                    if 'object2' in metadata:
+                        m += [('object_types', ''.join(sorted([metadata[k].upper(), metadata['object2'].upper()])))]
                 if k == 'initial_mass1':  # Insert mass ratio first
-                    m += [('initial_mass_ratio', metadata[k]/metadata['initial_mass2'])]
+                    if 'initial_mass2' in metadata:
+                        try:
+                            m += [('initial_mass_ratio', metadata[k]/metadata['initial_mass2'])]
+                        except:
+                            pass
                 if k == 'relaxed_mass1':  # Insert mass ratio first
-                    m += [('relaxed_mass_ratio', metadata[k]/metadata['relaxed_mass2'])]
+                    if 'relaxed_mass2' in metadata:
+                        try:
+                            m += [('relaxed_mass_ratio', metadata[k]/metadata['relaxed_mass2'])]
+                        except:
+                            pass
                 m += [(k, v)]
         return collections.OrderedDict(m)
     public_catalog = [modify_metadata(key, metadata)
