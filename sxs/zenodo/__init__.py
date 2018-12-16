@@ -221,10 +221,10 @@ def upload(directory, exclude=[],
         elif len(matching_deposits) == 0:
             # Check to see if this simulation is already in sxs but not owned by this login
             records = Records.search('title: "{0}"'.format(title))
-            records = [r for r in records if r['title'] == title]  # Ensure *exact* match
-            communities = [community['identifier']
+            records = [r for r in records if r.get('title', '') == title]  # Ensure *exact* match
+            communities = [community.get('identifier', '')
                            for representation in records
-                           for community in representation['metadata']['communities']]
+                           for community in representation.get('metadata', {}).get('communities', {})]
             if 'sxs' in communities:
                 print('A record exists on Zenodo with exactly the name "{0}",'.format(title))
                 print('but is apparently owned by someone else in the "sxs" community.')
