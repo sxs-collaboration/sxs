@@ -156,7 +156,7 @@ class Metadata(collections.OrderedDict):
                     else:
                         q = quantity.strip()
                         if '[unknown]' in q.lower():
-                            metadata[variable] = float('nan')
+                            metadata[variable] = 'NaN'
                             continue
                         elif ((q.startswith('"') and q.endswith('"'))
                             or (q.startswith("'") and q.endswith("'"))):
