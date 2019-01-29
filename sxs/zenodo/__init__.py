@@ -103,7 +103,9 @@ def upload(directory, exclude=[],
       1) new deposits that Zenodo has not seen previously;
       2) drafts that were started previously but failed for some reason, like a spurious Zenodo
          server failure, or some problem in the data that has now been fixed; or
-      3) systems that have been published on Zenodo previously and have not changed at all, but you
+      3) systems that have been published on Zenodo previously but have changed in some way, so you
+         want to ensure that the local copy and the version on Zenodo are in sync.
+      4) systems that have been published on Zenodo previously and have not changed at all, but you
          want to verify that the local copy and the version on Zenodo are in sync.
 
     Most of the parameters to this function are simply passed to other functions.  For more
@@ -256,7 +258,7 @@ def upload(directory, exclude=[],
             authors_emails |= set(m.get('authors_emails', []))
             point_of_contact_email = m.get('point_of_contact_email', point_of_contact_email)
             keywords |= set(m.get('keywords', []))
-                
+
     # Get list of creators, keywords, and description
     print('Constructing metadata')
     if not creators:

@@ -213,6 +213,10 @@ def main():
     if len(argv) > 1 and argv[1] == '--upgrade':
         return subprocess.call(['pip', 'install', '--upgrade', '--no-cache', '--force', package.__name__])
 
+    if len(argv) > 1 and argv[1] == '--version':
+        print(package.__version__)
+        return 0
+
     if len(argv) > 1 and argv[1] == '--test-parsing':
         argv[1:2] = []
         test_parsing = True

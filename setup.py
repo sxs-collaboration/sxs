@@ -31,7 +31,7 @@ else:
         except:
             version = '0.0.0'
             print("Setup.py failed to determine the version; using '{0}'".format(version))
-with open('_version.py', 'w') as f:
+with open('sxs/_version.py', 'w') as f:
     f.write('__version__ = "{0}"'.format(version))
 
 
