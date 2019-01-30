@@ -210,7 +210,7 @@ def main():
     argv = sys.argv[:]
 
     # Upgrade through pip
-    if len(argv) > 1 and argv[1] == '--upgrade':
+    if len(argv) > 1 and (argv[1] == '--upgrade' or argv[1] == '--update'):
         return subprocess.call(['pip', 'install', '--upgrade', '--no-cache', '--force', package.__name__])
 
     if len(argv) > 1 and argv[1] == '--version':
