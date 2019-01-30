@@ -192,7 +192,6 @@ def update(path='~/.sxs/catalog/catalog.json', verbosity=1):
         Absolute or relative path to JSON file containing the catalog.  If the path does not end
         with '.json', it is assumed to be a directory containing a 'catalog.json' file.
     verbosity: int, defaults to 1
-
         Amount of information to output.  Less than 1 corresponds to no output; 1 to only print a
         notice if the private file cannot be retrieved; greater than 1 to print a notice about
         wherever the file is retrieved; greater than 2 shows the stdout/stderr from external calls;
@@ -202,7 +201,7 @@ def update(path='~/.sxs/catalog/catalog.json', verbosity=1):
     from os.path import expanduser, isdir, join, dirname, basename, exists
     from os import makedirs, chdir, getcwd, remove
     from shutil import copyfile
-    from subprocess import call, check_call
+    from subprocess import call, check_call, DEVNULL
     from warnings import warn
     from .api.utilities import download
     path = expanduser(path)
@@ -216,9 +215,11 @@ def update(path='~/.sxs/catalog/catalog.json', verbosity=1):
         stdout = None
         stderr = None
     else:
-        stdout = subprocess.DEVNULL
-        stderr = subprocess.DEVNULL
-    if verbosity > 3:
+        stdout = DEVNULL
+        stderr = DEVNULL
+    if verbosity > 4:
+        git_verbosity = '-v -v'
+    elif verbosity > 3:
         git_verbosity = '-v'
     else:
         git_verbosity = ''
@@ -235,7 +236,7 @@ def update(path='~/.sxs/catalog/catalog.json', verbosity=1):
                  shell=True, stdout=stdout, stderr=stderr)
             for remote in ["origin_git", "origin_https"]:
                 if not call("git pull {0} {1} master".format(git_verbosity, remote), shell=True, stdout=stdout, stderr=stderr):
-                    call("git reset {0} --hard HEAD".format(git_verbosity), shell=True, stdout=stdout, stderr=stderr)
+                    call("git reset --hard HEAD", shell=True, stdout=stdout, stderr=stderr)
                     git_success = True
                     if verbosity>1:
                         print('Retrieved catalog from {0}.'.format(remote))
@@ -254,6 +255,11 @@ def update(path='~/.sxs/catalog/catalog.json', verbosity=1):
     else:  # If everything went well...
         if exists(path+'.bak'):  # ... remove the backup
             remove(path+'.bak')
+
+    catalog = read(path)
+    representation_list = records(sxs=True)
+    update_simulations(catalog, representation_list)
+    write(catalog, path)
 
 
 def read(path=None):
@@ -297,13 +303,15 @@ def write(catalog, catalog_file_name=None, private_metadata_file_name=None):
         Note that this file will not be written at all if there are no private metadata sets.
 
     """
-    from os.path import join, dirname
+    from os.path import expanduser, join, dirname
     from json import dump
     import sxs
     if catalog_file_name == 'sxs/zenodo/catalog.json':
         catalog_file_name = join(dirname(sxs.__file__), 'zenodo', 'catalog.json')
     elif catalog_file_name is None:
         catalog_file_name = 'catalog.json'
+    else:
+        catalog_file_name = expanduser(catalog_file_name)
     if private_metadata_file_name is None:
         private_metadata_file_name = join(dirname(catalog_file_name), 'catalog_private_metadata.json')
     public, private = split_to_public_and_private(catalog)

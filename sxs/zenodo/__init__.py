@@ -62,7 +62,7 @@ def records(*args, **kwargs):
     """
     import sys
     import json
-    json_output = kwargs.pop('json', False)
+    json_output = kwargs.pop('json_output', False)
     sxs = kwargs.pop('sxs', False)
     q = kwargs.pop('q', '')
     if sxs:
