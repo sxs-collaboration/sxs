@@ -89,7 +89,7 @@ def records(*args, **kwargs):
         return r
 
 
-def upload(directory, exclude=[],
+def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5'],
            sandbox=False, access_token_path=None,
            skip_existing=True, deposition_id=None, ignore_deletion=False,
            access_right='closed', license='CC-BY-4.0',
