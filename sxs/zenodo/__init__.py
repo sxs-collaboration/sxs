@@ -193,7 +193,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
         default_description = """Simulation of a neutron-star binary system evolved by the <a href="{0}">SpEC code</a>."""
     else:
         raise ValueError('Did not recognize SXS system type "{0}"'.format(sxs_system_type)
-                         'in directory "{0}"; should be BBH, BHNS, or NSNS.'.format(directory))
+                         + 'in directory "{0}"; should be BBH, BHNS, or NSNS.'.format(directory))
     print("Beginning work on {0}".format(sxs_system))
 
     # Log in to zenodo
