@@ -204,6 +204,8 @@ def update(path='~/.sxs/catalog/catalog.json', verbosity=1):
     from subprocess import call, check_call, DEVNULL
     from warnings import warn
     from .api.utilities import download
+    from . import records
+
     path = expanduser(path)
     if not path.endswith('.json'):
         path = join(path, 'catalog.json')
@@ -258,11 +260,11 @@ def update(path='~/.sxs/catalog/catalog.json', verbosity=1):
 
     catalog = read(path)
     representation_list = records(sxs=True)
-    update_simulations(catalog, representation_list)
-    write(catalog, path)
+    catalog = update_simulations(catalog, representation_list)
+    write(catalog, catalog_file_name=path)
 
 
-def read(path=None):
+def read(path=None, public_only=False):
     from os.path import expanduser, exists, join, dirname
     from json import load
     import sxs
@@ -277,6 +279,12 @@ def read(path=None):
         path = expanduser(path)
     with open(path, 'r') as f:
         catalog = load(f)
+    if not public_only:
+        try:
+            private = read(join(dirname(path), 'catalog_private_metadata.json'), public_only=False)
+            catalog = join_public_and_private(catalog, private)
+        except:
+            pass
     return catalog
 
 
@@ -294,9 +302,9 @@ def write(catalog, catalog_file_name=None, private_metadata_file_name=None):
         `sxs.zenodo.catalog.catalog_file_description`.
     catalog_file_name: str or None
         Path to the output public JSON file describing this catalog.  If None, the file is
-        'catalog.json' in the working directory.  If the string is precisely
-        'sxs/zenodo/catalog.json', the file will be placed in the sxs module's path, which is
-        typically in some directory like .../lib/python3.x/site-packages/sxs/zenodo.
+        '~/.sxs/catalog/catalog.json'.  If the string is precisely 'sxs/zenodo/catalog.json', the
+        file will be placed in the sxs module's path, which is typically in some directory like
+        .../lib/python3.x/site-packages/sxs/zenodo.
     private_metadata_file_name: str or None
         Path to the output private JSON file describing any private metadata.  If None, the file
         will be placed alongside the 'catalog.json' file, and named 'catalog_private_metadata.json'.
@@ -309,7 +317,7 @@ def write(catalog, catalog_file_name=None, private_metadata_file_name=None):
     if catalog_file_name == 'sxs/zenodo/catalog.json':
         catalog_file_name = join(dirname(sxs.__file__), 'zenodo', 'catalog.json')
     elif catalog_file_name is None:
-        catalog_file_name = 'catalog.json'
+        catalog_file_name = expanduser('~/.sxs/catalog/catalog.json')
     else:
         catalog_file_name = expanduser(catalog_file_name)
     if private_metadata_file_name is None:
