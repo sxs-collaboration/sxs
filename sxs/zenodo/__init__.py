@@ -36,9 +36,11 @@ def records(*args, **kwargs):
     Parameters
     ==========
     json_output: bool [defaults to False]
-       If True, this function returns a JSON string; otherwise, it returns a python dict.
+        If True, this function returns a JSON string; otherwise, it returns a python dict.
     sxs: bool [defaults to False]
-       If True, this function looks for all records in the 'sxs' community on Zenodo.
+        If True, this function looks for all records in the 'sxs' community on Zenodo.
+    all_versions: bool [defaults to False]
+        If True, return all versions, not just the most recent version of each record.
 
     Parameters for .api.Login.list_deposits
     =======================================
@@ -64,6 +66,7 @@ def records(*args, **kwargs):
     import json
     json_output = kwargs.pop('json_output', kwargs.pop('json_output', False))
     sxs = kwargs.pop('sxs', False)
+    all_versions = kwargs.pop('all_versions', False)
     q = kwargs.pop('q', '')
     if sxs:
         q += ' communities: "sxs" '
@@ -72,14 +75,14 @@ def records(*args, **kwargs):
     page = kwargs.pop('page', None)
     size = kwargs.pop('size', 9999)
     l = Login(*args, **kwargs)
-    r = l.list_deposits(q, status, sort, page, size)
+    r = l.list_deposits(q, status, sort, page, size, all_versions=all_versions)
     if page is None and len(r) == size:
         # Continue until we've gotten all the records
         last_response = r
         last_page = 1
         while len(last_response) == size:
             last_page = 1
-            last_response = l.list_deposits(q, status, sort, last_page+1, size)
+            last_response = l.list_deposits(q, status, sort, last_page+1, size, all_versions=all_versions)
             if last_response:
                 last_page += 1
                 r += last_response
