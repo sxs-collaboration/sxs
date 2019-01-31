@@ -376,8 +376,8 @@ def update_records(catalog, representation_list):
     """
     for representation in representation_list:
         record_id = str(representation['record_id'])
-        catalog['representations'][record_id] = representation
-    return catalog['representations']
+        catalog['records'][record_id] = representation
+    return catalog['records']
 
 
 def order_version_list(representation_dict, versions):
