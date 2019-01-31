@@ -446,12 +446,14 @@ def update_simulations(catalog, representation_list, login=None, *args, **kwargs
                     pass  # Nothing for 'simulations' changed.  Something might have changed for 'records', though.
             else:
                 metadata_file_description = sxs_metadata_file_description(r)
-                url = metadata_file_description['links']['download']
                 simulations[sxs_id] = {
                     'conceptrecid': conceptrecid,
                     'versions': [zenodo_id],
-                    'metadata': fetch_metadata(url, login, *args, **kwargs)
+                    'metadata': {}
                 }
+                if metadata_file_description is not None:
+                    url = metadata_file_description['links']['download']
+                    simulations[sxs_id]['metadata'] = fetch_metadata(url, login, *args, **kwargs)
     catalog['simulations'] = OrderedDict([(s, simulations[s]) for s in sorted(simulations)])
     return catalog['simulations']
 
