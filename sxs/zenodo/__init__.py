@@ -62,7 +62,7 @@ def records(*args, **kwargs):
     """
     import sys
     import json
-    json_output = kwargs.pop('json_output', False)
+    json_output = kwargs.pop('json_output', kwargs.pop('json_output', False))
     sxs = kwargs.pop('sxs', False)
     q = kwargs.pop('q', '')
     if sxs:
@@ -89,7 +89,7 @@ def records(*args, **kwargs):
         return r
 
 
-def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5'],
+def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC.out'],
            sandbox=False, access_token_path=None,
            skip_existing=True, deposition_id=None, ignore_deletion=False,
            access_right='closed', license='CC-BY-4.0',
@@ -180,7 +180,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5'],
                     sxs_system_number = m['sxs_number']
                     break
     if not sxs_system_type or not sxs_system_number:
-        raise ValueError("No SXS identifier found in common-metadata.txt")
+        raise ValueError("No SXS identifier found in {0}".format(os.path.join(directory, 'common-metadata.txt')))
     sxs_system = 'SXS:{0}:{1}'.format(sxs_system_type, sxs_system_number)
     if sxs_system_type == 'BBH':
         title = 'Binary black-hole simulation {0}'.format(sxs_system)
@@ -192,7 +192,8 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5'],
         title = 'Binary neutron-star simulation {0}'.format(sxs_system)
         default_description = """Simulation of a neutron-star binary system evolved by the <a href="{0}">SpEC code</a>."""
     else:
-        raise ValueError('Did not recognize SXS system type "{0}"; should be BBH, BHNS, or NSNS.'.format(sxs_system_type))
+        raise ValueError('Did not recognize SXS system type "{0}"'.format(sxs_system_type)
+                         'in directory "{0}"; should be BBH, BHNS, or NSNS.'.format(directory))
     print("Beginning work on {0}".format(sxs_system))
 
     # Log in to zenodo
