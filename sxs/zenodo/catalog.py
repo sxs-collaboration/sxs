@@ -266,6 +266,19 @@ def update(path='~/.sxs/catalog/catalog.json', verbosity=1):
 
 
 def read(path=None, join_private=True):
+    """Read the catalog from a JSON file
+
+    Parameters
+    ==========
+    path: None or string [defaults to None]
+        Relative or absolute path to the catalog.json file described in this submodule.  If `None`,
+        the function first searches in the current working directory, then in
+        '~/.sxs/catalog/catalog.json'.
+    join_private: bool [defaults to True]
+        If True, look for 'catalog_private_metadata.json' in the same directory as the `path`, and
+        add the metadata to the output catalog object.
+
+    """
     from os.path import expanduser, exists, join, dirname
     from json import load
     import sxs
@@ -480,7 +493,7 @@ def catalog_from_representation_list(representation_list, simulation_dict={}, lo
     return catalog
 
 
-def map(catalog_file_name='complete_catalog.json', map_file_name='sxs_to_zenodo.map'):
+def nginx_map(map_file_path=None, catalog_path=None):
     """Create a mapping from SXS identifiers to Zenodo record numbers for nginx
 
     The input must be a catalog file.  The output is formatted for inclusion into an nginx
@@ -493,33 +506,68 @@ def map(catalog_file_name='complete_catalog.json', map_file_name='sxs_to_zenodo.
 
     Parameters
     ==========
-    catalog_file_name: string [defaults to 'complete_catalog.json']
-        Relative or absolute path to catalog JSON file.  This is expected to have been created by
-        the `update` function.
-    map_file_name: string [defaults to 'sxs_to_zenodo.map']
-        Relative or absolute path to output file.
+    catalog_path: None or string [defaults to None]
+        This argument is passed to the `read` function in this submodule.
+    map_file_path: None or string [defaults to None]
+        Relative or absolute path to the nginx map file to be output.  If `None`, the function first
+        attempts to write the file into '~/.sxs/catalog/sxs_to_zenodo.map'; if that is not possible,
+        it tries to write to the same file in the current working directory.
 
     """
+    from os.path import expanduser, exists, join, dirname
     import json
     import math
-    with open(catalog_file_name, 'r') as f:
-        catalog = json.load(f)
-    size = 256 * 2**math.ceil(math.log2(len(catalog)+1))
+    from sxs.zenodo.catalog import read
+    def touch(fname, times=None):
+        from os import utime
+        try:
+            with open(fname, 'a'):
+                utime(fname, times)
+            return True
+        except:
+            pass
+        return False
+    # Decide on where to get the input
+    if catalog_path is None:
+        if exists('catalog.json'):
+            catalog_path = 'catalog.json'
+        elif exists(expanduser('~/.sxs/catalog/catalog.json')):
+            catalog_path = expanduser('~/.sxs/catalog/catalog.json')
+        else:
+            raise ValueError("Cannot find 'catalog.json' file in current directory or ~/.sxs/catalog/catalog.json.")
+    else:
+        catalog_path = expanduser(catalog_path)
+    # Decide on where to put the output
+    if map_file_path is None:
+        if touch(expanduser('~/.sxs/catalog/sxs_to_zenodo.map')):
+            map_file_path = expanduser('~/.sxs/catalog/sxs_to_zenodo.map')
+        elif touch('sxs_to_zenodo.map'):
+            map_file_path = 'sxs_to_zenodo.map'
+        else:
+            raise ValueError("Cannot write to 'sxs_to_zenodo.map' file in current directory or in ~/.sxs/catalog/.")
+    else:
+        map_file_path = expanduser(map_file_path)
+    # Get the input
+    catalog = read(catalog_path)
+    records = {sim: catalog['records'][str(catalog['simulations'][sim]['versions'][-1])] for sim in catalog['simulations']}
+    # Figure out how to construct the output
+    size = 256 * 2**math.ceil(math.log2(len(records)+1))  # nginx needs this to know the hash size
     def file_prefix(sxs_id):
         prefix = sxs_id + '/'
-        files = catalog[sxs_id]['files']
+        files = records[sxs_id].get('files', [])
         for f in files:
             if not f['filename'].startswith(prefix):
                 return ''
         return prefix
     record_string = "    /waveforms/data/{0} record/{1};\n"
     file_string = "    ~/waveforms/data/{0}/(.*) record/{1}/files/{2}$1;\n"
-    with open(map_file_name, 'w') as f:
+    # Construct the output
+    with open(map_file_path, 'w') as f:
         f.write("map_hash_max_size {0};\n".format(size))
         f.write("map $uri $zenodo_identifier {\n")
         f.write("    default communities/sxs;\n")
-        for sxs_identifier in sorted(catalog):
-            f.write(record_string.format(sxs_identifier, catalog[sxs_identifier]['id']))
-        for sxs_identifier in sorted(catalog):
-            f.write(file_string.format(sxs_identifier, catalog[sxs_identifier]['id'], file_prefix(sxs_identifier)))
+        for sxs_identifier in sorted(records):
+            f.write(record_string.format(sxs_identifier, records[sxs_identifier]['id']))
+        for sxs_identifier in sorted(records):
+            f.write(file_string.format(sxs_identifier, records[sxs_identifier]['id'], file_prefix(sxs_identifier)))
         f.write("}\n")
