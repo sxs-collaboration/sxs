@@ -337,7 +337,7 @@ def modification_time(representation_list):
 def sxs_metadata_file_description(representation):
     """Find metadata file from highest Lev for this simulation"""
     from os.path import basename
-    files = representation['files']
+    files = representation.get('files', [])
     metadata_files = [f for f in files if basename(f['filename'])=='metadata.json']
     metadata_files = sorted(metadata_files, key=lambda f: f['filename'])
     if not metadata_files:
