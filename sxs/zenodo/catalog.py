@@ -264,7 +264,7 @@ def update(path='~/.sxs/catalog/catalog.json', verbosity=1):
     write(catalog, catalog_file_name=path)
 
 
-def read(path=None, public_only=False):
+def read(path=None, join_private=True):
     from os.path import expanduser, exists, join, dirname
     from json import load
     import sxs
@@ -279,9 +279,9 @@ def read(path=None, public_only=False):
         path = expanduser(path)
     with open(path, 'r') as f:
         catalog = load(f)
-    if not public_only:
+    if join_private:
         try:
-            private = read(join(dirname(path), 'catalog_private_metadata.json'), public_only=False)
+            private = read(join(dirname(path), 'catalog_private_metadata.json'), join_private=False)
             catalog = join_public_and_private(catalog, private)
         except:
             pass
