@@ -259,8 +259,9 @@ def update(path='~/.sxs/catalog/catalog.json', verbosity=1):
             remove(path+'.bak')
 
     catalog = read(path)
-    representation_list = records(sxs=True)
-    catalog = update_simulations(catalog, representation_list)
+    representation_list = records(sxs=True, all_versions=True)
+    update_records(catalog, representation_list)
+    update_simulations(catalog, representation_list)
     write(catalog, catalog_file_name=path)
 
 
@@ -358,18 +359,11 @@ def fetch_metadata(url, login, *args, **kwargs):
         return {}
 
 
-def order_version_list(representation_dict, versions):
-    return sorted([str(v) for v in versions], key=lambda v: representation_dict[v]['created'])
+def update_records(catalog, representation_list):
+    """Update list of records from list of representations
 
-
-def update_simulations(catalog, representation_list, login=None, *args, **kwargs):
-    """Update list of simulations (and SXS metadata) from list of representations
-
-    This function can be used to refresh the information about simulations found in the catalog from
-    a list of "representation" objects as returned by zenodo.  Thus, if you search for new records
-    on zenodo, and get that list back, you can simply run this function on the catalog and that
-    list, and it will update all the information about simulations.  Note that this function returns
-    the updated 'simulations' dictionary, rather than modifying it in place.
+    Note that this function updates the 'records' dictionary in place AND returns that updated
+    dictionary.
 
     Parameters
     ==========
@@ -380,6 +374,36 @@ def update_simulations(catalog, representation_list, login=None, *args, **kwargs
         List of "representation" dictionaries as returned by Zenodo.
 
     """
+    for representation in representation_list:
+        record_id = str(representation['record_id'])
+        catalog['representations'][record_id] = representation
+    return catalog['representations']
+
+
+def order_version_list(representation_dict, versions):
+    return sorted([str(v) for v in versions], key=lambda v: representation_dict[v]['created'])
+
+
+def update_simulations(catalog, representation_list, login=None, *args, **kwargs):
+    """Update list of simulations (and SXS metadata) from list of representations
+
+    This function can be used to refresh the information about simulations found in the catalog from
+    a list of "representation" objects as returned by zenodo.  Thus, if you search for new records
+    on zenodo, and get that list back, you can simply run this function on the catalog and that
+    list, and it will update all the information about simulations.  Note that this function updates
+    the 'simulations' dictionary in place AND returns that updated dictionary.
+
+    Parameters
+    ==========
+    catalog: dict
+        The catalog information in the format described by the string
+        `sxs.zenodo.catalog.catalog_file_description`.
+    representation_list: list
+        List of "representation" dictionaries as returned by Zenodo.
+    
+    All remaining parameters are passed to the `fetch_metadata` function.
+
+    """
     from copy import deepcopy
     import re
     from collections import OrderedDict
@@ -387,7 +411,6 @@ def update_simulations(catalog, representation_list, login=None, *args, **kwargs
     from sxs import sxs_identifier_regex
     sxs_identifier_regex = re.compile(sxs_identifier_regex)
     simulations = deepcopy(catalog['simulations'])
-    verbosity = kwargs.pop('verbosity', 2)
     for i, r in enumerate(representation_list, 1):
         print('{0:6} of {1}: {2}'.format(i, len(representation_list), r['id']))
         sxs_id_match = sxs_identifier_regex.search(r['title'])
@@ -429,7 +452,8 @@ def update_simulations(catalog, representation_list, login=None, *args, **kwargs
                     'versions': [zenodo_id],
                     'metadata': fetch_metadata(url, login, *args, **kwargs)
                 }
-    return OrderedDict([(s, simulations[s]) for s in sorted(simulations)])
+    catalog['simulations'] = OrderedDict([(s, simulations[s]) for s in sorted(simulations)])
+    return catalog['simulations']
 
 
 def catalog_from_representation_list(representation_list, simulation_dict={}, login=None, *args, **kwargs):
@@ -450,7 +474,7 @@ def catalog_from_representation_list(representation_list, simulation_dict={}, lo
     catalog['modified'] = modification_time(representation_list)
     catalog['records'] = OrderedDict(sorted([(str(r['id']), r) for r in representation_list], key=lambda kv:kv[0]))
     catalog['simulations'] = deepcopy(simulation_dict)
-    catalog['simulations'] = update_simulations(catalog, representation_list=representation_list, login=login, *args, **kwargs)
+    update_simulations(catalog, representation_list=representation_list, login=login, *args, **kwargs)
     return catalog
 
 
