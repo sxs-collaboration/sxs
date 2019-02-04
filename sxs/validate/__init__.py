@@ -1,3 +1,11 @@
+"""Validate that SXS simulations are complete and suitable for upload
+
+This submodule contains several functions for validating SXS simulations, primarily the functions
+`bbh`, `bhns`, and `nsns`, which validate the corresponding types of systems.  See each function's
+docstring for details about what is required.
+
+"""
+
 
 def bbh(path):
     """Check that a directory contains a valid BBH simulation
@@ -19,3 +27,17 @@ def bbh(path):
 
     """
     raise NotImplementedError()
+
+
+def bhns(path):
+    """Check that a directory contains a valid BHNS simulation
+    """
+    raise NotImplementedError()
+
+
+def nsns(path):
+    """Check that a directory contains a valid NSNS simulation
+    """
+    raise NotImplementedError()
+
+
