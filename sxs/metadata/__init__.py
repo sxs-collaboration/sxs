@@ -10,6 +10,7 @@ from .catalog import (read_catalog, drop_all_but_highest_levs, drop_all_but_sele
 from .field_mapping import metadata_field_mapping
 from .fields import metadata_fields
 from .web import create_web_files
+from .initial_data import uses_new_initial_data, get_initial_data_details
 
 
 _valid_identifier_pattern = re.compile('\W|^(?=\d)')
