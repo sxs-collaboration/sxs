@@ -265,11 +265,11 @@ class Metadata(collections.OrderedDict):
                         g_parameters = {}
                         if hasattr(f[g], 'attrs'):
                             if 'space_translation' in f[g].attrs:
-                                g_parameters['space_translation'] = f[g].attrs['space_translation']
+                                g_parameters['space_translation'] = list(f[g].attrs['space_translation'])
                             if 'boost_velocity' in f[g].attrs:
-                                g_parameters['boost_velocity'] = f[g].attrs['boost_velocity']
+                                g_parameters['boost_velocity'] = list(f[g].attrs['boost_velocity'])
                         if g_parameters:
-                            com_parameters['{0}/{1}'.format(file_name, g)] = g_parameters
+                            com_parameters['{0}/{1}'.format(os.path.basename(file_name), g)] = g_parameters
             except:
                 if raise_on_errors:
                     raise
@@ -304,14 +304,14 @@ class Metadata(collections.OrderedDict):
         if 'relaxed_dimensionless_spin1' not in self:
             if 'relaxed_spin1' in self and 'relaxed_mass1' in self:
                 try:
-                    self['relaxed_dimensionless_spin1'] = np.array(self['relaxed_spin1']) / self['relaxed_mass1']**2
+                    self['relaxed_dimensionless_spin1'] = list(np.array(self['relaxed_spin1']) / self['relaxed_mass1']**2)
                 except:
                     if raise_on_errors:
                         raise
         if 'relaxed_dimensionless_spin2' not in self:
             if 'relaxed_spin2' in self and 'relaxed_mass2' in self:
                 try:
-                    self['relaxed_dimensionless_spin2'] = np.array(self['relaxed_spin2']) / self['relaxed_mass2']**2
+                    self['relaxed_dimensionless_spin2'] = list(np.array(self['relaxed_spin2']) / self['relaxed_mass2']**2)
                 except:
                     if raise_on_errors:
                         raise
