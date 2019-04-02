@@ -250,6 +250,79 @@ class Metadata(collections.OrderedDict):
                 kwargs[_valid_identifier(key)] = kwargs.pop(key)
         super(Metadata, self).__init__(*args, **kwargs)
 
+    def add_com_parameters(self, raise_on_errors=False):
+        """Add any translation and boost parameters found in all CoM files in this directory"""
+        import os.path
+        import glob
+        import h5py
+
+        path = os.path.dirname(self.get('metadata_path', '.'))
+        com_parameters = self.get('com_parameters', {})
+        for file_name in glob.glob(os.path.join(path, '*_CoM.h5')):
+            try:
+                with h5py.File(file_name, 'r') as f:
+                    for g in f:
+                        g_parameters = {}
+                        if hasattr(f[g], 'attrs'):
+                            if 'space_translation' in f[g].attrs:
+                                g_parameters['space_translation'] = f[g].attrs['space_translation']
+                            if 'boost_velocity' in f[g].attrs:
+                                g_parameters['boost_velocity'] = f[g].attrs['boost_velocity']
+                        if g_parameters:
+                            com_parameters['{0}/{1}'.format(file_name, g)] = g_parameters
+            except:
+                if raise_on_errors:
+                    raise
+        if com_parameters:
+            self['com_parameters'] = com_parameters
+        return self
+
+    def add_standard_parameters(self, raise_on_errors=False):
+        """Add standard parameters that aren't included in the default metadata fields
+
+        New parameters include 'object_types', 'initial_mass_ratio', and 'relaxed_mass_ratio'.  If
+        'relaxed_dimensionless_spin*' are not present, but the parameters necessary to compute them
+        are, they are also added.
+
+        """
+        if 'object1' in self and 'object2' in self:
+            self['object_types'] = ''.join(sorted([self['object1'].upper(), self['object2'].upper()]))
+        if 'initial_mass1' in self and 'initial_mass2' in self:
+            try:
+                mass_ratio = float(self['initial_mass1']) / float(self['initial_mass2'])
+                self['initial_mass_ratio'] = mass_ratio
+            except:
+                if raise_on_errors:
+                    raise
+        if 'relaxed_mass1' in self and 'relaxed_mass2' in self:
+            try:
+                mass_ratio = float(self['relaxed_mass1']) / float(self['relaxed_mass2'])
+                self['relaxed_mass_ratio'] = mass_ratio
+            except:
+                if raise_on_errors:
+                    raise
+        if 'relaxed_dimensionless_spin1' not in self:
+            if 'relaxed_spin1' in self and 'relaxed_mass1' in self:
+                try:
+                    self['relaxed_dimensionless_spin1'] = np.array(self['relaxed_spin1']) / self['relaxed_mass1']**2
+                except:
+                    if raise_on_errors:
+                        raise
+        if 'relaxed_dimensionless_spin2' not in self:
+            if 'relaxed_spin2' in self and 'relaxed_mass2' in self:
+                try:
+                    self['relaxed_dimensionless_spin2'] = np.array(self['relaxed_spin2']) / self['relaxed_mass2']**2
+                except:
+                    if raise_on_errors:
+                        raise
+        return self
+
+    def add_extras(self, raise_on_errors=False):
+        """Add information to the metadata from other files in its directory"""
+        self.add_com_parameters(raise_on_errors=raise_on_errors)
+        self.add_standard_parameters(raise_on_errors=raise_on_errors)
+        return self
+
     def reorder_keys(self, order=None):
         """Return a copy of this object with keys reordered
 
@@ -267,13 +340,15 @@ class Metadata(collections.OrderedDict):
                 'alternative_names',
                 'initial_data_type',
                 'eos',
+                'object_types',
                 'number_of_orbits',
-                'relaxed_mass1',
-                'relaxed_mass2',
+                'relaxed_mass_ratio',
                 'relaxed_dimensionless_spin1',
                 'relaxed_dimensionless_spin2',
                 'relaxed_eccentricity',
                 'relaxed_orbital_frequency',
+                'relaxed_mass1',
+                'relaxed_mass2',
                 'relaxed.*',
             ]
         original_keys = list(self)

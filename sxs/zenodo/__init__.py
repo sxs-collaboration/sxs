@@ -96,7 +96,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
            sandbox=False, access_token_path=None,
            skip_existing=True, deposition_id=None, ignore_deletion=False,
            access_right='closed', license='CC-BY-4.0',
-           creators=[], description='', keywords=[]):
+           creators=[], description='', keywords=[], error_on_existing=True, publish=True):
     """Publish or edit a Zenodo entry for an SXS simulation
 
     This is essentially a wrapper around many of the Zenodo API's functions, specialized for SXS
@@ -220,7 +220,10 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
             print('A deposit with title "{0}"'.format(title))
             if skip_existing:
                 print('has already been started with id {0}.'.format(deposition_id))
-                raise ValueError(title)
+                if error_on_existing:
+                    raise ValueError(title)
+                else:
+                    return
             print('has already been started with this login.  Opening it for editing.')
             d = l.deposit(deposition_id, ignore_deletion=ignore_deletion)
         elif len(matching_deposits) > 1:
@@ -258,7 +261,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
         if os.path.basename(path) == 'metadata.txt':
             json_path = os.path.join(os.path.dirname(path), 'metadata.json')
             print('Converting metadata.txt to JSON in {0}'.format(json_path))
-            m = Metadata.from_txt_file(path, cache_json=False).reorder_keys()
+            m = Metadata.from_txt_file(path, cache_json=False).add_extras().reorder_keys()
             del m['metadata_path']  # Don't bother recording the local path to the metadata file
             m.to_json_file(json_path)
             authors_emails |= set(m.get('authors_emails', []))
@@ -376,7 +379,8 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
             d.upload_file(path, name=name, skip_checksum=True)
 
     # Publish this version
-    d.publish()
-    print('Finished publishing "{0}" to {1}.'.format(title, d.website))
+    if publish:
+        d.publish()
+        print('Finished publishing "{0}" to {1}.'.format(title, d.website))
 
     return d
