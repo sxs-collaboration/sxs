@@ -164,6 +164,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     from .. import sxs_identifier_regex
     default_creators = [{'name': 'SXS Collaboration'}]
 
+    directory = os.path.normpath(directory)
     if not os.path.isdir(directory) and os.path.isfile(directory):
         directory = os.path.dirname(directory)
     if not os.path.isdir(directory):
