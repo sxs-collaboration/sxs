@@ -662,14 +662,14 @@ class Deposit(object):
             pardir_sep = os.pardir + os.sep
             while name.startswith(pardir_sep):
                 name = name[len(pardir_sep):]
-        if name in self.file_ids:
-            self.delete_file(name, refresh_information=False)
         if not skip_checksum:
             file_checksums = self.file_checksums
             if name in file_checksums:
                 if md5checksum(path) == file_checksums[name]:
                     print('File {0} has already been uploaded.  Skipping this upload.'.format(name))
                     return None
+        if name in self.file_ids:
+            self.delete_file(name, refresh_information=False)
         url = '{0}/{1}'.format(self.links['bucket'], name)
         r = self._put(url, data=open(path, 'rb'),  headers={"Content-Type": "application/octet-stream"})
         if r.status_code != 200:
