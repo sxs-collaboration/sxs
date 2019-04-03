@@ -544,7 +544,7 @@ class Deposit(object):
         self.refresh_information
         return r
 
-    def get_new_version(self):
+    def get_new_version(self, ignore_deletion=True):
         """Create a new Deposit object describing a new version of this deposit.
 
         To publish the new version, its files must differ from all previous versions.
@@ -560,7 +560,7 @@ class Deposit(object):
 
         """
         self.register_new_version()
-        return self.login.deposit(self.id_latest_draft)
+        return self.login.deposit(self.id_latest_draft, ignore_deletion=ignore_deletion)
         
     def register_new_version(self):
         """Create a new version of a deposit.
