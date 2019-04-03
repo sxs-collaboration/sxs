@@ -278,6 +278,11 @@ def read(path=None, join_private=True):
         If True, look for 'catalog_private_metadata.json' in the same directory as the `path`, and
         add the metadata to the output catalog object.
 
+    Returns
+    =======
+    catalog: dict
+        The format is described in `sxs.zenodo.catalog.catalog_file_description`.
+
     """
     from os.path import expanduser, exists, join, dirname
     from json import load
@@ -454,8 +459,9 @@ def update_simulations(catalog, representation_list, login=None, *args, **kwargs
                     last_record_id = str(simulations[sxs_id]['versions'][-1])
                     last_representation = catalog['records'][last_record_id]
                     last_metadata_file = sxs_metadata_file_description(last_representation)
-                    url = last_metadata_file['links']['download']
-                    simulations[sxs_id]['metadata'] = fetch_metadata(url, login, *args, **kwargs)
+                    if last_metadata_file is not None:
+                        url = last_metadata_file['links']['download']
+                        simulations[sxs_id]['metadata'] = fetch_metadata(url, login, *args, **kwargs)
                 else:
                     pass  # Nothing for 'simulations' changed.  Something might have changed for 'records', though.
             else:
