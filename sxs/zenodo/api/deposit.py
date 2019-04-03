@@ -282,7 +282,7 @@ class Deposit(object):
     def file_names(self):
         return [d['filename'] for d in self.files]
 
-    def update_metadata(self, metadata):
+    def update_metadata(self, metadata, refresh_information=True):
         """Update this deposit with the given metadata
 
         The `metadata` argument should be a dictionary representing the metadata.
@@ -505,10 +505,11 @@ class Deposit(object):
                 pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        self.refresh_information
+        if refresh_information:
+            self.refresh_information
         return r
 
-    def edit(self):
+    def edit(self, refresh_information=True):
         """Unlock a previously submitted deposit for editing."""
         url = "{0}api/deposit/depositions/{1}/actions/edit".format(self.base_url, self.deposition_id)
         r = self._post(url)
@@ -524,10 +525,11 @@ class Deposit(object):
                 pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        self.refresh_information
+        if refresh_information:
+            self.refresh_information
         return r
         
-    def discard(self):
+    def discard(self, refresh_information=True):
         """Discard changes in the current editing session."""
         url = "{0}api/deposit/depositions/{1}/actions/discard".format(self.base_url, self.deposition_id)
         r = self._post(url)
@@ -541,10 +543,11 @@ class Deposit(object):
                 pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        self.refresh_information
+        if refresh_information:
+            self.refresh_information
         return r
 
-    def get_new_version(self, ignore_deletion=True):
+    def get_new_version(self, ignore_deletion=True, refresh_information=True):
         """Create a new Deposit object describing a new version of this deposit.
 
         To publish the new version, its files must differ from all previous versions.
@@ -559,10 +562,10 @@ class Deposit(object):
         deposit from the first call is not published or deleted.
 
         """
-        self.register_new_version()
+        self.register_new_version(refresh_information=refresh_information)
         return self.login.deposit(self.id_latest_draft, ignore_deletion=ignore_deletion)
         
-    def register_new_version(self):
+    def register_new_version(self, refresh_information=True):
         """Create a new version of a deposit.
 
         To publish the new version, its files must differ from all previous versions.
@@ -593,10 +596,11 @@ class Deposit(object):
                 pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        self.refresh_information
+        if refresh_information:
+            self.refresh_information
         return r
 
-    def delete_file(self, file_name):
+    def delete_file(self, file_name, refresh_information=True):
         file_ids = self.file_ids
         if file_name not in file_ids:
             print('File name "{0}" not found on Zenodo.'.format(file_name))
@@ -618,10 +622,11 @@ class Deposit(object):
                 pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        self.refresh_information
+        if refresh:
+            self.refresh_information
         return r
         
-    def upload_file(self, path, name=None, relpath_start=None, skip_checksum=False):
+    def upload_file(self, path, name=None, relpath_start=None, skip_checksum=False, refresh_information=True):
         """Upload a single file to the deposit
 
         The current list of files uploaded to Zenodo is checked.  If `name` is in that list, the MD5
@@ -658,7 +663,7 @@ class Deposit(object):
             while name.startswith(pardir_sep):
                 name = name[len(pardir_sep):]
         if name in self.file_ids:
-            self.delete_file(name)
+            self.delete_file(name, refresh_information=False)
         if not skip_checksum:
             file_checksums = self.file_checksums
             if name in file_checksums:
@@ -679,10 +684,11 @@ class Deposit(object):
                 pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        self.refresh_information
+        if refresh_information:
+            self.refresh_information
         return r
 
-    def rename_file(self, old_file_name, new_file_name):
+    def rename_file(self, old_file_name, new_file_name, refresh_information=True):
         import json
         file_ids = self.file_ids
         if old_file_name not in file_ids:
@@ -706,10 +712,11 @@ class Deposit(object):
                 pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        self.refresh_information
+        if refresh_information:
+            self.refresh_information
         return r
         
-    def upload_all_files(self, top_directory, exclude=[], skip_checksum=False):
+    def upload_all_files(self, top_directory, exclude=[], skip_checksum=False, refresh_information=True):
         """Recursively upload all files found in `top_directory`
 
         This function simply calls the `zenodo.api.utilities.find_files` function, and then calls
@@ -723,10 +730,12 @@ class Deposit(object):
         paths_and_names = find_files(top_directory, exclude=exclude)
         for path, name in paths_and_names:
             print("Uploading\n    {0}\nas\n    {1}".format(path, name))
-            self.upload_file(path, name=name, skip_checksum=skip_checksum)
+            self.upload_file(path, name=name, skip_checksum=skip_checksum, refresh_information=False)
             print("Upload succeeded\n")
+        if refresh_information:
+            self.refresh_information
 
-    def publish(self):
+    def publish(self, refresh_information=True):
         """Publish this deposit on Zenodo.
 
         In order to be published successfully, a deposit must contain at least one file, and all
@@ -756,7 +765,8 @@ class Deposit(object):
                 pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        self.refresh_information
+        if refresh_information:
+            self.refresh_information
         return r
     
     def delete_deposit(self, confirmed=False):
