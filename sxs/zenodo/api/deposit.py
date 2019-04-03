@@ -622,7 +622,7 @@ class Deposit(object):
                 pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        if refresh:
+        if refresh_information:
             self.refresh_information
         return r
         
