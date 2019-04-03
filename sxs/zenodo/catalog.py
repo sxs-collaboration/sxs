@@ -443,8 +443,9 @@ def update_simulations(catalog, representation_list, login=None, *args, **kwargs
                     if last_record_id != new_last_record_id:
                         # Only if the most-recent Zenodo ID has changed do we need to check any more
                         new_last_representation = catalog['records'][new_last_record_id]
-                        new_metadata_file_description = sxs_metadata_file_description(new_last_representation)
-                        if last_metadata_file_description['checksum'] != new_last_metadata_file_description['checksum']:
+                        new_last_metadata_file_description = sxs_metadata_file_description(new_last_representation)
+                        if (new_last_metadata_file_description is not None
+                            and last_metadata_file_description['checksum'] != new_last_metadata_file_description['checksum']):
                             # Only if the metadata checksum has changed do we need to change the metadata
                             url = new_last_metadata_file_description['links']['download']
                             simulations[sxs_id]['metadata'] = fetch_metadata(url, login, *args, **kwargs)
