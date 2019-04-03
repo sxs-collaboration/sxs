@@ -399,7 +399,7 @@ def update_records(catalog, representation_list):
 
 
 def order_version_list(representation_dict, versions):
-    return sorted([str(v) for v in versions], key=lambda v: representation_dict[v]['created'])
+    return sorted([str(v) for v in set(versions)], key=lambda v: representation_dict[v]['created'])
 
 
 def update_simulations(catalog, representation_list, login=None, *args, **kwargs):
