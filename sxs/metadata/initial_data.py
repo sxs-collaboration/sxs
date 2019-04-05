@@ -30,24 +30,24 @@ def uses_new_initial_data(system, raise_on_missing_file=False):
     import warnings
     
     tar_file_path = os.path.join(system, 'EvID', 'ID_Files.tgz')
+    untarred_file_path = os.path.join(system, 'EvID', 'ID_Init_FuncTrans.txt')
 
-    # Open the tarfile for reading
-    try:
-        tgz = tarfile.open(tar_file_path)
-    except FileNotFoundError:
+    if os.path.isfile(tar_file_path):
+        # Open the tarfile for reading
+        with tarfile.open(tar_file_path) as tgz:
+            if 'ID_Init_FuncTrans.txt' not in tgz.getnames():
+                # The file is not even present for very old systems
+                return False
+            with tgz.extractfile('ID_Init_FuncTrans.txt') as extracted_file:
+                file = ''.join([line.decode() for line in extracted_file.readlines()]).strip()
+    elif os.path.isfile(untarred_file_path):
+        with open(untarred_file_path, 'r') as f:
+            file = ''.join([line.decode() for line in f.readlines()]).strip()
+    else:
         if raise_on_missing_file:
-            raise
-        else:
-            warnings.warn('\n\tCould not find "{0}".'.format(tar_file_path))
-            return False
-    try:
-        # Try to extract ID_Init_FuncTrans.txt from the tarfile
-        extracted_file = tgz.extractfile('ID_Init_FuncTrans.txt')
-    except KeyError:
-        # The file is not even present for very old systems
+            raise FileNotFoundError('Could not find\n\t"{0}"\nor\n\t"{1}".'.format(tar_file_path, untarred_file_path))
         return False
-    # Convert extracted file to a single string
-    file = ''.join([line.decode() for line in extracted_file.readlines()]).strip()
+
     # Separate the file into a list of strings like 'Time= 0.0'
     assignments = file.split(';')
     # Now, make each such string into a key-value pair in this dictionary
