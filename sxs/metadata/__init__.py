@@ -286,6 +286,7 @@ class Metadata(collections.OrderedDict):
         'relaxed_chi2_perp'.
 
         """
+        import numpy as np
         if 'object1' in self and 'object2' in self:
             self['object_types'] = ''.join(sorted([self['object1'].upper(), self['object2'].upper()]))
         if 'initial_mass1' in self and 'initial_mass2' in self:
