@@ -32,6 +32,11 @@ def uses_new_initial_data(system, raise_on_missing_file=False):
     tar_file_path = os.path.join(system, 'EvID', 'ID_Files.tgz')
     untarred_file_path = os.path.join(system, 'EvID', 'ID_Init_FuncTrans.txt')
 
+    def decode(s):
+        if hasattr(s, 'decode'):
+            return s.decode()
+        return s
+
     if os.path.isfile(tar_file_path):
         # Open the tarfile for reading
         with tarfile.open(tar_file_path) as tgz:
@@ -39,10 +44,10 @@ def uses_new_initial_data(system, raise_on_missing_file=False):
                 # The file is not even present for very old systems
                 return False
             with tgz.extractfile('ID_Init_FuncTrans.txt') as extracted_file:
-                file = ''.join([line.decode() for line in extracted_file.readlines()]).strip()
+                file = ''.join([decode(line) for line in extracted_file.readlines()]).strip()
     elif os.path.isfile(untarred_file_path):
         with open(untarred_file_path, 'r') as f:
-            file = ''.join([line.decode() for line in f.readlines()]).strip()
+            file = ''.join([decode(line) for line in f.readlines()]).strip()
     else:
         if raise_on_missing_file:
             raise FileNotFoundError('Could not find\n\t"{0}"\nor\n\t"{1}".'.format(tar_file_path, untarred_file_path))
@@ -50,6 +55,7 @@ def uses_new_initial_data(system, raise_on_missing_file=False):
 
     # Separate the file into a list of strings like 'Time= 0.0'
     assignments = file.split(';')
+
     # Now, make each such string into a key-value pair in this dictionary
     d = {
         kv[0].strip(): ast.literal_eval(kv[1].strip())
@@ -57,6 +63,7 @@ def uses_new_initial_data(system, raise_on_missing_file=False):
         for kv in [assignment.split('=')]
         if len(kv)>1
     }
+
     # Check for nonzero initial momentum correction
     return abs(d.get('dTx', 0.0))+abs(d.get('dTy', 0.0))+abs(d.get('dTz', 0.0)) > 0.0
 
