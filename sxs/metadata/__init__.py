@@ -282,7 +282,8 @@ class Metadata(collections.OrderedDict):
 
         New parameters include 'object_types', 'initial_mass_ratio', and 'relaxed_mass_ratio'.  If
         'relaxed_dimensionless_spin*' are not present, but the parameters necessary to compute them
-        are, they are also added.
+        are, they are also added.  Finally, we also add 'relaxed_chi_eff', 'relaxed_chi1_perp', and
+        'relaxed_chi2_perp'.
 
         """
         if 'object1' in self and 'object2' in self:
@@ -315,6 +316,39 @@ class Metadata(collections.OrderedDict):
                 except:
                     if raise_on_errors:
                         raise
+        if 'initial_dimensionless_spin1' not in self:
+            if 'initial_spin1' in self and 'initial_mass1' in self:
+                try:
+                    self['initial_dimensionless_spin1'] = list(np.array(self['initial_spin1']) / self['initial_mass1']**2)
+                except:
+                    if raise_on_errors:
+                        raise
+        if 'initial_dimensionless_spin2' not in self:
+            if 'initial_spin2' in self and 'initial_mass2' in self:
+                try:
+                    self['initial_dimensionless_spin2'] = list(np.array(self['initial_spin2']) / self['initial_mass2']**2)
+                except:
+                    if raise_on_errors:
+                        raise
+        if ('relaxed_mass1' in self and 'relaxed_mass2' in self and 'relaxed_orbital_frequency' in self
+            and 'relaxed_dimensionless_spin1' in self and 'relaxed_dimensionless_spin2' in self):
+                try:
+                    m1 = float(self['relaxed_mass1'])
+                    m2 = float(self['relaxed_mass2'])
+                    chi1 = np.array(self['relaxed_dimensionless_spin1'], dtype=float)
+                    chi2 = np.array(self['relaxed_dimensionless_spin2'], dtype=float)
+                    L = np.array(self['relaxed_orbital_frequency'], dtype=float)
+                    L /= np.linalg.norm(L)
+                    chi1L = np.dot(chi1, L)
+                    chi2L = np.dot(chi2, L)
+                    chi1perp = np.cross(chi1, L)
+                    chi2perp = np.cross(chi2, L)
+                    self['relaxed_chi_eff'] = (m1*chi1L+m2*chi2L)/(m1+m2)
+                    self['relaxed_chi1_perp'] = np.linalg.norm(chi1perp)
+                    self['relaxed_chi2_perp'] = np.linalg.norm(chi2perp)
+                except:
+                    if raise_on_errors:
+                        raise
         return self
 
     def add_extras(self, raise_on_errors=False):
@@ -343,9 +377,12 @@ class Metadata(collections.OrderedDict):
                 'object_types',
                 'number_of_orbits',
                 'relaxed_mass_ratio',
+                'relaxed_chi_eff',
+                'relaxed_chi1_perp',
+                'relaxed_chi2_perp',
+                'relaxed_eccentricity',
                 'relaxed_dimensionless_spin1',
                 'relaxed_dimensionless_spin2',
-                'relaxed_eccentricity',
                 'relaxed_orbital_frequency',
                 'relaxed_mass1',
                 'relaxed_mass2',
