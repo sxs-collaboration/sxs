@@ -59,7 +59,7 @@ class Metadata(collections.OrderedDict):
     """
 
     @classmethod
-    def from_file(cls, filename, ignore_invalid_lines=False):
+    def from_file(cls, filename, ignore_invalid_lines=False, cache_json=True):
         """Read a file into a Metadata object
 
         The input file may either end in `.txt`, for an old-style metadata.txt file, or in `.json`,
@@ -71,19 +71,19 @@ class Metadata(collections.OrderedDict):
         if filename.endswith('.json'):
             return cls.from_json_file(filename)
         elif filename.endswith('.txt'):
-            return cls.from_txt_file(filename, ignore_invalid_lines=ignore_invalid_lines)
+            return cls.from_txt_file(filename, ignore_invalid_lines=ignore_invalid_lines, cache_json=cache_json)
         else:
             json_present = os.path.isfile(filename + '.json')
             txt_present = os.path.isfile(filename + '.txt')
             if json_present and not txt_present:
                 return cls.from_json_file(filename + '.json')
             elif txt_present and not json_present:
-                return cls.from_txt_file(filename + '.txt', ignore_invalid_lines=ignore_invalid_lines)
+                return cls.from_txt_file(filename + '.txt', ignore_invalid_lines=ignore_invalid_lines, cache_json=cache_json)
             elif json_present and txt_present:
                 json_time = os.path.getmtime(filename + '.json')
                 txt_time = os.path.getmtime(filename + '.txt')
                 if txt_time > json_time:
-                    return cls.from_txt_file(filename + '.txt', ignore_invalid_lines=ignore_invalid_lines)
+                    return cls.from_txt_file(filename + '.txt', ignore_invalid_lines=ignore_invalid_lines, cache_json=cache_json)
                 else:
                     return cls.from_json_file(filename + '.json')
             else:
