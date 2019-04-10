@@ -250,8 +250,23 @@ class Metadata(collections.OrderedDict):
                 kwargs[_valid_identifier(key)] = kwargs.pop(key)
         super(Metadata, self).__init__(*args, **kwargs)
 
-    def add_com_parameters(self, raise_on_errors=False):
-        """Add any translation and boost parameters found in all CoM files in this directory"""
+    def add_com_parameters(self, first_only=True, raise_on_errors=False):
+        """Add any translation and boost parameters found in all CoM files in this directory
+
+        Adds a new key 'com_parameters' to the top level of the metadata dictionary containing the
+        'space_translation' and 'boost_velocity' parameters for the COM correction.
+
+        Parameters
+        ==========
+        first_only: bool [default: True]
+            If True, add the first set of parameters directly under the top-level key
+            'com_parameters'; otherwise, add separate entries under that key for each file ending in
+            `_CoM.h5`.
+        raise_on_errors: bool [default: False]
+            If False, suppress any exceptions that happen in the core loop of this function;
+            otherwise, raise.
+
+        """
         import os.path
         import glob
         import h5py
@@ -260,7 +275,7 @@ class Metadata(collections.OrderedDict):
 
         path = os.path.dirname(self.get('metadata_path', '.'))
         com_parameters = self.get('com_parameters', {})
-        for file_name in sorted(glob.glob(os.path.join(path, '*_CoM.h5'))):
+        for file_name in reversed(sorted(glob.glob(os.path.join(path, '*_CoM.h5')))):
             try:
                 with h5py.File(file_name, 'r') as f:
                     for g in f:
@@ -279,6 +294,9 @@ class Metadata(collections.OrderedDict):
                                     matches = re.search(pattern, history)
                                     if matches:
                                         g_parameters[parameter_name] = ast.literal_eval(matches.group(1))
+                        if first_only and 'space_translation' in g_parameters and 'boost_velocity' in g_parameters:
+                            self['com_parameters'] = g_parameters
+                            return self
                         if g_parameters:
                             com_parameters['{0}/{1}'.format(os.path.basename(file_name), g)] = g_parameters
             except:
