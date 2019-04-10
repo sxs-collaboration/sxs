@@ -260,25 +260,25 @@ class Metadata(collections.OrderedDict):
 
         path = os.path.dirname(self.get('metadata_path', '.'))
         com_parameters = self.get('com_parameters', {})
-        for file_name in glob.glob(os.path.join(path, '*_CoM.h5')):
+        for file_name in sorted(glob.glob(os.path.join(path, '*_CoM.h5'))):
             try:
                 with h5py.File(file_name, 'r') as f:
                     for g in f:
                         g_parameters = {}
-                        if hasattr(f[g], 'attrs'):
-                            if 'space_translation' in f[g].attrs:
+                        if hasattr(f[g], 'attrs') and 'space_translation' in f[g].attrs:
                                 g_parameters['space_translation'] = list(f[g].attrs['space_translation'])
-                            if 'boost_velocity' in f[g].attrs:
+                        if hasattr(f[g], 'attrs') and 'boost_velocity' in f[g].attrs:
                                 g_parameters['boost_velocity'] = list(f[g].attrs['boost_velocity'])
-                        elif 'History.txt' in f[g]:
+                        if 'History.txt' in f[g]:
                             history = f[g]['History.txt'][()]
                             if hasattr(history, 'decode'):
                                 history = history.decode()
                             for parameter_name in ['boost_velocity', 'space_translation']:
-                                pattern = r"'{0}': array\((.*?)\)".format(parameter_name)
-                                matches = re.search(pattern, history)
-                                if matches:
-                                    g_parameters[parameter_name] = ast.literal_eval(matches.group(1))
+                                if parameter_name not in g_parameters:
+                                    pattern = r"'{0}': array\((.*?)\)".format(parameter_name)
+                                    matches = re.search(pattern, history)
+                                    if matches:
+                                        g_parameters[parameter_name] = ast.literal_eval(matches.group(1))
                         if g_parameters:
                             com_parameters['{0}/{1}'.format(os.path.basename(file_name), g)] = g_parameters
             except:
