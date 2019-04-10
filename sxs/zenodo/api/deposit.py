@@ -735,6 +735,20 @@ class Deposit(object):
         if refresh_information:
             self.refresh_information
 
+    def prereserve_doi(self, refresh_information=True):
+        """Pre-reserve the DOI for an unpublished deposit, so that it does not change upon publication
+
+        Note that this is undocumented behavior of the zenodo API, so it may change without notice;
+        this function was reverse-engineered by analyzing requests made by the web interface.  The
+        API itself is not explicit about how this could work, but the approach that is vaguely
+        suggested does not work.
+
+        """
+        from copy import deepcopy
+        metadata = deepcopy(self.metadata)
+        metadata.update({'doi': metadata['prereserve_doi']['doi']})
+        return self.update_metadata(metadata, refresh_information=refresh_information)
+    
     def publish(self, refresh_information=True):
         """Publish this deposit on Zenodo.
 
