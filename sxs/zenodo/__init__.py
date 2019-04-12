@@ -342,18 +342,19 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
     # version.
     zenodo_filenames = d.file_names
-    include_top_directory_in_name = False
+    zenodo_name_prefix = ''
     for file_name in zenodo_filenames:
         if file_name.startswith(sxs_system + '/'):
-            include_top_directory_in_name = True
+            zenodo_name_prefix = sxs_system + '/'
             break
-    local_paths_and_names = find_files(directory, exclude=exclude, include_top_directory_in_name=include_top_directory_in_name)
+    local_paths_and_names = find_files(directory, exclude=exclude, include_top_directory_in_name=False)
+    if zenodo_name_prefix:
+        local_paths_and_names = [[path, zenodo_name_prefix+name] for path, name in local_paths_and_names]
     if len(local_paths_and_names) == 0:
         print('Zenodo requires that there be at least one file.  None found in {0}.'.format(directory))
         raise ValueError('No files found')
-    local_filenames = [name for path, name in local_paths_and_names]
-    zenodo_filenames_to_delete = [zf for zf in zenodo_filenames if not zf in local_filenames]
-    file_checksums = d.file_checksums  # {filename: checksum}
+    names_to_delete = sorted(set(zenodo_filenames) - set(name for path, name in local_paths_and_names))
+    file_checksums = d.file_checksums  # formatted as {filename: checksum}
     print('Comparing MD5 checksums')
     for path, name in local_paths_and_names.copy():
         if name in file_checksums:
@@ -361,11 +362,17 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
             local_checksum = md5checksum(path)
             if zenodo_checksum == local_checksum:
                 local_paths_and_names.remove([path, name])
+    name_to_path_map = {name: path for path, name in local_paths_and_names}
+    zenodo_names_to_upload_or_replace = [zf for zf in zenodo_filenames if zf in name_to_path_map]
+    names_to_upload = sorted(set(name_to_path_map) - set(zenodo_filenames))
+    names_to_replace = sorted(set(name_to_path_map) & set(zenodo_filenames))
+    paths_and_names_to_upload = [[name_to_path_map[name], name] for name in names_to_upload]
+    paths_and_names_to_replace = [[name_to_path_map[name], name] for name in names_to_replace]
 
     # Now, if needed do the file deletions and/or uploads, and publish
-    if not zenodo_filenames_to_delete and not local_paths_and_names and unchanged_metadata:
+    if not names_to_delete and not names_to_upload and not names_to_replace and unchanged_metadata:
         print('Nothing will change in this deposit.  Just checking that it is published.')
-    elif not zenodo_filenames_to_delete and not local_paths_and_names:
+    elif not names_to_delete and not names_to_upload and not names_to_replace:
         print('Only metadata will change in this deposit.  Proceeding to publication.')
     else:
         if d.published:
@@ -375,13 +382,19 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
         else:
             # Otherwise this is presumably a new deposit, so we can add files directly with no trouble
             print('Uploading files to an unpublished deposit.')
-        print('Files to delete: {0}'.format(zenodo_filenames_to_delete))
-        print('Files to upload: {0}\n'.format([name for path, name in local_paths_and_names]))
-        for file_name in zenodo_filenames_to_delete:
-            print('\tDeleting {0}'.format(file_name))
-            d.delete_file(file_name)
-        for path, name in local_paths_and_names:
+        print()
+        print('Files to delete: {0}\n'.format(names_to_delete))
+        print('Files to upload: {0}\n'.format(names_to_upload))
+        print('Files to replace: {0}\n'.format(names_to_replace))
+        for name in names_to_delete:
+            print('\tDeleting {0}'.format(name))
+            d.delete_file(name)
+        for path, name in paths_and_names_to_upload:
             print('\tUploading {0}'.format(name))
+            d.upload_file(path, name=name, skip_checksum=True)
+        for path, name in paths_and_names_to_replace:
+            print('\tReplacing {0}'.format(name))
+            d.delete_file(name)
             d.upload_file(path, name=name, skip_checksum=True)
 
     # Publish this version
