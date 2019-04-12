@@ -342,7 +342,12 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
     # version.
     zenodo_filenames = d.file_names
-    local_paths_and_names = find_files(directory, exclude=exclude, include_top_directory_in_name=False)
+    include_top_directory_in_name = False
+    for file_name in zenodo_filenames:
+        if file_name.startswith(sxs_system + '/'):
+            include_top_directory_in_name = True
+            break
+    local_paths_and_names = find_files(directory, exclude=exclude, include_top_directory_in_name=include_top_directory_in_name)
     if len(local_paths_and_names) == 0:
         print('Zenodo requires that there be at least one file.  None found in {0}.'.format(directory))
         raise ValueError('No files found')
