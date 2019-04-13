@@ -275,6 +275,10 @@ class Deposit(object):
         return {d['filename']: d['checksum'] for d in self.files}
 
     @property
+    def file_sizes(self):
+        return {d['filename']: d['filesize'] for d in self.files}
+
+    @property
     def file_ids(self):
         return {d['filename']: d['id'] for d in self.files}
 

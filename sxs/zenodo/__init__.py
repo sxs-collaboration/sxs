@@ -354,11 +354,17 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
         print('Zenodo requires that there be at least one file.  None found in {0}.'.format(directory))
         raise ValueError('No files found')
     names_to_delete = sorted(set(zenodo_filenames) - set(name for path, name in local_paths_and_names))
-    file_checksums = d.file_checksums  # formatted as {filename: checksum}
-    print('Comparing MD5 checksums')
+    zenodo_file_sizes = d.file_sizes  # formatted as {filename: size_in_bytes}
+    zenodo_file_checksums = d.file_checksums  # formatted as {filename: md5checksum}
+    print('Comparing sizes and MD5 checksums')
     for path, name in local_paths_and_names.copy():
-        if name in file_checksums:
-            zenodo_checksum = file_checksums[name]
+        if name in zenodo_file_sizes:
+            zenodo_filesize = zenodo_file_sizes[name]
+            local_filesize = os.path.getsize(path)
+            if zenodo_filesize != local_filesize:
+                continue  # short-circuit the md5 check because we know they'll be different 
+        if name in zenodo_file_checksums:
+            zenodo_checksum = zenodo_file_checksums[name]
             local_checksum = md5checksum(path)
             if zenodo_checksum == local_checksum:
                 local_paths_and_names.remove([path, name])
