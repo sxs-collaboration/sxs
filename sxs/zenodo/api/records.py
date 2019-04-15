@@ -77,6 +77,6 @@ class Records(object):
             if page > max_pages:
                 print('Search is not yet complete after {0} pages; returning with what we have.'.format(max_pages))
                 return r.json()
-            return json + search(q=q, sort=sort, page=page, size=size, sandbox=sandbox, all_versions=all_versions, max_pages=max_pages)
+            return json + cls.search(q=q, sort=sort, page=page, size=size, sandbox=sandbox, all_versions=all_versions, max_pages=max_pages)
 
         return r.json()
