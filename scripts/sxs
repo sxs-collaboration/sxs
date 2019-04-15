@@ -9,7 +9,7 @@ possible level of recursion is called, passing all following command-line argume
 that callable.  Any argument that begins with a double dash '--' is treated as a keyword argument.
 The following types of keyword arguments are understood:
 
-  - without args
+  - without subsequent args
     - prefixed with `no-`, set to False
     - otherwise, default to True
   - with equals sign
@@ -18,6 +18,18 @@ The following types of keyword arguments are understood:
 
 If the keyword is followed by multiple arguments, they are combined into a tuple by default, unless
 they are surrounded by square brackets, in which case they become a list.
+
+Unfortunately, because the shell strips out quotation marks before even passing the arguments to
+python, if you want something to wind up as a string argument, you need to double quote it, as in
+
+  --foo='"bar"'
+
+This gets transformed into a function call containing the kwarg `foo="bar"`.  If you want a list of
+strings, it's probably easiest to do something like this:
+
+  --foo '"bar"' '"baz"'
+
+This gets transformed into a function call containing the kwarg `foo=["bar", "baz"]`.
 
 """
 
