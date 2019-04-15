@@ -17,6 +17,8 @@ def matching(*args, **kwargs):
         be compiled as a regex, so it can include python-style regex matches or partial completions.
     highest_lev_only: bool (defaults to True)
         Keyword argument only.  If True, only download only files from the highest-numbered Lev.
+    dry_run: bool (defaults to False)
+        If True, don't actually download anything; just show what would be downloaded.
 
     """
     import traceback
@@ -31,6 +33,7 @@ def matching(*args, **kwargs):
     sxs_ids = [re.compile(i) for i in kwargs.pop('sxs_ids', ['SXS:BBH:'])]
     highest_lev_only = kwargs.pop('highest_lev_only', True)
     lev_path_re = re.compile(r'Lev(?P<lev>[-0-9]*)/')
+    dry_run = kwargs.pop('dry_run', False)
 
     def local_path(sxs_id, filename):
         """Return the local filename where you want to save this file"""
@@ -53,16 +56,19 @@ def matching(*args, **kwargs):
                 return True
         return False
 
+    print('Retrieving all open-access SXS records on zenodo')
     all_records = Records.search(q='communities:sxs AND access_right:open')
-    catalog = [record for record in all_records if title_matches(record.get('metadata', {}).get('title', {}))]
 
-    for simulation in tqdm(catalog):
-        try:  # We probably don't want this entire script to abort if something goes wrong with one simulation
-            title = simulation['metadata']['title']
+    matching_records = [record for record in all_records if title_matches(record.get('metadata', {}).get('title', {}))]
+    print('Retrieved {0} records in total, of which {1} have matching titles'.format(len(all_records), len(matching_records)))
+
+    for record in tqdm(matching_records):
+        try:  # We probably don't want this entire script to abort if something goes wrong with one record
+            title = record['metadata']['title']
             sxs_id = sxs_id_finder(title)
             print('Working on "{0}"'.format(sxs_id))
 
-            all_files = simulation['files']
+            all_files = record['files']
 
             if highest_lev_only:
                 files_to_download = {}
@@ -86,9 +92,10 @@ def matching(*args, **kwargs):
                 filename = file_description['filename']
                 path = local_path(sxs_id, filename)
                 print('\tDownloading "{0}" to "{1}"'.format(filename, path))
-                download(url, path)
+                if not dry_run:
+                    download(url, path)
 
-        except KeyboardInterrupt:  # Don't catch Ctrl-C, so you can actually interrupt this loop if you want
+        except KeyboardInterrupt:  # Don't catch Ctrl-C, so that interrupting this iteration will interrupt the entire loop
             raise
 
         except:  # For anything else, just print the error, and continue
