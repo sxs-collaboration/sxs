@@ -30,7 +30,10 @@ def matching(*args, **kwargs):
     from tqdm import tqdm
 
     file_name_matches = [re.compile(f) for f in args]
-    sxs_ids = [re.compile(i) for i in kwargs.pop('sxs_ids', ['SXS:BBH:'])]
+    sxs_id_matches = kwargs.pop('sxs_ids', ['SXS:BBH:'])
+    if isinstance(sxs_id_matches, str):
+        sxs_id_matches = [sxs_id_matches,]
+    sxs_id_matches = [re.compile(i) for i in sxs_id_matches]
     highest_lev_only = kwargs.pop('highest_lev_only', True)
     lev_path_re = re.compile(r'Lev(?P<lev>[-0-9]*)/')
     dry_run = kwargs.pop('dry_run', False)
@@ -45,7 +48,7 @@ def matching(*args, **kwargs):
         return filename
 
     def title_matches(title):
-        for sxs_id in sxs_ids:
+        for sxs_id in sxs_id_matches:
             if sxs_id.search(title):
                 return True
         return False
@@ -56,17 +59,17 @@ def matching(*args, **kwargs):
                 return True
         return False
 
-    print('Retrieving all open-access SXS records on zenodo')
+    print('Retrieving all open-access records belonging to the "sxs" community on Zenodo.')
     all_records = Records.search(q='communities:sxs AND access_right:open')
 
     matching_records = [record for record in all_records if title_matches(record.get('metadata', {}).get('title', {}))]
-    print('Retrieved {0} records in total, of which {1} have matching titles'.format(len(all_records), len(matching_records)))
+    print('Retrieved {0} records in total, of which {1} have matching SXS IDs.'.format(len(all_records), len(matching_records)))
 
     for record in tqdm(matching_records):
         try:  # We probably don't want this entire script to abort if something goes wrong with one record
             title = record['metadata']['title']
             sxs_id = sxs_id_finder(title)
-            print('Working on "{0}"'.format(sxs_id))
+            print('\nWorking on "{0}"'.format(sxs_id))
 
             all_files = record['files']
 
