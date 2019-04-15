@@ -2,7 +2,7 @@
 class Records(object):
 
     @classmethod
-    def search(cls, q=None, sort=None, page=None, size=9999, sandbox=False, all_versions=False):
+    def search(cls, q=None, sort=None, page=1, size=1000, sandbox=False, all_versions=False, max_pages=10):
         """Search public records
 
         It is possible to filter the results use the optional parameters.  Note that the web interface
@@ -11,7 +11,7 @@ class Records(object):
 
         Example queries
         ===============
-        'title "SXS:BBH:0003"'  # Finds titles with given string; use quotes for robustness
+        'title:"SXS:BBH:0003"'  # Finds titles with given string; use quotes for robustness
         'communities:sxs'  # Records in the 'sxs' Zenodo community
         'provisional_communities:sxs'  # Records awaiting approval by the community curator
         'owners: 38418'  # Find records by id number of owner
@@ -34,6 +34,11 @@ class Records(object):
             If True use sandbox.zenodo.org instead of the standard site.
         all_versions: bool [defaults to False]
             If True return all records, including older versions of published records.
+        max_pages: int [defaults to 10]
+            If the query returns a number of records equal to `size`, it is evidently incomplete.
+            This function will attempt to retrieve successive pages until the number of records is
+            less than `size`.  If the query is still incomplete after this many pages, just return
+            what we've got.
 
         """
         import requests
@@ -50,8 +55,7 @@ class Records(object):
             params['q'] = q
         if sort is not None:
             params['sort'] = sort
-        if page is not None:
-            params['page'] = page
+        params['page'] = page
         params['size'] = size
         if all_versions:
             params['all_versions'] = ''
@@ -66,4 +70,13 @@ class Records(object):
                 pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
+
+        json = r.json()
+        if len(json) == size:
+            page += 1
+            if page > max_pages:
+                print('Search is not yet complete after {0} pages; returning with what we have.'.format(max_pages))
+                return r.json()
+            return json + search(q=q, sort=sort, page=page, size=size, sandbox=sandbox, all_versions=all_versions, max_pages=max_pages)
+
         return r.json()
