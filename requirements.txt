@@ -4,3 +4,4 @@ ads  # For searching ADS via the API
 pylatexenc  # For converting unicode to latex  
 lxml  # For parsing doxygen
 feedparser  # For parsing arxiv responses
+tqdm  # For nice progress bars
