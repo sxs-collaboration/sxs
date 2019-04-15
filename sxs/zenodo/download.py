@@ -11,34 +11,32 @@ def matching(*args, **kwargs):
     ==========
     file: string or multiple strings as non-keyword arguments
         Zenodo file name to match.  This will be compiled as a regex, so it can include python-style
-        regex matches.
+        regex matches or partial completions.
     sxs_ids: list of strings (defaults to ['SXS:BBH:'])
         Keyword argument only.  SXS IDs to be searched for in the Zenodo deposit's title.  Each will
-        be compiled as a regex, so it can include python-style regex matches.
+        be compiled as a regex, so it can include python-style regex matches or partial completions.
     highest_lev_only: bool (defaults to True)
         Keyword argument only.  If True, only download only files from the highest-numbered Lev.
 
     """
+    import traceback
     import re
     import requests
     from .. import sxs_id as sxs_id_finder
     from .api.records import Records
     from tqdm import tqdm
 
-    print('args:', args)
-    print('kwargs:', kwargs)
-
     file_name_matches = [re.compile(f) for f in args]
     sxs_ids = [re.compile(i) for i in kwargs.pop('sxs_ids', ['SXS:BBH:'])]
     highest_lev_only = kwargs.pop('highest_lev_only', True)
-    lev_path_re = re.compile(r'/Lev[-0-9]*')
+    lev_path_re = re.compile(r'Lev(?P<lev>[-0-9]*)/')
 
     def local_path(sxs_id, filename):
         """Return the local filename where you want to save this file"""
         if not filename.startswith(sxs_id):
             filename = sxs_id + '/' + filename
         filename = filename.replace(':', '_')
-        if download_only_highest_lev:
+        if highest_lev_only:
             filename = re.sub(lev_path_re, '', filename)
         return filename
 
@@ -59,45 +57,38 @@ def matching(*args, **kwargs):
 
     for simulation in tqdm(catalog):
         try:  # We probably don't want this entire script to abort if something goes wrong with one simulation
-            doi_url = simulation['doi_url']
-            resolver = requests.get(doi_url)
-            if resolver.status_code != 200:
-                resolver.raise_for_status()
-                raise RuntimeError()
-            response = requests.get(resolver.url.replace('/record/', '/api/records/'), headers={"Accept": "application/json"})
-            if response.status_code != 200:
-                response.raise_for_status()
-                raise RuntimeError()
-
-            title = response.json()['metadata']['title']
-            # if 'SXS:BBH:' not in title:
-            #     continue  # Skip non-BBH systems
+            title = simulation['metadata']['title']
             sxs_id = sxs_id_finder(title)
-
-            all_files = response.json()['files']
-
-            horizons_files = [f for f in all_files if f['filename'].endswith('Horizons.h5')]
-            highest_lev_horizons_file = sorted(horizons_files, key=lambda f: f['filename'])[-1]
-
-            h_files = [f for f in all_files if f['filename'].endswith('rhOverM_Asymptotic_GeometricUnits_CoM.h5')]
-            highest_lev_h_file = sorted(h_files, key=lambda f: f['filename'])[-1]
-
             print('Working on "{0}"'.format(sxs_id))
 
-            if download_only_highest_lev:
-                files_to_download = [highest_lev_h_file, highest_lev_horizons_file]
+            all_files = simulation['files']
+
+            if highest_lev_only:
+                files_to_download = {}
+                for file_description in all_files:
+                    filename = file_description['filename']
+                    if file_matches(filename):
+                        search = lev_path_re.search(filename)
+                        if search:
+                            lev = search['lev']
+                            generic_filename = filename.replace('Lev{0}/'.format(lev), 'Lev{0}/')
+                            files_to_download[generic_filename] = files_to_download.get(generic_filename, []) + [lev,]
+                        else:
+                            files_to_download[filename] = ['']
+                files_to_download = [key.format(sorted(files_to_download[key])[-1]) for key in files_to_download]
+                files_to_download = [f for f in all_files if f['filename'] in files_to_download]
             else:
-                files_to_download = h_files+horizons_files
+                files_to_download = [f for f in all_files if file_matches(f['filename'])]
 
             for file_description in files_to_download:
                 url = file_description['links']['download']
                 filename = file_description['filename']
-                path = decide_where_to_put_this(sxs_id, filename)
-                print('\tDownloading to "{0}"'.format(path))
+                path = local_path(sxs_id, filename)
+                print('\tDownloading "{0}" to "{1}"'.format(filename, path))
                 #download(url, path)
 
         except KeyboardInterrupt:  # Don't catch Ctrl-C, so you can actually interrupt this loop if you want
             raise
 
-        except Exception as e:  # For anything else, just print the error, and continue
-            traceback.print_tb(e.__traceback__)
+        except:  # For anything else, just print the error, and continue
+            traceback.print_exc()
