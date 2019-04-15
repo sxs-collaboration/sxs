@@ -136,6 +136,7 @@ def process_kwarg(kwarg):
     unless they are surrounded by square brackets, in which case they become a list.
 
     """
+    print('process_kwarg:', kwarg)
     kw = kwarg[0]
     if kw.startswith('-'):
         kw = kw[1:]
@@ -153,8 +154,9 @@ def process_kwarg(kwarg):
         else:
             args = ['True']
     kw = kw.replace('-', '_')
+    print('args:', args)
     combine_elements_beginning_or_ending_with_commas(args)
-    args = argument_to_python_literal(','.join(args))
+    args = [argument_to_python_literal(arg) for arg in args]
     return kw, args
 
 
