@@ -24,6 +24,7 @@ def matching(*args, **kwargs):
     import requests
     from .. import sxs_id as sxs_id_finder
     from .api.records import Records
+    from .api.utilities import download
     from tqdm import tqdm
 
     file_name_matches = [re.compile(f) for f in args]
@@ -85,7 +86,7 @@ def matching(*args, **kwargs):
                 filename = file_description['filename']
                 path = local_path(sxs_id, filename)
                 print('\tDownloading "{0}" to "{1}"'.format(filename, path))
-                #download(url, path)
+                download(url, path)
 
         except KeyboardInterrupt:  # Don't catch Ctrl-C, so you can actually interrupt this loop if you want
             raise
