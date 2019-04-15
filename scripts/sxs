@@ -3,7 +3,21 @@
 """Call python functions from the command line
 
 This script simply translates command-line calls into python calls, treating the first one or more
-arguments as elements of the python module name
+arguments as elements of the python module name.  The module is searched recursively for submodules,
+named functions within those submodule, or main functions.  The callable found at the deepest
+possible level of recursion is called, passing all following command-line arguments as arguments to
+that callable.  Any argument that begins with a double dash '--' is treated as a keyword argument.
+The following types of keyword arguments are understood:
+
+  - without args
+    - prefixed with `no-`, set to False
+    - otherwise, default to True
+  - with equals sign
+  - without equals sign
+  - followed by multiple arguments
+
+If the keyword is followed by multiple arguments, they are combined into a tuple by default, unless
+they are surrounded by square brackets, in which case they become a list.
 
 """
 
@@ -202,6 +216,7 @@ def main():
     from os.path import basename
     from importlib import import_module
     from pprint import pprint
+    from inspect import cleandoc
 
     package_name = basename(__file__)
     package = import_module(package_name)
@@ -217,7 +232,11 @@ def main():
         print(package.__version__)
         return 0
 
-    if len(argv) > 1 and argv[1] == '--test-parsing':
+    if len(argv) > 1 and argv[1] == '--help':
+        print(__doc__)
+        return 0
+
+    if len(argv) > 1 and (argv[1] == '--test-parsing' or argv[1] == '--test_parsing'):
         argv[1:2] = []
         test_parsing = True
     else:
@@ -231,6 +250,8 @@ def main():
         print('kwargs:', kwargs)
     elif func == sys.executable:
         return subprocess.call([func, args] + kwargs)
+    elif kwargs.pop('help', False):
+        print(cleandoc(func.__doc__))
     else:
         r = func(*args, **kwargs)
         if r:
@@ -240,13 +261,6 @@ def main():
                 pprint(r)
 
     return 0
-
-
-
-# def func(a, b, c=5, *args, **kwargs):
-#     pass
-# print(inspect.getargspec(func))
-# callable(func)  # True if `func` can be called (a function or some other object with `__call__`)
 
 
 if __name__ == '__main__':
