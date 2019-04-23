@@ -270,7 +270,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
             keywords |= set(m.get('keywords', []))
 
     # Get list of creators, keywords, and description
-    print('Constructing metadata')
+    print('Constructing zenodo metadata')
     if not creators:
         creators = d.metadata.get('creators', [])
         if not creators:
@@ -310,7 +310,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     communities = d.metadata.get('communities', [])
     if 'sxs' not in [c['identifier'] for c in communities]:
         communities.append({'identifier': 'sxs'})
-    print('Finished constructing metadata')
+    print('Finished constructing zenodo metadata')
 
     # Send Zenodo the metadata before messing with files, in case this deposit is interrupted (e.g.,
     # due to long upload times)
@@ -329,7 +329,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
     unchanged_metadata = (metadata == d.metadata)
     if unchanged_metadata:
-        print('No metadata changed.  Updating it on Zenodo would produce an error, so skipping that.')
+        print('No zenodo metadata changed.')
     else:
         try:
             d.edit()
