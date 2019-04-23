@@ -6,8 +6,6 @@ docstring for details about what is required.
 
 """
 
-import bbh
-
 
 class _Validity(object):
     """Simple utility class to track validity and print or raise messages on invalidation"""
