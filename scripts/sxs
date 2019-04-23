@@ -194,7 +194,7 @@ def parse_arguments(command_line, package_name, subpackages, test_parsing=False)
 
     # The actual function that is called will be one of these:
     #  1) The function inside `subpackage` named by the first argument
-    #  2) The function inside `subpackage` named `main`
+    #  2) The function inside `subpackage` named `_main`
     #  3) The `__main__.py` file
     # These options will be searched in order; if none is found a ValueError is raised.
     # In the last case, the rest of the command line will simply be passed along to the script,
@@ -204,8 +204,8 @@ def parse_arguments(command_line, package_name, subpackages, test_parsing=False)
     if args and args[0] in callables:
         func = getattr(subpackage, args[0])
         args[0:1] = []
-    elif 'main' in callables:
-        func = getattr(subpackage, 'main')
+    elif '_main' in callables:
+        func = getattr(subpackage, '_main')
     elif os.path.isfile(main_path):
         # Runs something along the lines of
         #   /full/path/to/this/python /path/to/sub/package/__main__.py arg1 arg2 arg3 ...
