@@ -1,5 +1,8 @@
+"""Sub-submodule to validate BBH systems"""
+
+
 def horizons(path, short_circuit=False, validity=None):
-    """Validate Horizons.h5 file for BBH system
+    """Validate Horizons.h5 file for BBH simulation
 
     * The file given by `path` must exist and be a readable HDF5 file
     * Its root must contain the groups 'AhA.dir', 'AhB.dir', and 'AhC.dir'
@@ -102,7 +105,7 @@ def horizons(path, short_circuit=False, validity=None):
 
 
 def waveforms(path, *args, short_circuit=False, validity=None, extrapolated=None):
-    """Validate waveform files
+    """Validate waveform files for a BBH simulation
 
     * Each of the waveform data files must be readable as an HDF5 file
     * Have a series of groups at the top level of the file, each containing a waveform
@@ -233,7 +236,7 @@ def waveforms(path, *args, short_circuit=False, validity=None, extrapolated=None
     return v.valid
 
 
-def bbh(path='.', short_circuit=False):
+def simulation(path='.', short_circuit=False):
     """Check that a directory contains a valid BBH simulation
 
     The top-level directory must contain:
@@ -366,4 +369,4 @@ def bbh(path='.', short_circuit=False):
     return v.valid
 
 
-_main = bbh  # This will be the default executable when run via command line
+_main = simulation  # This will be the default executable when run via command line
