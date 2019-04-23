@@ -318,7 +318,7 @@ def bbh(path='.', short_circuit=False):
         if not os.path.isfile('ID_Files.tgz'):
             v.invalid('No "ID_Files.tgz" file found in "{0}".'.format(evid_path))
         if not os.path.isfile('ID_Params.perl'):
-            v.invalid('No "ID_Params.perl" file found in "{0}".'format(evid_path))
+            v.invalid('No "ID_Params.perl" file found in "{0}".'.format(evid_path))
 
     lev_re = re.compile('Lev[-0-9]+')
     levs = [d for d in os.listdir(path) if lev_re.match(d)]
