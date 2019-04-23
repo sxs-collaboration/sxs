@@ -42,8 +42,9 @@ def horizons(path, short_circuit=False, validity=None):
 
     """
     import os.path
+    import numpy as np
     import h5py
-    from .. import _Validity
+    from . import _Validity
 
     v = validity or _Validity(short_circuit)  # If validity is None, this line constructs it
     groups = ['AhA.dir', 'AhA.dir', 'AhC.dir']
@@ -156,8 +157,9 @@ def waveforms(path, *args, short_circuit=False, validity=None, extrapolated=None
     """
     import re
     import os.path
+    import numpy as np
     import h5py
-    from .. import _Validity
+    from . import _Validity
 
     waveforms = list(set(args))  # Make sure the input file names are all unique
 
@@ -201,29 +203,32 @@ def waveforms(path, *args, short_circuit=False, validity=None, extrapolated=None
                         v.invalid('Found incorrectly named top-level groups in finite-radius file "{0}".'.format(waveform_path))
 
     # Check for correct subgroups and consistent time data
-    t = False
+    t = None
     for waveform in waveforms:
         waveform_path = os.path.join(path, waveform)
         with h5py.File(waveform_path, 'r') as f:
             groups = [group for group in f if group != 'VersionHist.ver']
             if not groups:
                 continue
-            for ell in range(2, 8+1):
-                for m in range(-ell, ell+1):
-                    subgroup = 'Y_l{0}_m{1}.dat'.format(ell, m)
-                    if subgroup not in f[group]:
-                        v.invalid('Subgroup "{0}/{1}" not found in "{2}".'.format(group, subgroup, waveform_path))
-                        continue
-                    if f[group][subgroup].dtype != np.float:
-                        v.invalid('Subgroup "{0}/{1}" of "{2}" has wrong dtype: {3}.'.format(group, subgroup, waveform_path, f[group][subgroup].dtype))
-                        continue
-                    if f[group][subgroup].ndim != 2 or f[group][subgroup].shape[1] != 3:
-                        v.invalid('Subgroup "{0}/{1}" of "{2}" has wrong shape: {3}.'.format(group, subgroup, waveform_path, f[group][subgroup].shape))
-                        continue
-                    if not t:
-                        t = f[group][subgroup][:, 0]
-                    elif not np.array_equal(t, f[group][subgroup][:, 0]):
-                        v.invalid('Inconsistent time data found in subgroup "{0}/{1}" of "{2}".'.format(group, subgroup, waveform_path))
+            for group in groups:
+                for ell in range(2, 8+1):
+                    for m in range(-ell, ell+1):
+                        subgroup = 'Y_l{0}_m{1}.dat'.format(ell, m)
+                        if subgroup not in f[group]:
+                            v.invalid('Subgroup "{0}/{1}" not found in "{2}".'.format(group, subgroup, waveform_path))
+                            continue
+                        if f[group][subgroup].dtype != np.float:
+                            v.invalid('Subgroup "{0}/{1}" of "{2}" has wrong dtype: {3}.'.format(group, subgroup, waveform_path,
+                                                                                                 f[group][subgroup].dtype))
+                            continue
+                        if f[group][subgroup].ndim != 2 or f[group][subgroup].shape[1] != 3:
+                            v.invalid('Subgroup "{0}/{1}" of "{2}" has wrong shape: {3}.'.format(group, subgroup, waveform_path,
+                                                                                                 f[group][subgroup].shape))
+                            continue
+                        if t is None:
+                            t = f[group][subgroup][:, 0]
+                        elif not np.array_equal(t, f[group][subgroup][:, 0]):
+                            v.invalid('Inconsistent time data found in subgroup "{0}/{1}" of "{2}".'.format(group, subgroup, waveform_path))
     
     return v.valid
 
@@ -277,9 +282,9 @@ def bbh(path='.', short_circuit=False):
     import re
     import os.path
     import numpy as np
-    from ... import sxs_identifier_regex
-    from ...metadata import Metadata
-    from .. import _Validity
+    from .. import sxs_identifier_regex
+    from ..metadata import Metadata
+    from . import _Validity
 
     v = _Validity(short_circuit)
 
@@ -315,9 +320,9 @@ def bbh(path='.', short_circuit=False):
     if not os.path.isdir(evid_path):
         v.invalid('No "EvID" subdirectory found in "{0}".'.format(path))
     else:
-        if not os.path.isfile('ID_Files.tgz'):
+        if not os.path.isfile(os.path.join(evid_path, 'ID_Files.tgz')):
             v.invalid('No "ID_Files.tgz" file found in "{0}".'.format(evid_path))
-        if not os.path.isfile('ID_Params.perl'):
+        if not os.path.isfile(os.path.join(evid_path, 'ID_Params.perl')):
             v.invalid('No "ID_Params.perl" file found in "{0}".'.format(evid_path))
 
     lev_re = re.compile('Lev[-0-9]+')
@@ -341,7 +346,7 @@ def bbh(path='.', short_circuit=False):
                     metadata = {}
                 if metadata.get('object1', '')!='bh' or metadata.get('object2', '')!='bh':
                     v.invalid('Binary object types not "bh" in "{0}".'.format(metadata_path))
-                if metadata.get('mass1', 0.0) <= 0.0 or metadata.get('mass2', 0.0) <= 0.0:
+                if metadata.get('initial-mass1', 0.0) <= 0.0 or metadata.get('initial-mass2', 0.0) <= 0.0:
                     v.invalid('Masses are not greater than 0 in "{0}".'.format(metadata_path))
                 s1 = np.array(metadata.get('initial_dimensionless_spin1', metadata.get('initial_spin1', [])), dtype=float)
                 s2 = np.array(metadata.get('initial_dimensionless_spin2', metadata.get('initial_spin2', [])), dtype=float)
