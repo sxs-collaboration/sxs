@@ -169,7 +169,7 @@ def waveforms(path, *args, short_circuit=False, validity=None, extrapolated=None
         waveform_path = os.path.join(path, waveform)
         if not os.path.isfile(waveform_path):
             v.invalid('No file exists in "{0}".'.format(waveform_path))
-             missing_waveforms.append(waveform)
+            missing_waveforms.append(waveform)
         else:
             try:
                 h5py.File(waveform_path, 'r').close()
