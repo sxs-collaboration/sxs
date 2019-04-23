@@ -316,7 +316,7 @@ def bbh(path='.', short_circuit=False):
         v.invalid('No "EvID" subdirectory found in "{0}".'.format(path))
     else:
         if not os.path.isfile('ID_Files.tgz'):
-            v.invalid('No "ID_Files.tgz" file found in "{0}".'format(evid_path))
+            v.invalid('No "ID_Files.tgz" file found in "{0}".'.format(evid_path))
         if not os.path.isfile('ID_Params.perl'):
             v.invalid('No "ID_Params.perl" file found in "{0}".'format(evid_path))
 
