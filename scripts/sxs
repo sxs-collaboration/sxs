@@ -155,6 +155,8 @@ def process_kwarg(kwarg):
     kw = kw.replace('-', '_')
     combine_elements_beginning_or_ending_with_commas(args)
     args = [argument_to_python_literal(arg) for arg in args]
+    if len(args) == 1:
+        args = args[0]
     return kw, args
 
 
