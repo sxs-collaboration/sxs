@@ -406,11 +406,15 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
             d.delete_file(name, refresh_information=False)
             d.upload_file(path, name=name, skip_checksum=True, refresh_information=False)
 
+    # Before returning or checking for published state, make sure our copy of the deposit is up to date with zenodo
+    d.refresh_information
+
     # Publish this version
     if publish:
-        d.refresh_information
         if not d.published:
             d.publish()
-        print('Finished publishing "{0}" to {1}.'.format(title, d.website))
+            print('Finished publishing "{0}" to {1}.'.format(title, d.website))
+        else:
+            print('Already published "{0}" to {1}.'.format(title, d.website))
 
     return d
