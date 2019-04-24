@@ -79,4 +79,4 @@ class Records(object):
                 return r.json()
             return json + cls.search(q=q, sort=sort, page=page, size=size, sandbox=sandbox, all_versions=all_versions, max_pages=max_pages)
 
-        return r.json()
+        return json

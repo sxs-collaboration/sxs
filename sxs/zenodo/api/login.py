@@ -217,21 +217,27 @@ class Login(object):
         from .deposit import Deposit
         return Deposit(self, deposition_id, ignore_deletion)
 
-    def list_deposits(self, q=None, status=None, sort=None, page=None, size=9999, all_versions=False):
+    def search(self, q=None, sort=None, page=1, size=1000, all_versions=False, max_pages=10):
         """Return list of dictionaries describing each deposit created with this login
 
-        It is possible to filter the results using the optional parameters.
+        It is possible to filter the results use the optional parameters.  Note that the web interface
+        can sometimes be used to find search parameters by looking in the `search-hidden-params`
+        parameter of the `invenio-search` tag.
+
+        Example queries
+        ===============
+        'title:"SXS:BBH:0003"'  # Finds titles with given string; use quotes for robustness
+        'communities:sxs'  # Records in the 'sxs' Zenodo community
+        'provisional_communities:sxs'  # Records awaiting approval by the community curator
+        'owners: 38418'  # Find records by id number of owner
 
         Optional parameters
         ===================
         q: string
             Search query, using Elasticsearch query string syntax.  See
             https://help.zenodo.org/guides/search/ for details.
-        status: string [default: None]
-            Filter result based on deposit status (either 'draft' or 'published').  If None, don't
-            filter.
         sort: string
-            Sort order ('bestmatch' or 'mostrecent').  Prefix with minus to change form ascending to
+            Sort order ('bestmatch' or 'mostrecent').  Prefix with minus to change from ascending to
             descending (e.g., '-mostrecent').
         page: int
             Page number for pagination
@@ -241,22 +247,23 @@ class Login(object):
             multiple pages to get more results.
         all_versions: bool [defaults to False]
             If True return all records, including older versions of published records.
+        max_pages: int [defaults to 10]
+            If the query returns a number of records equal to `size`, it is evidently incomplete.
+            This function will attempt to retrieve successive pages until the number of records is
+            less than `size`.  If the query is still incomplete after this many pages, just return
+            what we've got.
 
         """
         params={}
-        if q is not None and q:
+        if q is not None:
             params['q'] = q
-        if status is not None:
-            params['status'] = status
         if sort is not None:
             params['sort'] = sort
-        if page is not None:
-            params['page'] = page
-        if size is not None:
-            params['size'] = size
+        params['page'] = page
+        params['size'] = size
         if all_versions:
             params['all_versions'] = ''
-        
+
         url = "{0}api/deposit/depositions".format(self.base_url)
         r = self.session.get(url, params=params)
         if r.status_code != 200:
@@ -268,11 +275,20 @@ class Login(object):
                 pass
             r.raise_for_status()
             raise RuntimeError()  # Will only happen if the response was not strictly an error
-        return r.json()
+
+        json = r.json()
+        if len(json) == size:
+            page += 1
+            if page > max_pages:
+                print('Search is not yet complete after {0} pages; returning with what we have.'.format(max_pages))
+                return r.json()
+            return json + self.search(q=q, sort=sort, page=page, size=size, all_versions=all_versions, max_pages=max_pages)
+
+        return json
 
     def delete_untitled_empty_deposits(self):
         deleted_deposits = 0
-        deposits = self.list_deposits(size=9999)
+        deposits = self.search()
         for d in deposits:
             try:
                 if d['title'] == '':
@@ -286,7 +302,7 @@ class Login(object):
 
     def discard_all_drafts(self):
         discarded_drafts = 0
-        deposits = self.list_deposits(size=9999)
+        deposits = self.search()
         for d in deposits:
             try:
                 if d['state'] == 'inprogress':
@@ -343,7 +359,7 @@ class Login(object):
             return "{0:>8.3f} {1}".format(s, size_name[i])
 
         if deposition_id is None:
-            depositions = self.list_deposits(page=1, size=9999)
+            depositions = self.search()
         else:
             depositions = [self.deposit(deposition_id, ignore_deletion=True).representation]
         total_size = 0

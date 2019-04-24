@@ -42,8 +42,8 @@ def records(*args, **kwargs):
     all_versions: bool [defaults to False]
         If True, return all versions, not just the most recent version of each record.
 
-    Parameters for .api.Login.list_deposits
-    =======================================
+    Parameters for .api.Login.search
+    ================================
     q: string
         Search query, using Elasticsearch query string syntax.  See
         https://help.zenodo.org/guides/search/ for details.  If the above argument `sxs` is True,
@@ -75,17 +75,7 @@ def records(*args, **kwargs):
     page = kwargs.pop('page', None)
     size = kwargs.pop('size', 9999)
     l = Login(*args, **kwargs)
-    r = l.list_deposits(q, status, sort, page, size, all_versions=all_versions)
-    if page is None and len(r) == size:
-        # Continue until we've gotten all the records
-        last_response = r
-        last_page = 1
-        while len(last_response) == size:
-            last_page = 1
-            last_response = l.list_deposits(q, status, sort, last_page+1, size, all_versions=all_versions)
-            if last_response:
-                last_page += 1
-                r += last_response
+    r = l.search(q, status, sort, page, size, all_versions=all_versions)
     if json_output:
         return json.dumps(r, indent=4, separators=(',', ': '))
     else:
@@ -215,7 +205,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
         title = d.title
     else:
         # Check to see if this simulation exists in the list of the user's deposits or in the sxs community
-        matching_deposits = l.list_deposits(q='title: "{0}"'.format(title))
+        matching_deposits = l.search(q='title: "{0}"'.format(title))
         if len(matching_deposits) == 1:
             deposition_id = matching_deposits[0]['id']
             print('A deposit with title "{0}"'.format(title))
