@@ -35,24 +35,23 @@ def sxs_id(s):
     import re
     try:
         s = s['title']
+    except (TypeError, KeyError):
+        pass
+    if hasattr(s, 'title') and not isinstance(s.title, type('a'.title)):
+        s = s.title
+    try:
+        if os.path.isfile(s):
+            with open(s, 'r') as f:
+                s = [l.strip() for l in f.splitlines()]
+            for line in s:
+                sxs_id_line = sxs_id(line)
+                if sxs_id_line:
+                    return sxs_id_line
+            return ''
     except TypeError:
         pass
-    try:
-        s = s.title
-    except AttributeError:
-        pass
-    if os.path.isfile(s):
-        with open(s, 'r') as f:
-            s = [l.strip() for l in f.splitlines()]
-        for line in s:
-            sxs_id_line = sxs_id(line)
-            if sxs_id_line:
-                return sxs_id_line
-        return ''
     m = re.search(sxs_identifier_regex, s)
     if m:
         return m['sxs_identifier']
     else:
         return ''
-
-
