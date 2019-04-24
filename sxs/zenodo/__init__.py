@@ -93,7 +93,7 @@ def records(*args, **kwargs):
 
 
 def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC.out'],
-           sandbox=False, access_token_path=None,
+           sandbox=False, access_token_path=None, skip_checksums=False,
            skip_existing=True, deposition_id=None, ignore_deletion=False,
            access_right='closed', license='CC-BY-4.0',
            creators=[], description='', keywords=[], error_on_existing=True, publish=True):
@@ -362,7 +362,10 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
             zenodo_filesize = zenodo_file_sizes[name]
             local_filesize = os.path.getsize(path)
             if zenodo_filesize != local_filesize:
-                continue  # short-circuit the md5 check because we know they'll be different 
+                continue  # short-circuit the md5 check because we know they'll be different
+            elif skip_checksums:
+                local_paths_and_names.remove([path, name])
+                continue  # Just assume these files are the same and skip the checksum
         if name in zenodo_file_checksums:
             zenodo_checksum = zenodo_file_checksums[name]
             local_checksum = md5checksum(path)
@@ -394,14 +397,14 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
         print('Files to replace: {0}\n'.format(names_to_replace))
         for name in names_to_delete:
             print('\tDeleting {0}'.format(name))
-            d.delete_file(name)
+            d.delete_file(name, refresh_information=False)
         for path, name in paths_and_names_to_upload:
             print('\tUploading {0}'.format(name))
-            d.upload_file(path, name=name, skip_checksum=True)
+            d.upload_file(path, name=name, skip_checksum=True, refresh_information=False)
         for path, name in paths_and_names_to_replace:
             print('\tReplacing {0}'.format(name))
-            d.delete_file(name)
-            d.upload_file(path, name=name, skip_checksum=True)
+            d.delete_file(name, refresh_information=False)
+            d.upload_file(path, name=name, skip_checksum=True, refresh_information=False)
 
     # Publish this version
     if publish:
