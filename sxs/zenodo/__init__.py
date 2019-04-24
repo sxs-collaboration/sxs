@@ -408,7 +408,9 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
 
     # Publish this version
     if publish:
-        d.publish()
+        d.refresh_information
+        if not d.published:
+            d.publish()
         print('Finished publishing "{0}" to {1}.'.format(title, d.website))
 
     return d
