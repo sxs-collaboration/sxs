@@ -103,8 +103,9 @@ def get_journal_reference_from_phys_rev(doi):
 
 
 def get_journal_reference_from_ads(doi):
-    import ads
+    import sys
     import difflib
+    import ads
     from sxs.references.journal_abbreviations import journal_abbreviation_pairs
     reference = {'title':'', 'pub':'', 'volume':'', 'issue':'', 'year':'', 'page':''}
     try:
@@ -116,7 +117,7 @@ def get_journal_reference_from_ads(doi):
         reference['year'] = article.year
         reference['page'] = article.page
     except Exception as e:
-        print('Failed to get ADS entry for doi "{0}"'.format(doi))
+        print('Failed to get ADS entry for doi "{0}"'.format(doi), file=sys.stderr)
     closest_match = difflib.get_close_matches(reference['pub'], journal_abbreviation_pairs, n=1)
     if closest_match:
         reference['pub'] = journal_abbreviation_pairs[closest_match[0]]
