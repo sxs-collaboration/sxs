@@ -27,7 +27,7 @@ def matching(*args, **kwargs):
     from .. import sxs_id as sxs_id_finder
     from .api.records import Records
     from .api.utilities import download
-    from tqdm import tqdm
+    from tqdm.autonotebook import tqdm
 
     file_name_matches = [re.compile(f) for f in args]
     sxs_id_matches = kwargs.pop('sxs_ids', ['SXS:BBH:'])
@@ -85,7 +85,7 @@ def matching(*args, **kwargs):
                             files_to_download[generic_filename] = files_to_download.get(generic_filename, []) + [lev,]
                         else:
                             files_to_download[filename] = ['']
-                files_to_download = [key.format(sorted(files_to_download[key])[-1]) for key in files_to_download]
+                files_to_download = [key.format(max(files_to_download[key])) for key in files_to_download]
                 files_to_download = [f for f in all_files if f['filename'] in files_to_download]
             else:
                 files_to_download = [f for f in all_files if file_matches(f['filename'])]

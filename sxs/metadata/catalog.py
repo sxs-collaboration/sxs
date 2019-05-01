@@ -108,7 +108,7 @@ def drop_all_but_highest_levs(catalog):
 
 def drop_all_but_selected_resolutions(catalog,
                                       group_and_resolution_parser=lambda key, val: (val.simulation_group, val.lev),
-                                      resolution_selector=lambda resolution_list: sorted(resolution_list)[-1]):
+                                      resolution_selector=lambda resolution_list: max(resolution_list)):
     """Return a new catalog with all but the selected resolutions removed
 
     Parameters
@@ -123,7 +123,7 @@ def drop_all_but_selected_resolutions(catalog,
         the key in the output catalog, and the resolution will be one of the inputs to the following
         function.  The default function assumes the input dict has values of Metadata objects that
         follow the standard SpEC naming conventions.
-    resolution_selector: function (default: lambda resolution_list: sorted(resolution_list)[-1])
+    resolution_selector: function (default: lambda resolution_list: max(resolution_list))
         Function taking a list of resolutions for a given group.  The output should be the single
         resolution selected to represent this group.  The default function simply sorts the list
         using python's built-in `sorted` function (which is alphabetical or numerical), and takes
