@@ -33,7 +33,7 @@ class Login(object):
             long.
 
         access_token: string or None [default: None]
-            If present this is used as the Zenodo API access token.
+            If present, this is used as the Zenodo API access token.
 
         access_token_path: string or None [default: None]
             If `access_token` is not given, this file is read and the first line is used as the
@@ -90,7 +90,6 @@ class Login(object):
             # Set the Zenodo API access token
             if access_token is not None:
                 self.access_token = access_token
-                self.access_argument = 'access_token=<YourTokenHere>'
             else:
                 if access_token_path is None:
                     if self.sandbox:
@@ -101,7 +100,6 @@ class Login(object):
                 try:
                     with open(path, 'r') as f:
                         self.access_token = f.readline().strip()
-                    self.access_argument = "access_token_path='{0}'".format(access_token_path)
                 except IOError:
                     print('Unable to find the Zenodo access token needed to make a deposit.')
                     print('Failed to open file "{0}" for reading.'.format(path))
