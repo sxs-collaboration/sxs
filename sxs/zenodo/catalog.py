@@ -1,4 +1,7 @@
 
+# NOTE: This string is placed into the top of the catalog JSON file as a JSON string.  JSON strings
+# are enclosed in double quotes, so it would quickly get ugly if we used double quotes within this
+# description, even though python makes that easy.
 catalog_file_description = """
         This JSON file has the following format.  Comments are, of course, not present (since JSON does not support
         comments).  Single quotes here are, of course, double quotes in the rest of the file (since JSON encloses
@@ -12,7 +15,7 @@ catalog_file_description = """
         {
             'catalog_file_description': '<this description>',
             'modified': '<YYYY-MM-DDThh:mm:ss.ssssss>',  # UTC time of last-modified record in this file
-            'records': {  # Includes *all* versions of *all* records published in the 'sxs' community, not just simulations
+            'records': {  # Includes *all* records published on Zenodo in the 'sxs' community, not just simulations
                 '<id>': {  # This Zenodo ID key is a *string* containing the 'id' value inside this object (JSON requires keys to be strings)
                     # More details about this 'representation' object at http://developers.zenodo.org/#depositions
                     'conceptdoi': '10.5281/zenodo.<conceptrecid>',  # Permanent DOI for all versions of this record
@@ -89,58 +92,124 @@ catalog_file_description = """
                 },
                 ...
             },
-            'simulations': {
+            'simulations': {  # Physical data (masses, spins, etc.) for all available SXS simulations
                 '<sxs_id>': {  # The SXS ID is a string like SXS:BHNS:0001 or SXS:BBH:1234
-                    'conceptrecid': '<conceptrecid>',  # The Zenodo ID of the 'concept' record, which *resolves to* the most-recent version
-                    'versions': [  # Zenodo IDs of each version.  There may only be one; index this list with [-1] to always get the most recent
-                        '<id1>',  # Oldest version first
-                        ...
+                    'url': '<URL>',  # The URL of the Zenodo 'concept' record, which *resolves to* the most-recent version
+                    #
+                    # NOTE: All of the following may be absent if this simulation is closed-access, or simply does not have metadata.
+                    #
+                    # Variable content describing (mostly) physical parameters of the system.  It's basically a
+                    # python-compatible version of the information contained in 'metadata.txt' from the
+                    # highest-resolution run in the most-recent version of this simulation.  That file is meant to
+                    # be more-or-less as suggested in <https://arxiv.org/abs/0709.0093>.  The conversion to a
+                    # python-compatible format means that keys like 'simulation-name' have had hyphens replaced by
+                    # underscores so that they can be used as variable names in python and any other sane language
+                    # (with apologies to Lisp).  As far as possible, values that are just strings in that file
+                    # have been converted into the relevant types -- like numbers, integers, and arrays.  Note
+                    # that some keys like eccentricity are sometimes numbers and sometimes the string '<number'
+                    # (meaning that the eccentricity is less than the number), which is necessarily a string.
+                    #
+                    # Below are just the first few keys that *may* be present.  Note that closed-access
+                    # simulations will have empty dictionaries here.
+                    #
+                    'simulation_name': '<directory_name>',  # This may be distinctly uninformative
+                    'alternative_names': '<sxs_id>',  # This may be a list of strings
+                    'initial_data_type': '<type>',  # Something like 'BBH_CFMS'
+                    'object_types': '<type>',  # Currently 'BHBH', 'BHNS', or 'NSNS'
+                    'number_of_orbits': <number>,  # This is a float, rather than an integer
+                    'relaxed_mass_ratio': <q>,  # Usually greater than 1 (exceptions are due to junk radiation)
+                    'relaxed_chi_eff': <chi_eff>,  # Dimensionless effective spin quantity
+                    'relaxed_chi1_perp': <chi1_perp>,  # Magnitude of component of chi1 orthogonal to 'relaxed_orbital_frequency'
+                    'relaxed_chi2_perp': <chi2_perp>,  # Magnitude of component of chi2 orthogonal to 'relaxed_orbital_frequency'
+                    'relaxed_mass1': <m2>,
+                    'relaxed_mass2': <m1>,
+                    'relaxed_dimensionless_spin1': [
+                        <chi1_x>,
+                        <chi1_y>,
+                        <chi1_z>
                     ],
-                    'metadata': {  # May not be present if this simulation is closed-access; see catalog_private_metadata.json as noted above
-                        # Variable content describing (mostly) physical parameters of the system.  It's basically a
-                        # python-compatible version of the information contained in 'metadata.txt' from the
-                        # highest-resolution run in the most-recent version of this simulation.  That file is meant to
-                        # be more-or-less as suggested in <https://arxiv.org/abs/0709.0093>.  The conversion to a
-                        # python-compatible format means that keys like 'simulation-name' have had hyphens replaced by
-                        # underscores so that they can be used as variable names in python and any other sane language
-                        # (with apologies to Lisp).  As far as possible, values that are just strings in that file
-                        # have been converted into the relevant types -- like numbers, integers, and arrays.  Note
-                        # that some keys like eccentricity are sometimes numbers and sometimes the string '<number'
-                        # (meaning that the eccentricity is less than the number), which is necessarily a string.
-                        #
-                        # Below are just the first few keys that *may* be present.  Note that closed-access
-                        # simulations will have empty dictionaries here.
-                        #
-                        'simulation_name': '<directory_name>',  # This may be distinctly uninformative
-                        'alternative_names': '<sxs_id>',  # This may be a list of strings
-                        'initial_data_type': '<type>',  # Something like 'BBH_CFMS'
-                        'number_of_orbits': <number>,  # This is a float
-                        'relaxed_mass1': <m2>,
-                        'relaxed_mass2': <m1>,
-                        'relaxed_dimensionless_spin1': [
-                            <chi1_x>,
-                            <chi1_y>,
-                            <chi1_z>
-                        ],
-                        'relaxed_dimensionless_spin2': [
-                            <chi2_x>,
-                            <chi2_y>,
-                            <chi2_z>
-                        ],
-                        'relaxed_eccentricity': <eccentricity>,  # Or maybe a string...
-                        'relaxed_orbital_frequency': [
-                            <omega_x>,
-                            <omega_y>,
-                            <omega_z>
-                        ],
-                        'relaxed_measurement_time': <time>,
-                        ...
-                    },
+                    'relaxed_dimensionless_spin2': [
+                        <chi2_x>,
+                        <chi2_y>,
+                        <chi2_z>
+                    ],
+                    'relaxed_eccentricity': <eccentricity>,  # A float or possibly a string containing '<' and a float
+                    'relaxed_orbital_frequency': [
+                        <omega_x>,
+                        <omega_y>,
+                        <omega_z>
+                    ],
+                    'relaxed_measurement_time': <time>,
+                    ...
                 },
                 ...
             }
         }
 """
+
+
+def create(login=None):
+    """Create the catalog from scratch
+
+    This function will take quite some time (probably more than 15 minutes), because it has to
+    download each metadata file individually, which necessarily requires a separate Zenodo request
+    for each download.
+
+    """
+    import traceback
+    from tqdm.autonotebook import tqdm
+    from .. import sxs_id
+    from . import Login
+
+    def highest_lev_metadata_file_info(record):
+        "Sort the list of 'file' fields containing metadata.json, and return info for highest Lev"
+        metadata_file_info_list = sorted([f for f in record.get('files', []) if '/metadata.json' in f['filename']],
+                                         key=lambda f:f['filename'])
+        if metadata_file_info_list:
+            return metadata_file_info_list[-1]
+        else:
+            return {}
+
+    # If login is None, this creates a Login object to use
+    l = login or Login()
+
+    # Get the list of all SXS records from Zenodo
+    records = l.search(q='communities:sxs')
+
+    # Sort the list of records by title
+    records = sorted(records, key=lambda r: r.get('title', ''))
+
+    # Make an outline of the 'simulations' dict, with info for highest-Lev metadata.json file in
+    # place of the actual metadata.
+    simulations = {
+        sxs_id(r.get('title', '')): {
+            'url': r['links']['conceptdoi'],
+            'metadata_file_info': highest_lev_metadata_file_info(r)
+        }
+        for r in records if sxs_id(r.get('title', ''))
+    }
+
+    # Loop through the dictionary we just created, and download the metadata.json for each one
+    for sxs_id in tqdm(simulations, dynamic_ncols=True):
+        metadata_file_info = simulations[sxs_id].pop('metadata_file_info')
+        download_url = metadata_file_info.get('links', {}).get('download', '')
+        if not download_url:
+            continue
+        try:
+            metadata = l.session.get(download_url).json()
+            simulations[sxs_id].update(metadata)
+        except KeyboardInterrupt:
+            raise
+        except:
+            traceback.print_exc()
+
+    catalog = {
+        'catalog_file_description': catalog_file_description,
+        'modified': '<YYYY-MM-DDThh:mm:ss.ssssss>',  # UTC time of last-modified record in this file
+        'records': {str(r['id']): r for r in records},
+        'simulations': simulations
+    }
+    return catalog
 
 
 def split_to_public_and_private(catalog):
@@ -350,7 +419,7 @@ def write(catalog, catalog_file_name=None, private_metadata_file_name=None):
 
 
 def modification_time(representation_list):
-    return sorted([r['modified'] for r in representation_list])[-1]
+    return max(r['modified'] for r in representation_list)
 
 
 def sxs_metadata_file_description(representation):
