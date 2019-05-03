@@ -279,7 +279,7 @@ class Login(object):
             page += 1
             if page > max_pages:
                 print('Search is not yet complete after {0} pages; returning with what we have.'.format(max_pages))
-                return r.json()
+                return json  # Note: This will percolate back up the recursion to include other results
             return json + self.search(q=q, sort=sort, page=page, size=size, all_versions=all_versions, max_pages=max_pages)
 
         return json
