@@ -94,7 +94,7 @@ catalog_file_description = """
             },
             'simulations': {  # Physical data (masses, spins, etc.) for all available SXS simulations
                 '<sxs_id>': {  # The SXS ID is a string like SXS:BHNS:0001 or SXS:BBH:1234
-                    'url': '<URL>',  # The URL of the Zenodo 'concept' record, which *resolves to* the most-recent version
+                    'url': '<URL>',  # The URL of the Zenodo 'conceptdoi' link, which *resolves to* the most-recent version
                     #
                     # NOTE: All of the following may be absent if this simulation is closed-access, or simply does not have metadata.
                     #
@@ -151,24 +151,16 @@ catalog_file_description = """
 def create(login=None):
     """Create the catalog from scratch
 
-    This function will take quite some time (probably more than 15 minutes), because it has to
-    download each metadata file individually, which necessarily requires a separate Zenodo request
+    This function will take quite some time (more than 15 minutes), because it has to download
+    each metadata file individually, which necessarily requires a separate Zenodo request
     for each download.
 
     """
     import traceback
+    from textwrap import dedent
     from tqdm.autonotebook import tqdm
     from .. import sxs_id
     from . import Login
-
-    def highest_lev_metadata_file_info(record):
-        "Sort the list of 'file' fields containing metadata.json, and return info for highest Lev"
-        metadata_file_info_list = sorted([f for f in record.get('files', []) if '/metadata.json' in f['filename']],
-                                         key=lambda f:f['filename'])
-        if metadata_file_info_list:
-            return metadata_file_info_list[-1]
-        else:
-            return {}
 
     # If login is None, this creates a Login object to use
     l = login or Login()
@@ -178,25 +170,29 @@ def create(login=None):
 
     # Sort the list of records by title
     records = sorted(records, key=lambda r: r.get('title', ''))
+    
+    # Find the most recent modification time in any record
+    modified = max(r.get('modified', '') for r in records)
 
     # Make an outline of the 'simulations' dict, with info for highest-Lev metadata.json file in
     # place of the actual metadata.
     simulations = {
         sxs_id(r.get('title', '')): {
             'url': r['links']['conceptdoi'],
-            'metadata_file_info': highest_lev_metadata_file_info(r)
+            'metadata_file_info': max([f for f in r.get('files', []) if '/metadata.json' in f['filename']],
+                                      default={}, key=lambda f:f['filename'])
         }
         for r in records if sxs_id(r.get('title', ''))
     }
 
     # Loop through the dictionary we just created, and download the metadata.json for each one
     for sxs_id in tqdm(simulations, dynamic_ncols=True):
-        metadata_file_info = simulations[sxs_id].pop('metadata_file_info')
-        download_url = metadata_file_info.get('links', {}).get('download', '')
+        download_url = simulations[sxs_id].get('metadata_file_info', {}).get('links', {}).get('download', '')
         if not download_url:
             continue
         try:
             metadata = l.session.get(download_url).json()
+            simulations[sxs_id].pop('metadata_file_info')
             simulations[sxs_id].update(metadata)
         except KeyboardInterrupt:
             raise
@@ -204,44 +200,53 @@ def create(login=None):
             traceback.print_exc()
 
     catalog = {
-        'catalog_file_description': catalog_file_description,
-        'modified': '<YYYY-MM-DDThh:mm:ss.ssssss>',  # UTC time of last-modified record in this file
-        'records': {str(r['id']): r for r in records},
+        'catalog_file_description': dedent(catalog_file_description).split('\n')[1:-1],
+        'modified': modified,
+        'records': {r['links']['conceptdoi']: r for r in records},
         'simulations': simulations
     }
     return catalog
 
 
-def split_to_public_and_private(catalog):
-    from collections import OrderedDict
-    from copy import deepcopy
-    public = deepcopy(catalog)
-    private = {'records': OrderedDict(), 'simulations': OrderedDict()}
-    for record_id in catalog['records']:
-        is_public = (catalog['records'][record_id]['metadata']['access_right'] == 'open')
-        if not is_public and 'files' in catalog['records'][record_id]:
-            private['records'][record_id] = {'files': deepcopy(catalog['records'][record_id]['files'])}
-            public['records'][record_id].pop('files', None)
-    for sxs_id in catalog['simulations']:
-        version = str(catalog['simulations'][sxs_id]['versions'][-1])
-        record = catalog['records'][version]
-        is_public = (record['metadata']['access_right'] == 'open')
-        if not is_public and 'metadata' in catalog['simulations'][sxs_id]:
-            private['simulations'][sxs_id] = {'metadata': deepcopy(catalog['simulations'][sxs_id]['metadata'])}
-            public['simulations'][sxs_id].pop('metadata', None)
-    return public, private
+def split_catalog(catalog):
+    """Split catalog four ways: private vs. public, and complete vs. just simulations
 
+    This function splits the catalog into four separate parts:
 
-def join_public_and_private(public, private):
-    from copy import deepcopy
-    catalog = deepcopy(public)
-    for record_id in private['records']:
-        if record_id in public['records']:
-            catalog['records'][record_id]['files'] = deepcopy(private['records'][record_id]['files'])
-    for sxs_id in private['simulations']:
-        if sxs_id in public['simulations']:
-            catalog['simulations'][sxs_id]['metadata'] = deepcopy(private['simulations'][sxs_id]['metadata'])
-    return catalog
+      1) The complete catalog for open-access systems
+      2) The SXS metadata for open-access systems
+      3) The complete catalog for all systems
+      4) The SXS metadata for all systems
+
+    The complete catalog contains all Zenodo metadata and SXS metadata, as well as a description of
+    the catalog and the most recent modification time.  The simulations are useful for serving data
+    used in the waveform index table at <https://data.black-holes.org/waveforms/catalog.html>,
+    because it is significantly less data.  The private data can be served via the wiki, with the
+    public data as a fallback if the user's web browser does not send credentials along with the
+    request for the data.
+
+    """
+    import copy
+    private_catalog = copy.deepcopy(catalog)
+    private_simulations = copy.deepcopy(catalog['simulations'])
+    public_catalog = {
+        'catalog_file_description': catalog['catalog_file_description'],
+        'modified': catalog['modified'],
+        'records': {
+            recid: catalog['records'][recid]
+            for recid in catalog['records']
+            if catalog['records'][recid].get('metadata', {}).get('access_right', '') == 'open'
+        }
+    }
+    public_conceptdoi_links = [public_catalog['records'][recid].get('links', {}).get('conceptdoi', None)
+                               for recid in public_catalog['records']]
+    public_catalog['simulations'] = {
+        sxs_id: catalog['simulations'][sxs_id]
+        for sxs_id in catalog['simulations']
+        if catalog['simulations'][sxs_id]['url'] in public_conceptdoi_links
+    }
+    public_simulations = copy.deepcopy(public_catalog['simulations'])
+    return private_catalog, private_simulations, public_catalog, public_simulations
 
 
 def update(path='~/.sxs/catalog/catalog.json', verbosity=1):
