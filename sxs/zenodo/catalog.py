@@ -148,16 +148,16 @@ catalog_file_description = """
 """
 
 
-def _include_file_data(record):
+def _include_file_data(login, record):
     """Ensure that 'files' field is present in the input record"""
     if 'files' not in record:
         if 'files' in record.get('links', {}):
             url = record['links']['files']
         elif 'id' in record:
-            url = l.base_url + 'api/deposit/depositions/{0}/files'.format(record['id'])
+            url = login.base_url + 'api/deposit/depositions/{0}/files'.format(record['id'])
         else:
-            continue
-        r = l.session.get(url)
+            return record  # We have failed, but we're not too upset
+        r = login.session.get(url)
         if r.status_code == 200:  # Otherwise, we just couldn't add this record; oh well.
             r_json = r.json()
             record['files'] = r_json
@@ -214,8 +214,7 @@ def create(login=None):
     records = l.search(q='communities:sxs')
 
     # Closed-access records don't have their files included by default; add them
-    for record in records:
-        _include_file_data(record)
+    records = [_include_file_data(l, record) for record in records]
 
     # Sort the list of records by title
     records = sorted(records, key=lambda r: r.get('title', ''))
@@ -399,7 +398,7 @@ def update(login=None, path='~/.sxs/catalog/private_catalog.json', verbosity=1,
     # Loop through the new records, ensuring that they are all present and current in the old records
     for r in new_records:
         if r not in records or new_records[r].get('modified', 0) != records[r].get('modified', 1):
-            records[r] = _include_file_data(new_records[r])
+            records[r] = _include_file_data(l, new_records[r])
             new_simulation = _create_simulations_skeleton([records[r],])
             simulations.update(new_simulation)
 
