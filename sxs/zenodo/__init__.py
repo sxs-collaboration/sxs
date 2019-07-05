@@ -86,7 +86,8 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
            sandbox=False, access_token_path=None, skip_checksums=False,
            skip_existing=True, deposition_id=None, ignore_deletion=False,
            access_right='closed', license='CC-BY-4.0',
-           creators=[], description='', keywords=[], error_on_existing=True, publish=True):
+           creators=[], description='', keywords=[], related_identifiers=[],
+           error_on_existing=True, publish=True):
     """Publish or edit a Zenodo entry for an SXS simulation
 
     This is essentially a wrapper around many of the Zenodo API's functions, specialized for SXS
@@ -109,8 +110,24 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     This function returns a Deposit object, which may be used to examine the deposit, change it, or
     publish it if the final parameter is not given as True.
 
+    Parameters only used in this function
+    =====================================
+    skip_checksums: bool [defaults to False]
+        If False, an MD5 checksum is run for any file that exists on zenodo and locally (unless the
+        file sizes are different).  If the file sizes or checksums are different, the local file is
+        uploaded to zenodo.
+    skip_existing: bool [defaults to True]
+        If a record with this name exists already, skip this upload.
+    error_on_existing: bool [defaults to False]
+        If True, and a record already exists for this system, raise an error.
+    publish: bool or 'if_pending' [defaults to True]
+        If True and the current version on zenodo is not published, publish it.  If the input value
+        is the string 'if_pending', it will be changed to True if no other changes are made during
+        this run of the function, or to False if other changes are made.  This allows for a delay,
+        to ensure that the files have stopped changing before the system is actually published.
 
-    Parameters to `.api.utilities.find_files`
+
+    Parameters to `.utilities.find_files`
     =========================================
     directory: string
         Absolute or relative path to a directory containing 'common-metadata.txt' listing an SXS
@@ -122,9 +139,6 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     ================================
     sandbox: bool [defaults to False]
     access_token_path: string or None [defaults to None]
-
-    skip_existing: bool [defaults to True]
-        If a record with this name exists already, skip this upload.
 
     Parameters to `.api.deposit.Deposit`
     ====================================
@@ -148,10 +162,10 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     """
     import re
     import os
-    from .api.utilities import md5checksum, find_files
-    from .creators import known_creators, creators_emails, default_creators
-    from ..metadata import Metadata
     from .. import sxs_identifier_regex
+    from ..utilities import md5checksum, find_files
+    from ..metadata import Metadata
+    from .creators import known_creators, creators_emails, default_creators
     default_creators = [{'name': 'SXS Collaboration'}]
 
     directory = os.path.normpath(directory)
@@ -248,6 +262,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     authors_emails = set()
     point_of_contact_email = ''
     keywords = set(keywords)
+    related_identifiers = set(related_identifiers)
     for path,_ in paths_and_names:
         if os.path.basename(path) == 'metadata.txt':
             json_path = os.path.join(os.path.dirname(path), 'metadata.json')
@@ -258,6 +273,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
             authors_emails |= set(m.get('authors_emails', []))
             point_of_contact_email = m.get('point_of_contact_email', point_of_contact_email)
             keywords |= set(m.get('keywords', []))
+            related_identifiers |= set(inspire.map_bibtex_keys_to_identifiers(m.get('bibtex-keys', [])))
 
     # Get list of creators, keywords, and description
     print('Constructing zenodo metadata')
@@ -300,6 +316,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     communities = d.metadata.get('communities', [])
     if 'sxs' not in [c['identifier'] for c in communities]:
         communities.append({'identifier': 'sxs'})
+    related_identifiers = list(related_identifiers)
     print('Finished constructing zenodo metadata')
 
     # Send Zenodo the metadata before messing with files, in case this deposit is interrupted (e.g.,
@@ -313,6 +330,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
         'description': description,
         'keywords': keywords,
         'creators': creators,
+        'related_identifiers': related_identifiers,
     }
     # print('New metadata: {0}'.format(new_metadata))
     metadata = d.metadata.copy()
@@ -370,10 +388,16 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
 
     # Now, if needed do the file deletions and/or uploads, and publish
     if not names_to_delete and not names_to_upload and not names_to_replace and unchanged_metadata:
+        if publish == 'if_pending':
+            publish = True
         print('Nothing will change in this deposit.  Just checking that it is published.')
     elif not names_to_delete and not names_to_upload and not names_to_replace:
+        if publish == 'if_pending':
+            publish = False
         print('Only metadata will change in this deposit.  Proceeding to publication.')
     else:
+        if publish == 'if_pending':
+            publish = False
         if d.published:
             # If this deposit already has files, we need to create a new deposit to change the files
             print('Changing files that are already present in a published deposit.  Getting a new version.')
