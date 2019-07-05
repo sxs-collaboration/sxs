@@ -55,7 +55,8 @@ if __name__ == "__main__":
     from setuptools import setup
     setup(name='sxs',
           packages = ['sxs', 'sxs.metadata', 'sxs.doxygen', 'sxs.references',
-                      'sxs.validate', 'sxs.zenodo', 'sxs.zenodo.api'],
+                      'sxs.references.ads', 'sxs.references.arxiv', 'sxs.references.inspire',
+                      'sxs.utilities', 'sxs.validate', 'sxs.zenodo', 'sxs.zenodo.api'],
           scripts = ['scripts/sxs'],
           include_package_data=True,
           version=version,

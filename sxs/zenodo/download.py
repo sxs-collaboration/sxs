@@ -25,8 +25,8 @@ def matching(*args, **kwargs):
     import re
     import requests
     from .. import sxs_id as sxs_id_finder
+    from ..utilities import download
     from .api.records import Records
-    from .api.utilities import download
     from tqdm.autonotebook import tqdm
 
     file_name_matches = [re.compile(f) for f in args]

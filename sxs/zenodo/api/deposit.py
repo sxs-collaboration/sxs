@@ -656,7 +656,7 @@ class Deposit(object):
 
         """
         import os
-        from .utilities import md5checksum
+        from ..utilities import md5checksum
         if relpath_start is None:
             relpath_start = os.curdir
         if name is None:
@@ -723,14 +723,14 @@ class Deposit(object):
     def upload_all_files(self, top_directory, exclude=[], skip_checksum=False, refresh_information=True):
         """Recursively upload all files found in `top_directory`
 
-        This function simply calls the `zenodo.api.utilities.find_files` function, and then calls
+        This function simply calls the `sxs.utilities.find_files` function, and then calls
         `upload_file` for each one.  See those functions for explanations of the parameters to this
         function.
 
         """
         import os
         import re
-        from .utilities import find_files
+        from ..utilities import find_files
         paths_and_names = find_files(top_directory, exclude=exclude)
         for path, name in paths_and_names:
             print("Uploading\n    {0}\nas\n    {1}".format(path, name))

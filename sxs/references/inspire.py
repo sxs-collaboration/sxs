@@ -109,6 +109,33 @@ def extract_doi(doi):
     return doi
 
 
+def extract_doi_url(doi):
+    """Ensure that 'doi' is a single string
+    
+    Occasionally, INSPIRE returns a list of identical DOIs.  This just extracts the first
+    element if it is such a list, or returns the input otherwise.
+    
+    """
+    doi = extract_doi(doi)
+    if doi:
+        return 'https://dx.doi.org/' + doi
+    else:
+        return doi
+
+
+def extract_arxiv_url(system_control_number):
+    """Extract any arxiv URLs from the system_control_number field
+
+    """
+    arxiv_urls = [
+        d['value'].replace('oai:arXiv.org:', 'https://arxiv.org/abs/')
+        for d in system_control_number if d.get('institute', '') == 'arXiv' and 'value' in d
+    ]
+    if not arxiv_urls:
+        return ''
+    return arxiv_urls[0]
+
+
 def map_bibtex_keys_to_doi(bibtex_keys):
     """Map a list of INSPIRE bibtex keys to DOIs
 
@@ -146,5 +173,46 @@ def map_bibtex_keys_to_doi(bibtex_keys):
         for bibtex_key in [extract_bibtex_key(result['system_control_number']),]
         for doi in [extract_doi(result['doi']),]
         if bibtex_key and doi
+    }
+    return mapping
+
+
+
+def map_bibtex_keys_to_identifiers(bibtex_keys):
+    """Map a list of INSPIRE bibtex keys to DOIs, arxiv numbers, or URLs
+
+    This function queries the INSPIRE database, searching for each of the input bibtex keys, and
+    extracting the corresponding DOIs (if present on INSPIRE).  Failing that
+
+    Parameter
+    =========
+    bibtex_keys: str, or list of str
+        Each string should be precisely one bibtex key from INSPIRE.  Note that any bibtex keys that
+        are not found by INSPIRE are simply ignored.
+
+    Returns
+    =======
+    key_to_identifier: dict
+        The output is a dictionary mapping each input bibtex key itself to the corresponding DOI
+        URL, arxiv URL, or other URL.
+
+    Raises
+    ======
+    requests.exceptions.HTTPError
+        If the HTTP request to INSPIRE failed for any reason.
+
+    """
+    if not isinstance(bibtex_keys, list):
+        bibtex_keys = [bibtex_keys,]
+    pattern = 'find texkey ' + ' or texkey '.join(bibtex_keys)
+    output_tags = 'system_control_number,doi'
+    results = query(pattern, output_tags=output_tags)
+    mapping = {
+        bibtex_key: (doi if doi else arxiv)
+        for result in results
+        for bibtex_key in [extract_bibtex_key(result['system_control_number']),]
+        for doi in [extract_doi_url(result['doi']),]
+        for arxiv in [extract_arxiv_url(result['system_control_number']),]
+        if bibtex_key and (bool(doi) or bool(arxiv))
     }
     return mapping
