@@ -89,8 +89,10 @@ def extract_bibtex_key(system_control_numbers):
     around the github issues for inspirehep/invenio that this should always be present
     
     """
+    if isinstance(system_control_numbers, dict):
+        system_control_numbers = [system_control_numbers,]
     bibtex_keys = [number.get('value', '') for number in system_control_numbers
-                   if number['institute']=='INSPIRETeX' or number['institute']=='SPIRESTeX']
+                   if number.get('institute', '') in ['INSPIRETeX', 'SPIRESTeX']]
     bibtex_keys = [key for key in bibtex_keys if key]
     if not bibtex_keys:
         return ''
@@ -123,13 +125,15 @@ def extract_doi_url(doi):
         return doi
 
 
-def extract_arxiv_url(system_control_number):
+def extract_arxiv_url(system_control_numbers):
     """Extract any arxiv URLs from the system_control_number field
 
     """
+    if isinstance(system_control_numbers, dict):
+        system_control_numbers = [system_control_numbers,]
     arxiv_urls = [
-        d['value'].replace('oai:arXiv.org:', 'https://arxiv.org/abs/')
-        for d in system_control_number if d.get('institute', '') == 'arXiv' and 'value' in d
+        number['value'].replace('oai:arXiv.org:', 'https://arxiv.org/abs/')
+        for number in system_control_numbers if number.get('institute', '') == 'arXiv' and 'value' in number
     ]
     if not arxiv_urls:
         return ''
@@ -202,6 +206,8 @@ def map_bibtex_keys_to_identifiers(bibtex_keys):
         If the HTTP request to INSPIRE failed for any reason.
 
     """
+    if not bibtex_keys:
+        return {}
     if not isinstance(bibtex_keys, list):
         bibtex_keys = [bibtex_keys,]
     pattern = 'find texkey ' + ' or texkey '.join(bibtex_keys)

@@ -82,6 +82,24 @@ def records(*args, **kwargs):
         return r
 
 
+def related_identifier_formatter(identifier, relation='isSupplementTo', scheme='url'):
+    """Convert an identifier to a representation acceptable to Zenodo (INCOMPLETE)
+
+    NOTE: Because of missing documentation, this function is likely incomplete.  In particular, the
+    scheme is assumed to be 'url' for everything except simple DOI URLs, which are converted.  It is
+    unclear what Zenodo actually converts, and how.
+
+    """
+    if 'https://dx.doi.org/' in identifier:
+        identifier = identifier.replace('https://dx.doi.org/', '')
+        scheme = 'doi'
+    return {
+        'identifier': identifier,
+        'relation': relation,
+        'scheme': scheme,
+    }
+
+
 def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC.out'],
            sandbox=False, access_token_path=None, skip_checksums=False,
            skip_existing=True, deposition_id=None, ignore_deletion=False,
@@ -166,6 +184,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     from ..utilities import md5checksum, find_files
     from ..metadata import Metadata
     from .creators import known_creators, creators_emails, default_creators
+    from ..references import inspire
     default_creators = [{'name': 'SXS Collaboration'}]
 
     directory = os.path.normpath(directory)
@@ -273,7 +292,9 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
             authors_emails |= set(m.get('authors_emails', []))
             point_of_contact_email = m.get('point_of_contact_email', point_of_contact_email)
             keywords |= set(m.get('keywords', []))
-            related_identifiers |= set(inspire.map_bibtex_keys_to_identifiers(m.get('bibtex-keys', [])))
+            bibtex_keys = m.get('bibtex_keys', m.get('simulation_bibtex_keys', []))
+            bib_to_id = inspire.map_bibtex_keys_to_identifiers(bibtex_keys)
+            related_identifiers |= set(bib_to_id[bib] for bib in bib_to_id)
 
     # Get list of creators, keywords, and description
     print('Constructing zenodo metadata')
@@ -305,7 +326,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
                         else:
                             creators.append({'name': last_name})
     # print('Creators: {0}'.format(creators))
-    keywords = list(set(keywords) | set(d.metadata.get('keywords', [])))
+    keywords = sorted(set(keywords) | set(d.metadata.get('keywords', [])))
     # print('Keywords: {0}'.format(keywords))
     if not description:
         description = d.metadata.get('description', '')
@@ -316,7 +337,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     communities = d.metadata.get('communities', [])
     if 'sxs' not in [c['identifier'] for c in communities]:
         communities.append({'identifier': 'sxs'})
-    related_identifiers = list(related_identifiers)
+    related_identifiers = [related_identifier_formatter(rid) for rid in sorted(related_identifiers)]
     print('Finished constructing zenodo metadata')
 
     # Send Zenodo the metadata before messing with files, in case this deposit is interrupted (e.g.,
@@ -335,6 +356,11 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     # print('New metadata: {0}'.format(new_metadata))
     metadata = d.metadata.copy()
     metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
+    # import dictdiffer
+    # for diff in list(dictdiffer.diff(metadata, d.metadata)):
+    #     print(diff)
+    # print('metadata:', metadata)
+    # print('d.metadata:', d.metadata)
     unchanged_metadata = (metadata == d.metadata)
     if unchanged_metadata:
         print('No zenodo metadata changed.')
@@ -342,7 +368,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
         try:
             d.edit()
         except:
-            pass
+            print("Failure to unlock deposit is probably acceptable")
         d.update_metadata(metadata)
         print('Uploaded metadata')
 
@@ -430,5 +456,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
             print('Finished publishing "{0}" to {1}.'.format(title, d.website))
         else:
             print('Already published "{0}" to {1}.'.format(title, d.website))
+    else:
+        print('Skipping publication, as requested.')
 
     return d
