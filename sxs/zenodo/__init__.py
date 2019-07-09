@@ -101,7 +101,7 @@ def related_identifier_formatter(identifier, relation='isSupplementTo', scheme='
 
 
 def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC.out'],
-           sandbox=False, access_token_path=None, skip_checksums=False,
+           sandbox=False, access_token_path=None, skip_checksums='if_file_is_older',
            skip_existing=True, deposition_id=None, ignore_deletion=False,
            access_right='closed', license='CC-BY-4.0',
            creators=[], description='', keywords=[], related_identifiers=[],
@@ -130,7 +130,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
 
     Parameters only used in this function
     =====================================
-    skip_checksums: bool or 'if_file_is_older' [defaults to False]
+    skip_checksums: bool or 'if_file_is_older' [defaults to 'if_file_is_older']
         If False, an MD5 checksum is run for any file that exists on zenodo and locally (unless the
         file sizes are different).  If 'if_file_is_older', the files are assumed to match if the
         local modification time is earlier than the creation date of the deposit on zenodo;
