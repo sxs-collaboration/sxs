@@ -130,10 +130,12 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
 
     Parameters only used in this function
     =====================================
-    skip_checksums: bool [defaults to False]
+    skip_checksums: bool or 'if_file_is_older' [defaults to False]
         If False, an MD5 checksum is run for any file that exists on zenodo and locally (unless the
-        file sizes are different).  If the file sizes or checksums are different, the local file is
-        uploaded to zenodo.
+        file sizes are different).  If 'if_file_is_older', the files are assumed to match if the
+        local modification time is earlier than the creation date of the deposit on zenodo;
+        otherwise, the checksum is run (unless the file sizes are different).  If the file sizes or
+        checksums are different, the local file is uploaded to zenodo.
     skip_existing: bool [defaults to True]
         If a record with this name exists already, skip this upload.
     error_on_existing: bool [defaults to False]
@@ -181,6 +183,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     import re
     import os
     import datetime
+    import pytz
     from .. import sxs_identifier_regex
     from ..utilities import md5checksum, find_files, fit_to_console
     from ..metadata import Metadata
@@ -383,12 +386,19 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     zenodo_file_sizes = d.file_sizes  # formatted as {filename: size_in_bytes}
     zenodo_file_checksums = d.file_checksums  # formatted as {filename: md5checksum}
     print('Comparing sizes and MD5 checksums')
+    deposit_created = datetime.datetime.strptime(d.representation['created'], '%Y-%m-%dT%H:%M:%S.%f%z')  # in UTC
+    local_timezone = pytz.timezone("America/Los_Angeles")  # assuming this is the server's timezone
     for path, name in local_paths_and_names.copy():
         if name in zenodo_file_sizes:
             zenodo_filesize = zenodo_file_sizes[name]
             local_filesize = os.path.getsize(path)
             if zenodo_filesize != local_filesize:
                 continue  # short-circuit the md5 check because we know they'll be different
+            elif skip_checksums == 'if_file_is_older':
+                local_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path))
+                if local_timezone.localize(local_mtime) < deposit_created:
+                    local_paths_and_names.remove([path, name])
+                    continue  # Just assume these files are the same and skip the checksum
             elif skip_checksums:
                 local_paths_and_names.remove([path, name])
                 continue  # Just assume these files are the same and skip the checksum

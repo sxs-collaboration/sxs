@@ -5,3 +5,4 @@ pylatexenc  # For converting unicode to latex
 lxml  # For parsing doxygen
 feedparser  # For parsing arxiv responses
 tqdm  # For nice progress bars
+pytz  # For timezone information
