@@ -181,7 +181,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     import re
     import os
     from .. import sxs_identifier_regex
-    from ..utilities import md5checksum, find_files
+    from ..utilities import md5checksum, find_files, fit_to_console
     from ..metadata import Metadata
     from .creators import known_creators, creators_emails, default_creators
     from ..references import inspire
@@ -431,18 +431,17 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
         else:
             # Otherwise this is presumably a new deposit, so we can add files directly with no trouble
             print('Uploading files to an unpublished deposit.')
-        print()
-        print('Files to delete: {0}\n'.format(names_to_delete))
-        print('Files to upload: {0}\n'.format(names_to_upload))
-        print('Files to replace: {0}\n'.format(names_to_replace))
+        print(fit_to_console(names_to_delete, 'Files to delete: ', subsequent_indent='    '))
+        print(fit_to_console(names_to_upload, 'Files to upload: ', subsequent_indent='    '))
+        print(fit_to_console(names_to_replace, 'Files to replace: ', subsequent_indent='    '))
         for name in names_to_delete:
-            print('\tDeleting {0}'.format(name))
+            print('    Deleting {0}'.format(name))
             d.delete_file(name, refresh_information=False)
         for path, name in paths_and_names_to_upload:
-            print('\tUploading {0}'.format(name))
+            print('    Uploading {0}'.format(name))
             d.upload_file(path, name=name, skip_checksum=True, refresh_information=False)
         for path, name in paths_and_names_to_replace:
-            print('\tReplacing {0}'.format(name))
+            print('    Replacing {0}'.format(name))
             d.delete_file(name, refresh_information=False)
             d.upload_file(path, name=name, skip_checksum=True, refresh_information=False)
 
