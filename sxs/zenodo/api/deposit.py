@@ -605,11 +605,13 @@ class Deposit(object):
         return r
 
     def delete_file(self, file_name, refresh_information=True):
-        file_ids = self.file_ids
-        if file_name not in file_ids:
+        matching_files = [(i, f) for i, f in enumerate(self.files) if f['filename'] == file_name]
+        if not matching_files:
             print('File name "{0}" not found on Zenodo.'.format(file_name))
             raise ValueError(file_name)
-        file_id = file_ids[file_name]
+        file_index, file = matching_files[0]
+        file_name = file['filename']
+        file_id = file['id']
         url = '{0}api/deposit/depositions/{1}/files/{2}'.format(self.base_url, self.id, file_id)
         r = self._delete(url)
         if r.status_code != 204:
@@ -628,8 +630,10 @@ class Deposit(object):
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         if refresh_information:
             self.refresh_information
+        else:
+            self.representation['files'].pop(file_index)
         return r
-        
+
     def upload_file(self, path, name=None, relpath_start=None, skip_checksum=False, refresh_information=True):
         """Upload a single file to the deposit
 
