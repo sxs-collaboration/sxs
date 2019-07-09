@@ -180,6 +180,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     """
     import re
     import os
+    import datetime
     from .. import sxs_identifier_regex
     from ..utilities import md5checksum, find_files, fit_to_console
     from ..metadata import Metadata
@@ -325,15 +326,12 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
                             creators.append({'name': '{0}, {1}'.format(last_name, first_name)})
                         else:
                             creators.append({'name': last_name})
-    # print('Creators: {0}'.format(creators))
     keywords = sorted(set(keywords) | set(d.metadata.get('keywords', [])))
-    # print('Keywords: {0}'.format(keywords))
     if not description:
         description = d.metadata.get('description', '')
         if not description:
             spec_url = "https://www.black-holes.org/code/SpEC.html"
             description = default_description.format(spec_url)
-    # print('Description: {0}'.format(description))
     communities = d.metadata.get('communities', [])
     if 'sxs' not in [c['identifier'] for c in communities]:
         communities.append({'identifier': 'sxs'})
@@ -353,14 +351,8 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
         'creators': creators,
         'related_identifiers': related_identifiers,
     }
-    # print('New metadata: {0}'.format(new_metadata))
     metadata = d.metadata.copy()
     metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
-    # import dictdiffer
-    # for diff in list(dictdiffer.diff(metadata, d.metadata)):
-    #     print(diff)
-    # print('metadata:', metadata)
-    # print('d.metadata:', d.metadata)
     unchanged_metadata = (metadata == d.metadata)
     if unchanged_metadata:
         print('No zenodo metadata changed.')
@@ -431,6 +423,12 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
         else:
             # Otherwise this is presumably a new deposit, so we can add files directly with no trouble
             print('Uploading files to an unpublished deposit.')
+        # Set the new publication_date
+        publication_date = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+        metadata = d.metadata.copy()
+        metadata.update({'publication_date': publication_date})
+        d.update_metadata(metadata)
+        # Make the changes to the files
         print(fit_to_console(names_to_delete, 'Files to delete: ', subsequent_indent='    '))
         print(fit_to_console(names_to_upload, 'Files to upload: ', subsequent_indent='    '))
         print(fit_to_console(names_to_replace, 'Files to replace: ', subsequent_indent='    '))
