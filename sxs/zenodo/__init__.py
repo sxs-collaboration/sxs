@@ -427,7 +427,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
         publication_date = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
         metadata = d.metadata.copy()
         metadata.update({'publication_date': publication_date})
-        d.update_metadata(metadata)
+        d.update_metadata(metadata, refresh_information=False)
         # Make the changes to the files
         print(fit_to_console(names_to_delete, 'Files to delete: ', subsequent_indent='    '))
         print(fit_to_console(names_to_upload, 'Files to upload: ', subsequent_indent='    '))
