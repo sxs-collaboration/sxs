@@ -309,10 +309,10 @@ class Metadata(collections.OrderedDict):
     def add_standard_parameters(self, raise_on_errors=False):
         """Add standard parameters that aren't included in the default metadata fields
 
-        New parameters include 'object_types', 'initial_mass_ratio', and 'relaxed_mass_ratio'.  If
-        'relaxed_dimensionless_spin*' are not present, but the parameters necessary to compute them
-        are, they are also added.  Finally, we also add 'relaxed_chi_eff', 'relaxed_chi1_perp', and
-        'relaxed_chi2_perp'.
+        New parameters include 'object_types', 'initial_mass_ratio', and 'reference_mass_ratio'.  If
+        'reference_dimensionless_spin*' are not present, but the parameters necessary to compute them
+        are, they are also added.  Finally, we also add 'reference_chi_eff', 'reference_chi1_perp', and
+        'reference_chi2_perp'.
 
         """
         import numpy as np
@@ -325,24 +325,24 @@ class Metadata(collections.OrderedDict):
             except:
                 if raise_on_errors:
                     raise
-        if 'relaxed_mass1' in self and 'relaxed_mass2' in self:
+        if 'reference_mass1' in self and 'reference_mass2' in self:
             try:
-                mass_ratio = float(self['relaxed_mass1']) / float(self['relaxed_mass2'])
-                self['relaxed_mass_ratio'] = mass_ratio
+                mass_ratio = float(self['reference_mass1']) / float(self['reference_mass2'])
+                self['reference_mass_ratio'] = mass_ratio
             except:
                 if raise_on_errors:
                     raise
-        if 'relaxed_dimensionless_spin1' not in self:
-            if 'relaxed_spin1' in self and 'relaxed_mass1' in self:
+        if 'reference_dimensionless_spin1' not in self:
+            if 'reference_spin1' in self and 'reference_mass1' in self:
                 try:
-                    self['relaxed_dimensionless_spin1'] = list(np.array(self['relaxed_spin1']) / self['relaxed_mass1']**2)
+                    self['reference_dimensionless_spin1'] = list(np.array(self['reference_spin1']) / self['reference_mass1']**2)
                 except:
                     if raise_on_errors:
                         raise
-        if 'relaxed_dimensionless_spin2' not in self:
-            if 'relaxed_spin2' in self and 'relaxed_mass2' in self:
+        if 'reference_dimensionless_spin2' not in self:
+            if 'reference_spin2' in self and 'reference_mass2' in self:
                 try:
-                    self['relaxed_dimensionless_spin2'] = list(np.array(self['relaxed_spin2']) / self['relaxed_mass2']**2)
+                    self['reference_dimensionless_spin2'] = list(np.array(self['reference_spin2']) / self['reference_mass2']**2)
                 except:
                     if raise_on_errors:
                         raise
@@ -360,22 +360,22 @@ class Metadata(collections.OrderedDict):
                 except:
                     if raise_on_errors:
                         raise
-        if ('relaxed_mass1' in self and 'relaxed_mass2' in self and 'relaxed_orbital_frequency' in self
-            and 'relaxed_dimensionless_spin1' in self and 'relaxed_dimensionless_spin2' in self):
+        if ('reference_mass1' in self and 'reference_mass2' in self and 'reference_orbital_frequency' in self
+            and 'reference_dimensionless_spin1' in self and 'reference_dimensionless_spin2' in self):
                 try:
-                    m1 = float(self['relaxed_mass1'])
-                    m2 = float(self['relaxed_mass2'])
-                    chi1 = np.array(self['relaxed_dimensionless_spin1'], dtype=float)
-                    chi2 = np.array(self['relaxed_dimensionless_spin2'], dtype=float)
-                    L = np.array(self['relaxed_orbital_frequency'], dtype=float)
+                    m1 = float(self['reference_mass1'])
+                    m2 = float(self['reference_mass2'])
+                    chi1 = np.array(self['reference_dimensionless_spin1'], dtype=float)
+                    chi2 = np.array(self['reference_dimensionless_spin2'], dtype=float)
+                    L = np.array(self['reference_orbital_frequency'], dtype=float)
                     L /= np.linalg.norm(L)
                     chi1L = np.dot(chi1, L)
                     chi2L = np.dot(chi2, L)
                     chi1perp = np.cross(chi1, L)
                     chi2perp = np.cross(chi2, L)
-                    self['relaxed_chi_eff'] = (m1*chi1L+m2*chi2L)/(m1+m2)
-                    self['relaxed_chi1_perp'] = np.linalg.norm(chi1perp)
-                    self['relaxed_chi2_perp'] = np.linalg.norm(chi2perp)
+                    self['reference_chi_eff'] = (m1*chi1L+m2*chi2L)/(m1+m2)
+                    self['reference_chi1_perp'] = np.linalg.norm(chi1perp)
+                    self['reference_chi2_perp'] = np.linalg.norm(chi2perp)
                 except:
                     if raise_on_errors:
                         raise
@@ -406,17 +406,17 @@ class Metadata(collections.OrderedDict):
                 'eos',
                 'object_types',
                 'number_of_orbits',
-                'relaxed_mass_ratio',
-                'relaxed_chi_eff',
-                'relaxed_chi1_perp',
-                'relaxed_chi2_perp',
-                'relaxed_eccentricity',
-                'relaxed_dimensionless_spin1',
-                'relaxed_dimensionless_spin2',
-                'relaxed_orbital_frequency',
-                'relaxed_mass1',
-                'relaxed_mass2',
-                'relaxed.*',
+                'reference_mass_ratio',
+                'reference_chi_eff',
+                'reference_chi1_perp',
+                'reference_chi2_perp',
+                'reference_eccentricity',
+                'reference_dimensionless_spin1',
+                'reference_dimensionless_spin2',
+                'reference_orbital_frequency',
+                'reference_mass1',
+                'reference_mass2',
+                'reference.*',
             ]
         original_keys = list(self)
         new = type(self)()
@@ -527,8 +527,8 @@ class Metadata(collections.OrderedDict):
 #                   + "Masses: {2}, {3}\n"
 #                   + "Spins: {4},\n       {5}\n")
 #         return string.format(self.get('simulation_name'), self.get('alternative_names'),
-#                              self.get('relaxed_mass1'), self.get('relaxed_mass2'),
-#                              self.get('relaxed_spin1'), self.get('relaxed_spin2'))
+#                              self.get('reference_mass1'), self.get('reference_mass2'),
+#                              self.get('reference_spin1'), self.get('reference_spin2'))
 
 #     def _repr_html_(self):
 #         """Return a string representation of this object to appear in jupyter notebooks"""
@@ -537,5 +537,5 @@ class Metadata(collections.OrderedDict):
 #                   + "Masses: {2}, {3}<br/>\n"
 #                   + "Spins:<br/>\n&nbsp;&nbsp;&nbsp;&nbsp;{4},<br/>\n&nbsp;&nbsp;&nbsp;&nbsp;{5}\n")
 #         return string.format(self.get('simulation_name'), self.get('alternative_names'),
-#                              self.get('relaxed_mass1'), self.get('relaxed_mass2'),
-#                              self.get('relaxed_spin1'), self.get('relaxed_spin2'))
+#                              self.get('reference_mass1'), self.get('reference_mass2'),
+#                              self.get('reference_spin1'), self.get('reference_spin2'))

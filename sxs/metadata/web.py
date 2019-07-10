@@ -114,10 +114,10 @@ def create_web_files(catalog_root_directory='.',
                             m += [('initial_mass_ratio', metadata[k]/metadata['initial_mass2'])]
                         except:
                             pass
-                if k == 'relaxed_mass1':  # Insert mass ratio first
-                    if 'relaxed_mass2' in metadata:
+                if k == 'reference_mass1':  # Insert mass ratio first
+                    if 'reference_mass2' in metadata:
                         try:
-                            m += [('relaxed_mass_ratio', metadata[k]/metadata['relaxed_mass2'])]
+                            m += [('reference_mass_ratio', metadata[k]/metadata['reference_mass2'])]
                         except:
                             pass
                 m += [(k, v)]
