@@ -373,6 +373,7 @@ def update(login=None, path='~/.sxs/catalog/private_catalog.json', verbosity=1,
     """
     from os.path import expanduser, join, dirname, exists
     import json
+    from . import Login
 
     # Make sure that the catalog file exists
     path = expanduser(path)
