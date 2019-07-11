@@ -4,9 +4,12 @@ Documentation can be found here: <https://inspirehep.net/info/hep/api>
 
 """
 
+from functools import lru_cache
+
 api_url = "https://inspirehep.net/search"
 
 
+@lru_cache
 def query(pattern, output_format='recjson', output_tags=None, records_in_groups_of=None, jump_to_records=None):
     """Search the INSPIRE database
 
@@ -179,7 +182,6 @@ def map_bibtex_keys_to_doi(bibtex_keys):
         if bibtex_key and doi
     }
     return mapping
-
 
 
 def map_bibtex_keys_to_identifiers(bibtex_keys):
