@@ -117,29 +117,29 @@ catalog_file_description = """
                 'initial_data_type': '<type>',  # Something like 'BBH_CFMS'
                 'object_types': '<type>',  # Currently 'BHBH', 'BHNS', or 'NSNS'
                 'number_of_orbits': <number>,  # This is a float, rather than an integer
-                'relaxed_mass_ratio': <q>,  # Usually greater than 1 (exceptions are due to junk radiation)
-                'relaxed_chi_eff': <chi_eff>,  # Dimensionless effective spin quantity
-                'relaxed_chi1_perp': <chi1_perp>,  # Magnitude of component of chi1 orthogonal to 'relaxed_orbital_frequency'
-                'relaxed_chi2_perp': <chi2_perp>,  # Magnitude of component of chi2 orthogonal to 'relaxed_orbital_frequency'
-                'relaxed_mass1': <m2>,
-                'relaxed_mass2': <m1>,
-                'relaxed_dimensionless_spin1': [
+                'reference_mass_ratio': <q>,  # Usually greater than 1 (exceptions are due to junk radiation)
+                'reference_chi_eff': <chi_eff>,  # Dimensionless effective spin quantity
+                'reference_chi1_perp': <chi1_perp>,  # Magnitude of component of chi1 orthogonal to 'reference_orbital_frequency'
+                'reference_chi2_perp': <chi2_perp>,  # Magnitude of component of chi2 orthogonal to 'reference_orbital_frequency'
+                'reference_mass1': <m2>,
+                'reference_mass2': <m1>,
+                'reference_dimensionless_spin1': [
                     <chi1_x>,
                     <chi1_y>,
                     <chi1_z>
                 ],
-                'relaxed_dimensionless_spin2': [
+                'reference_dimensionless_spin2': [
                     <chi2_x>,
                     <chi2_y>,
                     <chi2_z>
                 ],
-                'relaxed_eccentricity': <eccentricity>,  # A float or possibly a string containing '<' and a float
-                'relaxed_orbital_frequency': [
+                'reference_eccentricity': <eccentricity>,  # A float or possibly a string containing '<' and a float
+                'reference_orbital_frequency': [
                     <omega_x>,
                     <omega_y>,
                     <omega_z>
                 ],
-                'relaxed_measurement_time': <time>,
+                'reference_time': <time>,
                 ...
             },
             ...
@@ -274,7 +274,7 @@ def split_catalog(catalog):
     public_catalog['simulations'] = {
         sxs_id: catalog['simulations'][sxs_id]
         for sxs_id in catalog['simulations']
-        if catalog['simulations'][sxs_id]['url'] in public_conceptdoi_links
+        if catalog['simulations'][sxs_id].get('url', '') in public_conceptdoi_links
     }
     public_simulations = copy.deepcopy(public_catalog['simulations'])
     return private_catalog, private_simulations, public_catalog, public_simulations
@@ -394,14 +394,17 @@ def update(login=None, path='~/.sxs/catalog/private_catalog.json', verbosity=1,
     l = login or Login()
 
     # Get the list of all SXS records from Zenodo
-    new_records = {r['links']['conceptdoi']: r for r in l.search(q='communities:sxs')}
+    zenodo_records = {r['links']['conceptdoi']: r for r in l.search(q='communities:sxs') if 'conceptdoi' in r['links']}
 
-    # Loop through the new records, ensuring that they are all present and current in the old records
-    for r in new_records:
-        if r not in records or new_records[r].get('modified', 0) != records[r].get('modified', 1):
-            records[r] = _include_file_data(l, new_records[r])
+    # Loop through the zenodo records, ensuring that they are all present and current in the old records
+    for r in zenodo_records:
+        if r not in records or zenodo_records[r].get('modified', 0) != records[r].get('modified', 1):
+            records[r] = _include_file_data(l, zenodo_records[r])
             new_simulation = _create_simulations_skeleton([records[r],])
             simulations.update(new_simulation)
+
+    # Loop through the dictionary we just created, and download the metadata.json for each one
+    _download_sxs_metadata(l, simulations)
 
     write_split_catalogs(catalog, public_dir=public_out_dir, private_dir=private_out_dir)
     return catalog
