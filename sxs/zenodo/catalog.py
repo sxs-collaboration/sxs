@@ -406,8 +406,13 @@ def update(login=None, path='~/.sxs/catalog/private_catalog.json', verbosity=1,
     # Loop through the dictionary we just created, and download the metadata.json for each one
     _download_sxs_metadata(l, simulations)
 
+    # Update the modification time
+    catalog['modified'] = max(catalog['modified'], max(records[doi].get('modified', '') for doi in records))
+
+    # Write the various files
     write_split_catalogs(catalog, public_dir=public_out_dir, private_dir=private_out_dir)
-    return catalog
+
+    return
 
 
 def modification_time(representation_list):
