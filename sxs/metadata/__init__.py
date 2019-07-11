@@ -315,48 +315,56 @@ class Metadata(collections.OrderedDict):
         'reference_chi2_perp'.
 
         """
+        import math
         import numpy as np
+        def stringify_nan(number):
+            if math.isnan(number):
+                return "NaN"
+            else:
+                return number
+        def stringify_nans(array):
+            return [stringify_nan(number) for number in array]
         if 'object1' in self and 'object2' in self:
             self['object_types'] = ''.join(sorted([self['object1'].upper(), self['object2'].upper()]))
         if 'initial_mass1' in self and 'initial_mass2' in self:
             try:
                 mass_ratio = float(self['initial_mass1']) / float(self['initial_mass2'])
-                self['initial_mass_ratio'] = mass_ratio
+                self['initial_mass_ratio'] = stringify_nan(mass_ratio)
             except:
                 if raise_on_errors:
                     raise
         if 'reference_mass1' in self and 'reference_mass2' in self:
             try:
                 mass_ratio = float(self['reference_mass1']) / float(self['reference_mass2'])
-                self['reference_mass_ratio'] = mass_ratio
+                self['reference_mass_ratio'] = stringify_nan(mass_ratio)
             except:
                 if raise_on_errors:
                     raise
         if 'reference_dimensionless_spin1' not in self:
             if 'reference_spin1' in self and 'reference_mass1' in self:
                 try:
-                    self['reference_dimensionless_spin1'] = list(np.array(self['reference_spin1']) / self['reference_mass1']**2)
+                    self['reference_dimensionless_spin1'] = stringify_nans(np.array(self['reference_spin1']) / self['reference_mass1']**2)
                 except:
                     if raise_on_errors:
                         raise
         if 'reference_dimensionless_spin2' not in self:
             if 'reference_spin2' in self and 'reference_mass2' in self:
                 try:
-                    self['reference_dimensionless_spin2'] = list(np.array(self['reference_spin2']) / self['reference_mass2']**2)
+                    self['reference_dimensionless_spin2'] = stringify_nans(np.array(self['reference_spin2']) / self['reference_mass2']**2)
                 except:
                     if raise_on_errors:
                         raise
         if 'initial_dimensionless_spin1' not in self:
             if 'initial_spin1' in self and 'initial_mass1' in self:
                 try:
-                    self['initial_dimensionless_spin1'] = list(np.array(self['initial_spin1']) / self['initial_mass1']**2)
+                    self['initial_dimensionless_spin1'] = stringify_nans(np.array(self['initial_spin1']) / self['initial_mass1']**2)
                 except:
                     if raise_on_errors:
                         raise
         if 'initial_dimensionless_spin2' not in self:
             if 'initial_spin2' in self and 'initial_mass2' in self:
                 try:
-                    self['initial_dimensionless_spin2'] = list(np.array(self['initial_spin2']) / self['initial_mass2']**2)
+                    self['initial_dimensionless_spin2'] = stringify_nans(np.array(self['initial_spin2']) / self['initial_mass2']**2)
                 except:
                     if raise_on_errors:
                         raise
@@ -373,9 +381,9 @@ class Metadata(collections.OrderedDict):
                     chi2L = np.dot(chi2, L)
                     chi1perp = np.cross(chi1, L)
                     chi2perp = np.cross(chi2, L)
-                    self['reference_chi_eff'] = (m1*chi1L+m2*chi2L)/(m1+m2)
-                    self['reference_chi1_perp'] = np.linalg.norm(chi1perp)
-                    self['reference_chi2_perp'] = np.linalg.norm(chi2perp)
+                    self['reference_chi_eff'] = stringify_nan((m1*chi1L+m2*chi2L)/(m1+m2))
+                    self['reference_chi1_perp'] = stringify_nan(np.linalg.norm(chi1perp))
+                    self['reference_chi2_perp'] = stringify_nan(np.linalg.norm(chi2perp))
                 except:
                     if raise_on_errors:
                         raise
