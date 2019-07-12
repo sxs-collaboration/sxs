@@ -350,7 +350,8 @@ def write_split_catalogs(catalog, public_dir='~/.sxs/catalog/', private_dir='~/.
 
 
 def update(login=None, path='~/.sxs/catalog/private_catalog.json',
-           public_out_dir='~/.sxs/catalog/', private_out_dir='~/.sxs/catalog/', nginx_map_dir='~/.sxs/catalog/'):
+           public_out_dir='~/.sxs/catalog/', private_out_dir='~/.sxs/catalog/',
+           nginx_map_file_path='~/.sxs/catalog/sxs_to_zenodo.map'):
     """Update a local copy of the SXS catalog from Zenodo
 
     Note: This function works in place, by overwriting the input catalog file, as well as the other
@@ -368,7 +369,7 @@ def update(login=None, path='~/.sxs/catalog/private_catalog.json',
     private_out_dir: str, optional [defaults to '~/.sxs/catalog/']
         These are passed to the `save_split_catalogs` function; see that function's docstring for
         details.
-    nginx_map_dir: str, optional [defaults to '~/.sxs/catalog/']
+    nginx_map_file_path: str, optional [defaults to '~/.sxs/catalog/sxs_to_zenodo.map']
         This is passed to the `nginx_map` function, which produces a map file to be used by nginx to
         redirect requests for, e.g., https://data.black-holes.org/SXS:BBH:0001 to the appropriate
         Zenodo concept-doi page.
@@ -420,7 +421,7 @@ def update(login=None, path='~/.sxs/catalog/private_catalog.json',
     # Update the SXS-to-zenodo map
     sxs_id_to_conceptrecid = {sxsid: doi.replace('https://doi.org/10.5281/zenodo.', '')
                               for doi in records for sxsid in [sxs_id(records[doi]['title'])] if sxsid}
-    nginx_map(sxs_id_to_conceptrecid, nginx_map_dir)
+    nginx_map(sxs_id_to_conceptrecid, nginx_map_file_path)
 
     return
 
