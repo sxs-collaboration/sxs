@@ -307,7 +307,9 @@ def write_split_catalogs(catalog, public_dir='~/.sxs/catalog/', private_dir='~/.
         directories are the same, these are set to 'public_' and 'private_', respectively.
 
     """
+    import os
     from os.path import expanduser, normpath, join, exists, dirname
+    from datetime import datetime
     import json
 
     def mkdirs(path):
@@ -347,6 +349,19 @@ def write_split_catalogs(catalog, public_dir='~/.sxs/catalog/', private_dir='~/.
         json.dump(private_catalog, f, indent=2, separators=(',', ': '), ensure_ascii=True)
     with open(private_simulations_path, 'w') as f:
         json.dump(private_simulations, f, indent=None, separators=(',', ':'), ensure_ascii=True)
+
+    public_modified = max(public_catalog['records'][doi].get('modified', '') for doi in public_catalog['records'])
+    private_modified = max(private_catalog['records'][doi].get('modified', '') for doi in private_catalog['records'])
+    if public_modified:
+        public_modified = datetime.timestamp(public_modified)
+        times = (public_modified, public_modified)
+        os.utime(public_catalog_path, times)
+        os.utime(public_simulations_path, times)
+    if private_modified:
+        private_modified = datetime.timestamp(private_modified)
+        times = (private_modified, private_modified)
+        os.utime(private_catalog_path, times)
+        os.utime(private_simulations_path, times)
 
 
 def update(login=None, path='~/.sxs/catalog/private_catalog.json',
@@ -402,26 +417,29 @@ def update(login=None, path='~/.sxs/catalog/private_catalog.json',
     zenodo_records = {r['links']['conceptdoi']: r for r in l.search(q='communities:sxs') if 'conceptdoi' in r['links']}
 
     # Loop through the zenodo records, ensuring that they are all present and current in the old records
+    catalog_changed = False
     for r in zenodo_records:
         if r not in records or zenodo_records[r].get('modified', 0) != records[r].get('modified', 1):
             records[r] = _include_file_data(l, zenodo_records[r])
             new_simulation = _create_simulations_skeleton([records[r],])
             simulations.update(new_simulation)
+            catalog_changed = True
 
-    # Loop through the dictionary we just created, and download the metadata.json for each one
-    _download_sxs_metadata(l, simulations)
+    if catalog_changed:
+        # Loop through the dictionary we just created, and download the metadata.json for each one
+        _download_sxs_metadata(l, simulations)
 
-    # Update the modification time
-    catalog['modified'] = max(catalog['modified'], max(records[doi].get('modified', '') for doi in records))
+        # Update the modification time
+        catalog['modified'] = max(catalog['modified'], max(records[doi].get('modified', '') for doi in records))
 
-    # Write the various catalog files
-    write_split_catalogs(catalog, public_dir=public_out_dir, private_dir=private_out_dir,
-                         public_prefix='public_', private_prefix = 'private_')
+        # Write the various catalog files
+        write_split_catalogs(catalog, public_dir=public_out_dir, private_dir=private_out_dir,
+                             public_prefix='public_', private_prefix = 'private_')
 
-    # Update the SXS-to-zenodo map
-    sxs_id_to_conceptrecid = {sxsid: doi.replace('https://doi.org/10.5281/zenodo.', '')
-                              for doi in records for sxsid in [sxs_id(records[doi]['title'])] if sxsid}
-    nginx_map(sxs_id_to_conceptrecid, nginx_map_file_path)
+        # Update the SXS-to-zenodo map
+        sxs_id_to_conceptrecid = {sxsid: doi.replace('https://doi.org/10.5281/zenodo.', '')
+                                  for doi in records for sxsid in [sxs_id(records[doi]['title'])] if sxsid}
+        nginx_map(sxs_id_to_conceptrecid, nginx_map_file_path)
 
     return
 
