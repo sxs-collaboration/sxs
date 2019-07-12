@@ -280,7 +280,8 @@ def split_catalog(catalog):
     return private_catalog, private_simulations, public_catalog, public_simulations
 
 
-def write_split_catalogs(catalog, public_dir='~/.sxs/catalog/', private_dir='~/.sxs/catalog/'):
+def write_split_catalogs(catalog, public_dir='~/.sxs/catalog/', private_dir='~/.sxs/catalog/',
+                         public_prefix='', private_prefix=''):
     """Write four versions of the catalog to files
 
     The input catalog is first split into four parts by `split_catalog` (see that function's
@@ -300,6 +301,10 @@ def write_split_catalogs(catalog, public_dir='~/.sxs/catalog/', private_dir='~/.
         Absolute or relative paths to the directory in which the files will be written.  If they do
         not exist, they will be created.  Note that, as explained above, the output file names will
         depend on whether these two arguments are the same or different.
+    public_prefix: str, optional [defaults to '']
+    private_prefix: str, optional [defaults to '']
+        Strings to be prepended to the output file names.  If these are empty strings but the output
+        directories are the same, these are set to 'public_' and 'private_', respectively.
 
     """
     from os.path import expanduser, normpath, join, exists, dirname
@@ -323,11 +328,10 @@ def write_split_catalogs(catalog, public_dir='~/.sxs/catalog/', private_dir='~/.
     mkdirs(private_dir)
 
     if public_dir == private_dir:
-        public_prefix = 'public_'
-        private_prefix = 'private_'
-    else:
-        public_prefix = ''
-        private_prefix = ''
+        if not public_prefix:
+            public_prefix = 'public_'
+        if not private_prefix:
+            private_prefix = 'private_'
     
     private_catalog, private_simulations, public_catalog, public_simulations = split_catalog(catalog)
 
@@ -410,7 +414,8 @@ def update(login=None, path='~/.sxs/catalog/private_catalog.json',
     catalog['modified'] = max(catalog['modified'], max(records[doi].get('modified', '') for doi in records))
 
     # Write the various catalog files
-    write_split_catalogs(catalog, public_dir=public_out_dir, private_dir=private_out_dir)
+    write_split_catalogs(catalog, public_dir=public_out_dir, private_dir=private_out_dir,
+                         public_prefix='public_', private_prefix = 'private_')
 
     # Update the SXS-to-zenodo map
     sxs_id_to_conceptrecid = {sxsid: doi.replace('https://doi.org/10.5281/zenodo.', '')
