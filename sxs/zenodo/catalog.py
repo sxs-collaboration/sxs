@@ -345,8 +345,8 @@ def write_split_catalogs(catalog, public_dir='~/.sxs/catalog/', private_dir='~/.
         json.dump(private_simulations, f, indent=None, separators=(',', ':'), ensure_ascii=True)
 
 
-def update(login=None, path='~/.sxs/catalog/private_catalog.json', verbosity=1,
-           public_out_dir='~/.sxs/catalog/', private_out_dir='~/.sxs/catalog/'):
+def update(login=None, path='~/.sxs/catalog/private_catalog.json',
+           public_out_dir='~/.sxs/catalog/', private_out_dir='~/.sxs/catalog/', nginx_map_dir='~/.sxs/catalog/'):
     """Update a local copy of the SXS catalog from Zenodo
 
     Note: This function works in place, by overwriting the input catalog file, as well as the other
@@ -360,20 +360,20 @@ def update(login=None, path='~/.sxs/catalog/private_catalog.json', verbosity=1,
         Absolute or relative path to JSON file containing the complete catalog.  If the path does
         not end with '.json', it is assumed to be a directory containing a 'catalog.json' or
         'private_catalog.json' file.
-    verbosity: int, optional [defaults to 1]
-        Amount of information to output.  Less than 1 corresponds to no output; 1 to only print a
-        notice if the private file cannot be retrieved; greater than 1 to print a notice about
-        wherever the file is retrieved; greater than 2 shows the stdout/stderr from external calls;
-        and greater than 3 also asks git to be verbose.
     public_out_dir: str, optional [defaults to '~/.sxs/catalog/']
     private_out_dir: str, optional [defaults to '~/.sxs/catalog/']
         These are passed to the `save_split_catalogs` function; see that function's docstring for
         details.
+    nginx_map_dir: str, optional [defaults to '~/.sxs/catalog/']
+        This is passed to the `nginx_map` function, which produces a map file to be used by nginx to
+        redirect requests for, e.g., https://data.black-holes.org/SXS:BBH:0001 to the appropriate
+        Zenodo concept-doi page.
 
     """
     from os.path import expanduser, join, dirname, exists
     import json
     from . import Login
+    from .. import sxs_id
 
     # Make sure that the catalog file exists
     path = expanduser(path)
@@ -409,8 +409,13 @@ def update(login=None, path='~/.sxs/catalog/private_catalog.json', verbosity=1,
     # Update the modification time
     catalog['modified'] = max(catalog['modified'], max(records[doi].get('modified', '') for doi in records))
 
-    # Write the various files
+    # Write the various catalog files
     write_split_catalogs(catalog, public_dir=public_out_dir, private_dir=private_out_dir)
+
+    # Update the SXS-to-zenodo map
+    sxs_id_to_conceptrecid = {sxsid: doi.replace('https://doi.org/10.5281/zenodo.', '')
+                              for doi in records for sxsid in [sxs_id(records[doi]['title'])] if sxsid}
+    nginx_map(sxs_id_to_conceptrecid, nginx_map_dir)
 
     return
 
@@ -486,7 +491,7 @@ def nginx_map(sxs_id_to_conceptrecid, map_file_path=None):
     else:
         map_file_path = expanduser(map_file_path)
     # Figure out how to construct the output
-    size = 64 * 2**math.ceil(math.log2(len(sxs_id_to_doi_url)+1))  # nginx needs this to know the hash size
+    size = 64 * 2**math.ceil(math.log2(len(sxs_id_to_conceptrecid)+1))  # nginx needs this to know the hash size
     record_string = "  {0} {1};\n"
     # Construct the output
     with open(map_file_path, 'w') as f:
