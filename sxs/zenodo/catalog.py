@@ -353,12 +353,12 @@ def write_split_catalogs(catalog, public_dir='~/.sxs/catalog/', private_dir='~/.
     public_modified = max(public_catalog['records'][doi].get('modified', '') for doi in public_catalog['records'])
     private_modified = max(private_catalog['records'][doi].get('modified', '') for doi in private_catalog['records'])
     if public_modified:
-        public_modified = datetime.timestamp(datetime.strptime(public_modified, '%Y-%m-%dT%H:%M:%S.%f'))
+        public_modified = int(datetime.timestamp(datetime.strptime(public_modified, '%Y-%m-%dT%H:%M:%S.%f')))
         times = (public_modified, public_modified)
         os.utime(public_catalog_path, times)
         os.utime(public_simulations_path, times)
     if private_modified:
-        private_modified = datetime.timestamp(datetime.strptime(private_modified, '%Y-%m-%dT%H:%M:%S.%f'))
+        private_modified = int(datetime.timestamp(datetime.strptime(private_modified, '%Y-%m-%dT%H:%M:%S.%f')))
         times = (private_modified, private_modified)
         os.utime(private_catalog_path, times)
         os.utime(private_simulations_path, times)
