@@ -9,7 +9,7 @@ from functools import lru_cache
 api_url = "https://inspirehep.net/search"
 
 
-@lru_cache
+@lru_cache()
 def query(pattern, output_format='recjson', output_tags=None, records_in_groups_of=None, jump_to_records=None):
     """Search the INSPIRE database
 
