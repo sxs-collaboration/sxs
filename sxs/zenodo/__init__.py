@@ -278,6 +278,9 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
             d = l.deposit(deposition_id=None, ignore_deletion=ignore_deletion)
     print('Working on deposit "{0}"'.format(title))
 
+    # Get the time at which this original deposit was created, for possible comparison to file times below
+    deposit_created = datetime.datetime.strptime(d.representation['created'], '%Y-%m-%dT%H:%M:%S.%f%z')  # in UTC
+
     # Convert each metadata.txt file to a metadata.json file sorted with interesting stuff at the
     # top of the file, so it appears prominently on Zenodo's preview without scrolling.  Do this
     # before checking for new files in case these are new or get changed in the process.
@@ -386,7 +389,6 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     zenodo_file_sizes = d.file_sizes  # formatted as {filename: size_in_bytes}
     zenodo_file_checksums = d.file_checksums  # formatted as {filename: md5checksum}
     print('Comparing sizes and MD5 checksums')
-    deposit_created = datetime.datetime.strptime(d.representation['created'], '%Y-%m-%dT%H:%M:%S.%f%z')  # in UTC
     local_timezone = pytz.timezone("America/Los_Angeles")  # assuming this is the server's timezone
     for path, name in local_paths_and_names.copy():
         if name in zenodo_file_sizes:
