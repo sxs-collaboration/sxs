@@ -28,6 +28,7 @@ def sync(annex_dir='./', lock_file_path='~/.sxs/zenodo_simannex_sync.lock', verb
     import contextlib
     import sys
     import io
+    import time
     import os.path
     import traceback
     import tqdm
@@ -68,6 +69,7 @@ def sync(annex_dir='./', lock_file_path='~/.sxs/zenodo_simannex_sync.lock', verb
         for root, access_right in directories_and_permissions:
             simulation_directories = find_simulation_directories(os.path.join(annex_dir, root))
             for simulation_directory in progress(simulation_directories):
+                time.sleep(0.1)  # Allow for possible keyboard interrupt from this whole loop
                 verbose_string = io.StringIO()
                 try:
                      with verbosity_manager(verbose_string):
@@ -79,9 +81,9 @@ def sync(annex_dir='./', lock_file_path='~/.sxs/zenodo_simannex_sync.lock', verb
                         continue
                     if verbosity < 1:
                         print(verbose_string.getvalue())
-                    print("Failed in", simulation_directory)
+                    print("Interrupted in", simulation_directory)
                     print('\n')
-                    raise
+                    continue
                 except Exception as e:
                     if verbosity < 0:
                         continue
