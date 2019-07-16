@@ -181,12 +181,12 @@ class Deposit(object):
         However, 'inprogress' seems to have been replaced by 'unsubmitted'.
 
         """
-        return self.representation['state']
+        return self.representation.get('state', 'error')
     
     @property
     def submitted(self):
         """Return True if this deposit has been submitted/published"""
-        return bool(self.representation['submitted'])
+        return bool(self.representation.get('submitted', False))
     
     @property
     def published(self):
@@ -196,7 +196,7 @@ class Deposit(object):
     @property
     def is_latest(self):
         """Return True if this deposit is the most recent version"""
-        return (self.links['latest'] == self.links['record'])
+        return (self.links.get('latest', 1) == self.links.get('record', 2))
 
     def get_latest(self):
         """Return a new Deposit object pointing to the latest version of this deposit
