@@ -86,13 +86,22 @@ def related_identifier_formatter(identifier, relation='isSupplementTo', scheme='
     """Convert an identifier to a representation acceptable to Zenodo (INCOMPLETE)
 
     NOTE: Because of missing documentation, this function is likely incomplete.  In particular, the
-    scheme is assumed to be 'url' for everything except simple DOI URLs, which are converted.  It is
-    unclear what Zenodo actually converts, and how.
+    scheme is assumed to be 'url' for everything except simple DOI URLs and arXiv links, which are
+    converted.  It is unclear what Zenodo else actually converts, and how.
 
     """
     if 'https://dx.doi.org/' in identifier:
         identifier = identifier.replace('https://dx.doi.org/', '')
         scheme = 'doi'
+    elif identifier.lower().startswith('arxiv:'):
+        identifier = 'arXiv:' + identifier[6:]
+        scheme = 'arxiv'
+    elif identifier.startswith('https://arxiv.org/'):
+        identifier = 'arXiv:'+identifier.replace('https://arxiv.org/abs/', '').replace('https://arxiv.org/pdf/', '').replace('https://arxiv.org/', '')
+        scheme = 'arxiv'
+    elif identifier.startswith('http://arxiv.org/'):
+        identifier = 'arXiv:'+identifier.replace('http://arxiv.org/abs/', '').replace('http://arxiv.org/pdf/', '').replace('http://arxiv.org/', '')
+        scheme = 'arxiv'
     return {
         'identifier': identifier,
         'relation': relation,
@@ -355,8 +364,9 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
         'description': description,
         'keywords': keywords,
         'creators': creators,
-        'related_identifiers': related_identifiers,
     }
+    if related_identifiers:
+        new_metadata['related_identifiers'] = related_identifiers
     metadata = d.metadata.copy()
     metadata.update(new_metadata)  # Ensure that fields we haven't changed are still present
     unchanged_metadata = (metadata == d.metadata)
