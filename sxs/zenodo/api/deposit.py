@@ -191,7 +191,7 @@ class Deposit(object):
     @property
     def published(self):
         """Return True if this deposit has been submitted/published"""
-        return self.submitted
+        return self.submitted and self.state=='done'
 
     @property
     def is_latest(self):
