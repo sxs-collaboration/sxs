@@ -215,7 +215,7 @@ class Login(object):
         from .deposit import Deposit
         return Deposit(self, deposition_id, ignore_deletion)
 
-    def search(self, q=None, sort=None, page=1, size=1000, all_versions=False, max_pages=10):
+    def search(self, q=None, status=None, sort=None, page=1, size=1000, all_versions=False, max_pages=10):
         """Return list of dictionaries describing each deposit created with this login
 
         It is possible to filter the results use the optional parameters.  Note that the web interface
@@ -234,6 +234,8 @@ class Login(object):
         q: string
             Search query, using Elasticsearch query string syntax.  See
             https://help.zenodo.org/guides/search/ for details.
+        status: string, either 'draft' or 'published' [optional]
+            Filter result based on deposit status.
         sort: string
             Sort order ('bestmatch' or 'mostrecent').  Prefix with minus to change from ascending to
             descending (e.g., '-mostrecent').
@@ -255,7 +257,9 @@ class Login(object):
         params={}
         if q is not None:
             params['q'] = q
-        if sort is not None:
+        if status is not None and status in ['draft', 'published']:
+            params['status'] = status
+        if sort is not None and sort in ['bestmatch', 'mostrecent', '-bestmatch', '-mostrecent']:
             params['sort'] = sort
         params['page'] = page
         params['size'] = size
