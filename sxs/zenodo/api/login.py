@@ -231,23 +231,23 @@ class Login(object):
 
         Optional parameters
         ===================
-        q: string
+        q: string [optional]
             Search query, using Elasticsearch query string syntax.  See
             https://help.zenodo.org/guides/search/ for details.
         status: string, either 'draft' or 'published' [optional]
             Filter result based on deposit status.
-        sort: string
+        sort: string [optional]
             Sort order ('bestmatch' or 'mostrecent').  Prefix with minus to change from ascending to
             descending (e.g., '-mostrecent').
-        page: int
+        page: int [optional, defaults to 1]
             Page number for pagination
-        size: int
+        size: int [optional, defaults to 1000]
             Number of results to return per page.  Note that Zenodo (as of this writing) seems to
             place a hard limit of 9999 responses.  Anything more will result in an error.  Use
             multiple pages to get more results.
-        all_versions: bool [defaults to False]
+        all_versions: bool [optional, defaults to False]
             If True return all records, including older versions of published records.
-        max_pages: int [defaults to 10]
+        max_pages: int [optional, defaults to 10]
             If the query returns a number of records equal to `size`, it is evidently incomplete.
             This function will attempt to retrieve successive pages until the number of records is
             less than `size`.  If the query is still incomplete after this many pages, just return
