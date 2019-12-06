@@ -60,9 +60,19 @@ if __name__ == "__main__":
           include_package_data=True,
           version=version,
           description = 'A collection of python code used by the SXS collaboration',
-          url='https://github.com/moble/sxs',
+          url='https://github.com/sxs-collaboration/sxs',
           author='Michael Boyle',
           author_email='mob22@cornell.edu',
           long_description=long_description,
+          install_requires=[
+              'requests',  # For interacting over HTTP
+              'requests_toolbelt',  # For dumping information about requests/responses
+              'ads',  # For searching ADS via the API
+              'pylatexenc',  # For converting unicode to latex
+              'lxml',  # For parsing doxygen
+              'feedparser',  # For parsing arxiv responses
+              'tqdm',  # For nice progress bars
+              'pytz',  # For timezone information
+          ],
           # download_url = 'https://github.com/moble/sxs/archive/master.tar.gz',
     )
