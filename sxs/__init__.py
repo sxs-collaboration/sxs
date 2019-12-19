@@ -6,6 +6,7 @@ __doc__ = "A collection of python code used by the SXS collaboration"
 from ._version import __version__
 
 import sxs.doxygen
+import sxs.formats
 import sxs.metadata
 import sxs.references
 import sxs.utilities

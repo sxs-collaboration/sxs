@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2018, Michael Boyle
-# See LICENSE file for details: <https://github.com/moble/quaternion/blob/master/LICENSE>
+# Copyright (c) 2019, Simulating eXtreme Spacetimes Collaboration
+# See LICENSE file for details: <https://github.com/sxs-collaboration/sxs/blob/master/LICENSE>
 
 # Construct the version number from the date and time this python version was created.
 from os import environ
