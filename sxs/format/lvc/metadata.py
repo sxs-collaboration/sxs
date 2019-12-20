@@ -34,13 +34,13 @@ def simulation_type_from_spins(dimensionless_spin_1, dimensionless_spin_2):
     simulation_type = nonspinning_type
 
     if (abs(dimensionless_spin_1[2]) > spin_zero_threshold or
-        abs(dimensionless_spin_2[2]) > spin_zero_threshold):
+            abs(dimensionless_spin_2[2]) > spin_zero_threshold):
         simulation_type = aligned_type
 
     if (abs(dimensionless_spin_1[0]) > spin_zero_threshold or
-        abs(dimensionless_spin_2[0]) > spin_zero_threshold or
-        abs(dimensionless_spin_1[1]) > spin_zero_threshold or
-        abs(dimensionless_spin_2[1]) > spin_zero_threshold):
+            abs(dimensionless_spin_2[0]) > spin_zero_threshold or
+            abs(dimensionless_spin_1[1]) > spin_zero_threshold or
+            abs(dimensionless_spin_2[1]) > spin_zero_threshold):
         simulation_type = precessing_type
 
     return simulation_type
@@ -77,7 +77,7 @@ def find_comparable_simulations(sxs_id, catalog, catalog_resolutions):
     same_id_and_spec_revision = []
     for key in has_multiple_resolutions:
         if (catalog[key]['spec_revisions'] == catalog[sxs_id]['spec_revisions']
-            and catalog[key]['initial_data_type'] == catalog[sxs_id]['initial_data_type']):
+                and catalog[key]['initial_data_type'] == catalog[sxs_id]['initial_data_type']):
             same_id_and_spec_revision.append(key)
 
     if len(same_id_and_spec_revision) > 0:
@@ -91,8 +91,8 @@ def find_comparable_simulations(sxs_id, catalog, catalog_resolutions):
     #
     # Note: as in the previous script, here I use initial masses and spins, not
     # relaxed masses and spins.
-    mass_spin_diff_best = 1.e100
-    key_best = ""
+    mass_spin_diff_best = np.inf
+    key_best = has_multiple_resolutions[0]
     for key in has_multiple_resolutions:
         current_mass1 = catalog[key]['initial_mass1']
         current_mass2 = catalog[key]['initial_mass2']
@@ -110,7 +110,7 @@ def find_comparable_simulations(sxs_id, catalog, catalog_resolutions):
             mass_spin_diff_best = mass_spin_diff
             key_best = key
 
-    resolution_best = np.max(catalog_resolutions[key])
+    resolution_best = np.max(catalog_resolutions[key_best])
     return key_best.replace(':', '_') + "_Res" + str(resolution_best) + ".h5"
 
 
@@ -228,8 +228,7 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
         out_file.attrs['NR_peak_time'] = peak_time  # not in Patricia's script
         out_file.attrs['NR_frame'] = 'inertial'
 
-        out_file.attrs['f_lower_at_1MSUN'] = omega_grav_22 / \
-            (2.0 * np.pi * msun_seconds)
+        out_file.attrs['f_lower_at_1MSUN'] = omega_grav_22 / (2.0 * np.pi * msun_seconds)
         out_file.attrs['Omega'] = omega_orbit
         out_file.attrs['spin1x'] = dimensionless_spin1[0]
         out_file.attrs['spin1y'] = dimensionless_spin1[1]
@@ -285,7 +284,7 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
         else:
             out_file.attrs['production-run'] = 1
             out_file.attrs['files-in-error-series'] = ""
-            comparable = find_comparable_simulations(sxs_id, 
+            comparable = find_comparable_simulations(sxs_id,
                                                      catalog['simulations'],
                                                      catalog_resolutions)
             out_file.attrs['comparable-simulation'] = comparable
