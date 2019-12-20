@@ -123,19 +123,6 @@ def derived_horizon_quantities_from_sxs(sxs_horizons, start_time, peak_time):
     return n_hat_vs_time, omega_orbit_vs_time, LN_hat_vs_time, t_A, t_B, t_C
 
 
-def spline_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
-    """Prepare spline of an sxs_horizon_quantity
-
-    Passes to prepare_horizon_quantity() and returns a spline of result.
-
-    """
-    times_AH, quantity_AH = prepare_horizon_quantity(sxs_horizon_quantity, start_time, peak_time)
-    spline_AH_list = []
-    for i in range(0, len(sxs_horizon_quantity[0]) - 1):
-        spline_AH_list.append(romspline.ReducedOrderSpline(times_AH, quantity_AH[i]))
-    return np.array(spline_AH_list)
-
-
 def insert_derived_spline(spline_dictionary, spline_keys, derived_quantity, log=print):
     """Inserts a spline into a dictionary of horizon splines
 
