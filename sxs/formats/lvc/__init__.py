@@ -47,14 +47,14 @@ def convert_simulation(sxs_data_path, resolution, sxs_catalog_metadata_path,
         Path to sxs_catalog.json (via get_sxs_public_metadata.py)
     sxs_catalog_resolutions_path: string
         Path to sxs_catalog_resolutions.json
+    out_path: string
+        Path where LVC format file is to be output
     modes: '22only' or int for max l [defaults to 8]
         Modes to be placed in the output file.  Passing '22only' results
         in the (2,2) and (2,-2) modes being output.  Otherwise, each
         (l,m) mode up to and including the given l value will be output.
         Note that for backwards compatibility, 'all' is also supported,
         and is equivalent to the default value of `8`.
-    out_path: string
-        Path where LVC format file is to be output
     truncation_time: None or float [defaults to None]
         If specified, truncate time series at this time instead of at the reference time
 
