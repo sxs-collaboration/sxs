@@ -65,6 +65,8 @@ if __name__ == "__main__":
           author_email='mob22@cornell.edu',
           long_description=long_description,
           install_requires=[
+              'numpy',
+              'h5py',
               'requests',  # For interacting over HTTP
               'requests_toolbelt',  # For dumping information about requests/responses
               'ads',  # For searching ADS via the API
@@ -73,6 +75,7 @@ if __name__ == "__main__":
               'feedparser',  # For parsing arxiv responses
               'tqdm',  # For nice progress bars
               'pytz',  # For timezone information
+              'romspline',  # For LVC format
           ],
           # download_url = 'https://github.com/moble/sxs/archive/master.tar.gz',
     )

@@ -5,16 +5,6 @@ import h5py
 import romspline
 
 
-def sxs_id_from_alt_names(alt_names):
-    """Takes an array of alternative names from an SXS metadata.json file
-    and returns the SXS ID of the simulation."""
-    pattern = 'SXS'
-    if not isinstance(alt_names, (list, tuple)):
-        alt_names = [alt_names]
-    sxs_id = str(next((ss for ss in alt_names if pattern in ss), None))
-    return sxs_id
-
-
 def first_index_after_time(times, target_time):
     """Returns the index of the first time in a list of times after
     time target_time."""
@@ -83,7 +73,7 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
     extrap = str(extrapolation_order) + ".dir"
 
     if modes == "all":
-        modes = [[l,m] for l in range(2,9) for m in range(-l,l+1)]
+        modes = [[l, m] for l in range(2, 9) for m in range(-l, l+1)]
         
     log("Modes: " + str(modes))
     amps = []
@@ -93,7 +83,7 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
     # All modes have the same time, so just look at the l=m=2 mode to get
     # the times
     times = sxs_format_waveform[extrap]['Y_l2_m2.dat'][:, 0]
-    if truncation_time == None:
+    if truncation_time is None:
         start = first_index_before_reference_time(times, metadata)
     else:
         start = first_index_after_time(times, truncation_time)
@@ -113,7 +103,7 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
         phases.append(np.unwrap(np.angle(h)))
         times_list.append(times[start:] - peak)
 
-        if (l > l_max):
+        if l > l_max:
             l_max = l
 
     return modes, times_list, amps, phases, times[start], peak, l_max
@@ -157,7 +147,5 @@ def write_splines_to_H5(
             out_group_phase = out_file.create_group('phase_l%d_m%d' % (l, m))
             spline_amps[i].write(out_group_amp)
             spline_phases[i].write(out_group_phase)
-            if (l == 2 and m == 2):
+            if l == 2 and m == 2:
                 out_file.create_dataset('NRtimes', data=times[i])
-
-

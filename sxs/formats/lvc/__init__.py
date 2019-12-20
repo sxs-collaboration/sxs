@@ -9,7 +9,6 @@ and Alyssa Garcia.
 """
 
 
-
 def bbh_keys_from_simulation_keys(simulation_keys):
     """Extract BBH simulations from a list of all simulations."""
     return [simulation_key for simulation_key in simulation_keys
@@ -17,7 +16,7 @@ def bbh_keys_from_simulation_keys(simulation_keys):
 
 
 def convert_simulation(sxs_data_path, resolution, sxs_catalog_metadata_path,
-                       sxs_catalog_resolutions_path, modes=8, out_path, 
+                       sxs_catalog_resolutions_path, out_path, modes=8,
                        truncation_time=None):
     """Convert a simulation from the SXS BBH catalog into the LVC format.
     
@@ -60,10 +59,14 @@ def convert_simulation(sxs_data_path, resolution, sxs_catalog_metadata_path,
         If specified, truncate time series at this time instead of at the reference time
 
     """
-    import numpy as np
     import h5py
     import json
     import os
+
+    from .metadata import sxs_id_from_alt_names, write_metadata_from_sxs
+    from .horizons import horizon_splines_from_sxs, write_horizon_splines_from_sxs
+    from .waveforms import spline_amp_phase_from_sxs, write_splines_to_H5
+
     class Log(object):
         """Object to replace `log` function that used global `history`
 
@@ -79,7 +82,7 @@ def convert_simulation(sxs_data_path, resolution, sxs_catalog_metadata_path,
 
         """
         def __init__(self):
-            history = ""
+            self.history = ""
 
         def __call__(self, string):
             print(string)
@@ -92,12 +95,12 @@ def convert_simulation(sxs_data_path, resolution, sxs_catalog_metadata_path,
             return repr(self.history)
 
     if modes == 'all':
-        modes = [[l,m] for l in range(2,9) for m in range(-l,l+1)]
+        modes = [[l, m] for l in range(2, 9) for m in range(-l, l+1)]
     elif modes == '22only':
         modes = [[2, 2], [2, -2]]
     else:
         l_max = int(modes)
-        modes = [[l,m] for l in range(2,l_max+1) for m in range(-l,l+1)]
+        modes = [[l, m] for l in range(2, l_max+1) for m in range(-l, l+1)]
 
     log = Log()
 
@@ -135,8 +138,7 @@ def convert_simulation(sxs_data_path, resolution, sxs_catalog_metadata_path,
 
     with h5py.File(sxs_data_path + "/Horizons.h5", 'r') as horizons:
         horizon_splines_to_write, t_A, t_B, t_C = horizon_splines_from_sxs(horizons, start_time, peak_time, log)
-    write_horizon_splines_from_sxs(out_name, horizon_splines_to_write,
-                                   t_A, t_B, t_C, log)
+    write_horizon_splines_from_sxs(out_name, horizon_splines_to_write, t_A, t_B, t_C, log)
 
     write_metadata_from_sxs(out_name, resolution, metadata,
                             sxs_catalog_metadata, sxs_catalog_resolutions,

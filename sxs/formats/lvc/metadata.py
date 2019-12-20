@@ -1,8 +1,19 @@
 """Functions to convert metadata to the LVC format"""
 
 import time
+import json
 import numpy as np
 import h5py
+
+
+def sxs_id_from_alt_names(alt_names):
+    """Takes an array of alternative names from an SXS metadata.json file
+    and returns the SXS ID of the simulation."""
+    pattern = 'SXS'
+    if not isinstance(alt_names, (list, tuple)):
+        alt_names = [alt_names]
+    sxs_id = str(next((ss for ss in alt_names if pattern in ss), None))
+    return sxs_id
 
 
 def simulation_type_from_spins(dimensionless_spin_1, dimensionless_spin_2):
@@ -65,10 +76,9 @@ def find_comparable_simulations(sxs_id, catalog, catalog_resolutions):
     # initial data type and spec revision
     same_id_and_spec_revision = []
     for key in has_multiple_resolutions:
-        if catalog[key]['spec_revisions'] == catalog[sxs_id]['spec_revisions'] \
-            and catalog[key]['initial_data_type'] \
-            == catalog[sxs_id]['initial_data_type']:
-                same_id_and_spec_revision.append(key)
+        if (catalog[key]['spec_revisions'] == catalog[sxs_id]['spec_revisions']
+            and catalog[key]['initial_data_type'] == catalog[sxs_id]['initial_data_type']):
+            same_id_and_spec_revision.append(key)
 
     if len(same_id_and_spec_revision) > 0:
         has_multiple_resolutions = same_id_and_spec_revision
@@ -91,9 +101,11 @@ def find_comparable_simulations(sxs_id, catalog, catalog_resolutions):
         current_mass_ratio = current_mass1 / current_mass2
         current_spin1_magnitude = np.linalg.norm(current_spin1)
         current_spin2_magnitude = np.linalg.norm(current_spin2)
-        mass_spin_diff = np.abs(mass_ratio - current_mass_ratio) \
-                          + np.abs(spin1_magnitude - current_spin1_magnitude) \
-                          + np.abs(spin2_magnitude - current_spin2_magnitude)
+        mass_spin_diff = (
+                np.abs(mass_ratio - current_mass_ratio)
+                + np.abs(spin1_magnitude - current_spin1_magnitude)
+                + np.abs(spin2_magnitude - current_spin2_magnitude)
+        )
         if mass_spin_diff < mass_spin_diff_best:
             mass_spin_diff_best = mass_spin_diff
             key_best = key
@@ -144,7 +156,7 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
 
         # Round slightly larger mass ratios to 1
         # CHECK ME: should we do this?
-        if eta > 0.25 and eta < 0.2501:
+        if 0.25 < eta < 0.2501:
             eta = 0.25
 
         dimensionless_spin1 = metadata["reference_dimensionless_spin1"]
@@ -175,8 +187,7 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
             eccentricity = float(str(eccentricity)[1:])
         if str(eccentricity)[0] == ">":
             eccentricity = float(str(eccentricity)[1:])
-        elif str(eccentricity) == '[simulation too short]' \
-                             or str(eccentricity) == '[unknown]':
+        elif str(eccentricity) == '[simulation too short]' or str(eccentricity) == '[unknown]':
             # CHECK ME: is this the right thing to do for cases where we can't
             # measure eccentricity?
             log("Warning: eccentricity not measured for this simulation")
@@ -267,7 +278,7 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
             error_series = [error_name_base + str(i) + ".h5" for i in resolutions]
             out_file.attrs['files-in-error-series'] = ",".join(error_series)
             out_file.attrs['comparable-simulation'] = ""
-            if (resolution == np.max(resolutions)):
+            if resolution == np.max(resolutions):
                 out_file.attrs['production-run'] = 1
             else:
                 out_file.attrs['production-run'] = 0

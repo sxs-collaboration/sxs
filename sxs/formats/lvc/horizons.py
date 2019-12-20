@@ -35,8 +35,7 @@ def spline_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
     and then returns a spline of the result.
 
     """
-    times_AH, quantity_AH = prepare_horizon_quantity(sxs_horizon_quantity,
-                                                     start_time, peak_time)
+    times_AH, quantity_AH = prepare_horizon_quantity(sxs_horizon_quantity, start_time, peak_time)
     spline_AH_list = []
     for i in range(0, len(sxs_horizon_quantity[0]) - 1):
         spline_AH_list.append(
@@ -92,14 +91,14 @@ def derived_horizon_quantities_from_sxs(sxs_horizons, start_time, peak_time):
     x_A = x_A.T
     x_B = x_B.T
     n_vec = x_A-x_B
-    n_vec_norm = np.linalg.norm(n_vec,axis=-1)
-    n_hat  = n_vec/n_vec_norm[:,None]
+    n_vec_norm = np.linalg.norm(n_vec, axis=-1)
+    n_hat = n_vec/n_vec_norm[:, None]
     
     # We compute dn_vec/dt to get a velocity vector, by computing differences
     # for dn_vec and dt.
     dn_vec = np.diff(n_vec, axis=0)
     dt = np.diff(t_A)
-    dn_vec_dt = dn_vec/dt[:,None]
+    dn_vec_dt = dn_vec/dt[:, None]
 
     # The orbital frequency is the magnitude of n_vec x dn_vec/dt
     # This is just from the Newtonian expression |r x v| = r^2 \omega.
@@ -108,19 +107,19 @@ def derived_horizon_quantities_from_sxs(sxs_horizons, start_time, peak_time):
     # of points.
     r_cross_v = np.array([np.cross(n_vec[i], dn_vec_dt[i])
                           for i in range(len(dn_vec_dt))])
-    r_cross_v_norm = np.linalg.norm(r_cross_v,axis=-1)
+    r_cross_v_norm = np.linalg.norm(r_cross_v, axis=-1)
     omega_orbit = r_cross_v_norm / n_vec_norm[:-1]**2
 
     # Finally, LNhat is a unit vector in the direction of the orbital
     # angular momentum. That is, it is a unit vector in the direction of
     # r x p, which is the same direction as r x v.
-    LN_hat = r_cross_v / r_cross_v_norm[:,None]
+    LN_hat = r_cross_v / r_cross_v_norm[:, None]
               
     # Horizons.h5 stores quantities as functions of time. Append time to the
     # derived quantities.
-    n_hat_vs_time = np.c_[t_A,n_hat]
-    omega_orbit_vs_time = np.c_[t_A[:-1],omega_orbit]
-    LN_hat_vs_time = np.c_[t_A[:-1],LN_hat]
+    n_hat_vs_time = np.c_[t_A, n_hat]
+    omega_orbit_vs_time = np.c_[t_A[:-1], omega_orbit]
+    LN_hat_vs_time = np.c_[t_A[:-1], LN_hat]
     return n_hat_vs_time, omega_orbit_vs_time, LN_hat_vs_time, t_A, t_B, t_C
 
 
@@ -130,12 +129,10 @@ def spline_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
     Passes to prepare_horizon_quantity() and returns a spline of result.
 
     """
-    times_AH, quantity_AH = prepare_horizon_quantity(sxs_horizon_quantity,
-                                                     start_time, peak_time)
+    times_AH, quantity_AH = prepare_horizon_quantity(sxs_horizon_quantity, start_time, peak_time)
     spline_AH_list = []
     for i in range(0, len(sxs_horizon_quantity[0]) - 1):
-        spline_AH_list.append(
-            romspline.ReducedOrderSpline(times_AH, quantity_AH[i]))
+        spline_AH_list.append(romspline.ReducedOrderSpline(times_AH, quantity_AH[i]))
     return np.array(spline_AH_list)
 
 
@@ -195,7 +192,7 @@ def horizon_splines_from_sxs(horizons, start_time, peak_time, log=print):
 
     # Position
     insert_spline(
-        horizons,horizon_splines,
+        horizons, horizon_splines,
         ['position1x-vs-time', 'position1y-vs-time', 'position1z-vs-time'],
         'AhA', 'CoordCenterInertial', start_time, peak_time, log)
     insert_spline(
@@ -208,14 +205,10 @@ def horizon_splines_from_sxs(horizons, start_time, peak_time, log=print):
         'AhC', 'CoordCenterInertial', start_time, peak_time, log)
 
     # Derived quantities: nhat, omega_orbit, LNhat
-    n_hat, omega_orbit, LN_hat, t_A, t_B, t_C \
-        = derived_horizon_quantities_from_sxs(horizons, start_time, peak_time)
-    insert_derived_spline(
-        horizon_splines, ['nhatx-vs-time', 'nhaty-vs-time', 'nhatz-vs-time'], n_hat, log)
-    insert_derived_spline(
-        horizon_splines, ['Omega-vs-time'], omega_orbit, log)
-    insert_derived_spline(
-        horizon_splines, ['LNhatx-vs-time', 'LNhaty-vs-time', 'LNhatz-vs-time'], LN_hat, log)
+    n_hat, omega_orbit, LN_hat, t_A, t_B, t_C = derived_horizon_quantities_from_sxs(horizons, start_time, peak_time)
+    insert_derived_spline(horizon_splines, ['nhatx-vs-time', 'nhaty-vs-time', 'nhatz-vs-time'], n_hat, log)
+    insert_derived_spline(horizon_splines, ['Omega-vs-time'], omega_orbit, log)
+    insert_derived_spline(horizon_splines, ['LNhatx-vs-time', 'LNhaty-vs-time', 'LNhatz-vs-time'], LN_hat, log)
 
     return horizon_splines, t_A, t_B, t_C
 
@@ -239,5 +232,3 @@ def write_horizon_splines_from_sxs(
         out_file.create_dataset('HorizonATimes', data=primary_horizon_times)
         out_file.create_dataset('HorizonBTimes', data=secondary_horizon_times)
         out_file.create_dataset('CommonHorizonTimes', data=remnant_horizon_times)
-
-
