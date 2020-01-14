@@ -195,15 +195,18 @@ def _download_sxs_metadata(login, simulations):
             traceback.print_exc()
 
 
-def read(path='~/.sxs/catalog/private_catalog.json'):
+def read(path='~/.sxs/catalog', download_if_not_found=True):
     """Read a local copy of the SXS catalog from Zenodo
 
     Parameters
     ==========
-    path: str, optional [defaults to '~/.sxs/catalog/private_catalog.json']
+    path: str, optional [defaults to '~/.sxs/catalog']
         Absolute or relative path to JSON file containing the complete catalog.  If the path does
-        not end with '.json', it is assumed to be a directory containing a 'catalog.json' or
-        'private_catalog.json' file.
+        not end with '.json', it is assumed to be a directory containing a 'private_catalog.json',
+        'public_catalog.json', or 'catalog.json' file.
+    download_if_not_found: bool, optional [defaults to True]
+        If the above path does not contain any of the recognized files, the public version will
+        be downloaded from https://data.black-holes.org/catalog.json.
 
     Returns
     =======
@@ -217,15 +220,23 @@ def read(path='~/.sxs/catalog/private_catalog.json'):
     """
     from os.path import expanduser, join, exists, dirname
     import json
+    from ..utilities import download
 
     # Make sure that the catalog file exists
     path = expanduser(path)
     if not path.endswith('.json'):
         path = join(path, 'private_catalog.json')
         if not exists(path):
+            path = join(path, 'public_catalog.json')
+        if not exists(path):
             path = join(path, 'catalog.json')
     if not exists(path):
-        raise ValueError("Could not find catalog file in '{0}'.".format(dirname(path)))
+        msg = "Could not find catalog file in '{0}'.".format(dirname(path))
+        if download_if_not_found:
+            print(msg + '  Downloading to that directory now.')
+            download('https://data.black-holes.org/catalog.json', path)
+        else:
+            raise ValueError(msg)
 
     # Read the catalog file
     with open(path, 'r') as f:
