@@ -1,1 +1,1 @@
-import sxs.format.lvc
+from . import lvc
