@@ -110,7 +110,7 @@ def convert_simulation(sxs_data_path, out_path,
 
     sxs_id = sxs_id_from_alt_names(metadata['alternative_names'])
     log("Converting " + sxs_id)
-    log("sxs.format.lvc.convert_simulation( called with the following parameters:")
+    log("sxs.format.lvc.convert_simulation called with the following parameters:")
     log("  sxs_data_path: " + sxs_data_path)
     log("  out_path: " + str(out_path))
     log("  sxs_catalog_path: " + sxs_catalog_path)
