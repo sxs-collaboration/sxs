@@ -103,6 +103,8 @@ def convert_simulation(sxs_data_path, out_path,
     # Determine the resolution of the input simulation, if needed
     if resolution is None:
         resolution = lev_number(sxs_data_path)
+    if resolution is None:
+        raise ValueError('No `resolution` value found in input arguments or data path.')
 
     sxs_catalog_resolutions = zenodo.catalog.resolutions_for_simulations(sxs_catalog)
 
