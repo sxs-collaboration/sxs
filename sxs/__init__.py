@@ -14,7 +14,7 @@ import sxs.validate
 import sxs.zenodo
 
 sxs_identifier_regex = r'(?P<sxs_identifier>SXS:(?P<simulation_type>BBH|BHNS|NSNS):(?P<sxs_number>[0-9]*))'
-lev_regex = r'Lev(?P<lev>[-0-9]*)/'
+lev_regex = r'Lev(?P<lev>[-0-9]*)'
 
 
 def sxs_id(s):
