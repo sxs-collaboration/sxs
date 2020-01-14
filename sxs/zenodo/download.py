@@ -25,6 +25,7 @@ def matching(*args, **kwargs):
     import re
     import requests
     from .. import sxs_id as sxs_id_finder
+    from .. import lev_regex
     from ..utilities import download
     from .api.records import Records
     from tqdm.autonotebook import tqdm
@@ -35,7 +36,7 @@ def matching(*args, **kwargs):
         sxs_id_matches = [sxs_id_matches,]
     sxs_id_matches = [re.compile(i) for i in sxs_id_matches]
     highest_lev_only = kwargs.pop('highest_lev_only', True)
-    lev_path_re = re.compile(r'Lev(?P<lev>[-0-9]*)/')
+    lev_path_re = re.compile(lev_regex + r'/')
     dry_run = kwargs.pop('dry_run', False)
 
     def local_path(sxs_id, filename):
