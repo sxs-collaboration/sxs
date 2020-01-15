@@ -153,6 +153,8 @@ def convert_simulation(sxs_data_path, out_path,
 
     with h5py.File(sxs_data_path + "/rhOverM_Asymptotic_GeometricUnits_CoM.h5", 'r') as rhOverM:
         version_hist = rhOverM.get('VersionHist.ver', None)
+        if version_hist is not None:
+            version_hist = version_hist[:]
         modes, times, spline_amps, spline_phases, start_time, peak_time, l_max \
             = spline_amp_phase_from_sxs(rhOverM, metadata, modes, 
                                         extrapolation_order, log, truncation_time)
