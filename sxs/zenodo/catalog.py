@@ -195,6 +195,55 @@ def _download_sxs_metadata(login, simulations):
             traceback.print_exc()
 
 
+def read(path='~/.sxs/catalog', download_if_not_found=True):
+    """Read a local copy of the SXS catalog from Zenodo
+
+    Parameters
+    ==========
+    path: str, optional [defaults to '~/.sxs/catalog']
+        Absolute or relative path to JSON file containing the complete catalog.  If the path does
+        not end with '.json', it is assumed to be a directory containing a 'private_catalog.json',
+        'public_catalog.json', or 'catalog.json' file.
+    download_if_not_found: bool, optional [defaults to True]
+        If the above path does not contain any of the recognized files, the public version will
+        be downloaded from https://data.black-holes.org/catalog.json.
+
+    Returns
+    =======
+    catalog: dict
+       This is the dictionary corresponding to the contents of the JSON file.  Note that, as
+       described in `sxs.zenodo.catalog.catalog_file_description`, the top level contains just
+       four keys: 'catalog_file_description', 'modified', 'records', and 'simulations'.  You may
+       want to follow this function call with something like
+           records, simulations = catalog['records'], catalog['simulations']
+
+    """
+    from os.path import expanduser, join, exists, dirname
+    import json
+    from ..utilities import download
+
+    # Make sure that the catalog file exists
+    path = expanduser(path)
+    if not path.endswith('.json'):
+        path = join(path, 'private_catalog.json')
+        if not exists(path):
+            path = join(path, 'public_catalog.json')
+        if not exists(path):
+            path = join(path, 'catalog.json')
+    if not exists(path):
+        msg = "Could not find catalog file in '{0}'.".format(dirname(path))
+        if download_if_not_found:
+            print(msg + '  Downloading to that directory now.')
+            download('https://data.black-holes.org/catalog.json', path)
+        else:
+            raise ValueError(msg)
+
+    # Read the catalog file
+    with open(path, 'r') as f:
+        catalog = json.load(f)
+
+    return catalog
+
 
 def create(login=None):
     """Create the catalog from scratch
@@ -452,7 +501,7 @@ def sxs_metadata_file_description(representation):
     """Find metadata file from highest Lev for this simulation"""
     from os.path import basename
     files = representation.get('files', [])
-    metadata_files = [f for f in files if basename(f['filename'])=='metadata.json']
+    metadata_files = [f for f in files if basename(f.get('filename', ''))=='metadata.json']
     metadata_files = sorted(metadata_files, key=lambda f: f['filename'])
     if not metadata_files:
         return None
@@ -525,3 +574,49 @@ def nginx_map(sxs_id_to_conceptrecid, map_file_path=None):
         for sxs_identifier in sorted(sxs_id_to_conceptrecid):
             f.write("    {0} {1};\n".format(sxs_identifier, sxs_id_to_conceptrecid[sxs_identifier]))
         f.write("}\n")
+
+
+def resolutions_for_simulation(sxs_id, sxs_catalog):
+    """List the available resolutions for a given sxs_id and sxs catalog metadata
+
+    Parameters
+    ==========
+    sxs_id: str
+        This should be a key in the sxs_catalog['simulations'] dictionary.
+    sxs_catalog: dict
+
+    Returns
+    =======
+    resolutions: list
+        Sorted list of integers representing the Levs available for the given SXS ID.
+
+    """
+    from .. import lev_number
+    url = sxs_catalog.get('simulations', {}).get(sxs_id, {}).get('url', '')
+    files = sxs_catalog.get('records', {}).get(url, {}).get('files', [])
+    resolutions = {  # This is a set
+        lev
+        for f in files
+        for lev in [lev_number(f.get('filename', ''))]
+        if lev is not None
+    }
+    return sorted(resolutions)
+
+
+def resolutions_for_simulations(sxs_catalog):
+    """Map available SXS IDs to corresponding available resolutions
+
+    Parameters
+    ==========
+    sxs_catalog: dict
+
+    Returns
+    =======
+    map_sxs_id_to_resolutions: dict
+        Maps each SXS ID to a sorted list of integers representing the Levs available for it.
+
+    """
+    return {
+        sxs_id: resolutions_for_simulation(sxs_id, sxs_catalog)
+        for sxs_id in sxs_catalog.get('simulations', {})
+    }

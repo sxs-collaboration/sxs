@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2018, Michael Boyle
-# See LICENSE file for details: <https://github.com/moble/quaternion/blob/master/LICENSE>
+# Copyright (c) 2019, Simulating eXtreme Spacetimes Collaboration
+# See LICENSE file for details: <https://github.com/sxs-collaboration/sxs/blob/master/LICENSE>
 
 # Construct the version number from the date and time this python version was created.
 from os import environ
@@ -54,8 +54,9 @@ if __name__ == "__main__":
     from os import getenv
     from setuptools import setup
     setup(name='sxs',
-          packages = ['sxs', 'sxs.metadata', 'sxs.doxygen', 'sxs.references',
-                      'sxs.utilities', 'sxs.validate', 'sxs.zenodo', 'sxs.zenodo.api'],
+          packages = ['sxs', 'sxs.metadata', 'sxs.doxygen',
+                      'sxs.format', 'sxs.format.lvc',
+                      'sxs.references', 'sxs.utilities', 'sxs.validate', 'sxs.zenodo', 'sxs.zenodo.api'],
           scripts = ['scripts/sxs'],
           include_package_data=True,
           version=version,
@@ -65,6 +66,8 @@ if __name__ == "__main__":
           author_email='mob22@cornell.edu',
           long_description=long_description,
           install_requires=[
+              'numpy',
+              'h5py',
               'requests',  # For interacting over HTTP
               'requests_toolbelt',  # For dumping information about requests/responses
               'ads',  # For searching ADS via the API
@@ -73,6 +76,7 @@ if __name__ == "__main__":
               'feedparser',  # For parsing arxiv responses
               'tqdm',  # For nice progress bars
               'pytz',  # For timezone information
+              'romspline',  # For LVC format
           ],
           # download_url = 'https://github.com/moble/sxs/archive/master.tar.gz',
     )
