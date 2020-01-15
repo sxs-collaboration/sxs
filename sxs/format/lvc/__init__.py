@@ -44,9 +44,16 @@ def convert_simulation(sxs_data_path, out_path,
         If specified, truncate time series at this time instead of at the reference time
 
     """
-    import h5py
-    import json
     import os
+    import time
+    import json
+    import platform
+    import textwrap
+    import numpy
+    import scipy
+    import h5py
+    import romspline
+    import sxs
 
     from ... import lev_number, zenodo
     from .metadata import sxs_id_from_alt_names, write_metadata_from_sxs
@@ -87,6 +94,25 @@ def convert_simulation(sxs_data_path, out_path,
     else:
         l_max = int(modes)
         modes = [[l, m] for l in range(2, l_max+1) for m in range(-l, l+1)]
+
+    code_versions = textwrap.dedent("""\
+        python=={python}
+        numpy=={numpy}
+        scipy=={scipy}
+        h5py=={h5py}
+        # h5py.version.api_version: {h5py_api}
+        # h5py.version.hdf5_version: {h5py_hdf5}
+        romspline=={romspline}
+        sxs=={sxs}""".format(
+            python=platform.python_version(),
+            numpy=numpy.version.version,
+            scipy=scipy.version.full_version,
+            h5py=h5py.version.version,
+            h5py_api=h5py.version.api_version,
+            h5py_hdf5=h5py.version.hdf5_version,
+            romspline=romspline.__version__,
+            sxs=sxs.__version__
+        ))
 
     log = Log()
 
@@ -141,14 +167,17 @@ def convert_simulation(sxs_data_path, out_path,
                             start_time, peak_time, l_max, log)
 
     with h5py.File(out_name, 'a') as out_file:
-        # Save a copy of this script in auxiliary-info
-        with open(os.path.realpath(__file__), 'r') as f:
-            out_file["auxiliary-info"].create_dataset('convert_sxs_to_lvc.py', data=f.read())
+        # Save information about versions of code used in this function
+        out_file["auxiliary-info"].create_dataset('CodeVersions.txt', data=code_versions)
 
+        # Copy VersionHist.ver into the new file, if available
         if version_hist is not None:
             log("Writing VersionHist.ver")
             out_file["auxiliary-info"].create_dataset('VersionHist.ver', data=version_hist)
         else:
             log("No VersionHist.ver found. Data being converted is version 0.")
+
+        # Store the log output by this script as a dataset
+        log("Finishing at "+time.strftime('%l:%M%p %Z on %b %d, %Y'))
         log("Writing log")
         out_file["auxiliary-info"].create_dataset('ConversionLog.txt', data=log.history)
