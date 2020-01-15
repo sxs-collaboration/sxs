@@ -111,10 +111,12 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
 
 def spline_amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
                               extrapolation_order="Extrapolated_N2",
-                              log=print, truncation_time=None):
+                              log=print, truncation_time=None,
+                              spline_degree=5, tolerance=1e-06):
     """Returns spline amplitude and phase for an SXS-format waveform, for a
     list of Ylm modes. If modes='all', return all modes for l=2 through l=8,
     inclusive."""
+    import time
     modes, times, amps, phases, start_time, peak_time, l_max \
         = amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
                              extrapolation_order, log, truncation_time)
@@ -122,11 +124,16 @@ def spline_amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
     spline_phases = []
     for i, mode in enumerate(modes):
         log("Computing spline for amplitude of mode " + str(mode))
-        spline_amps.append(romspline.ReducedOrderSpline(times[i], amps[i]))
+        # start = time.perf_counter()
+        spline_amps.append(romspline.ReducedOrderSpline(times[i], amps[i], deg=spline_degree, tol=tolerance))
+        # end = time.perf_counter()
+        # log('\tTook {0:.3f} seconds'.format(end - start))
         log("Computing spline for phase of mode " + str(mode))
-        spline_phases.append(romspline.ReducedOrderSpline(times[i], phases[i]))
-    return modes, times, spline_amps, spline_phases, start_time, peak_time, \
-        l_max
+        # start = time.perf_counter()
+        spline_phases.append(romspline.ReducedOrderSpline(times[i], phases[i], deg=spline_degree, tol=tolerance))
+        # end = time.perf_counter()
+        # log('\tTook {0:.3f} seconds'.format(end - start))
+    return modes, times, spline_amps, spline_phases, start_time, peak_time, l_max
 
 
 def write_splines_to_H5(

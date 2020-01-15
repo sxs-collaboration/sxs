@@ -17,7 +17,7 @@ def bbh_keys_from_simulation_keys(simulation_keys):
 
 def convert_simulation(sxs_data_path, out_path,
                        sxs_catalog_path='~/.sxs/catalog', resolution=None, modes=8,
-                       truncation_time=None):
+                       truncation_time=None, spline_degree=5, tolerance=1e-06):
     """Convert a simulation from the SXS BBH catalog into the LVC format.
     
     This function outputs a file in LVC format named SXS_BBH_####_Res#.h5 in out_path.
@@ -42,6 +42,10 @@ def convert_simulation(sxs_data_path, out_path,
         and is equivalent to the default value of `8`.
     truncation_time: None or float [defaults to None]
         If specified, truncate time series at this time instead of at the reference time
+    spline_degree: int [defaults to 5]
+        Degree of spline used in `romspline.ReducedOrderSpline`.
+    tolerance: float [defaults to 1e-6]
+        Target tolerance used in `romspline.ReducedOrderSpline`.
 
     """
     import os
@@ -143,12 +147,13 @@ def convert_simulation(sxs_data_path, out_path,
     log("  resolution: " + str(resolution))
     log("  modes: " + str(modes))
     log("  truncation_time: " + str(truncation_time))
+    log("  spline_degree: " + str(spline_degree))
+    log("  tolerance: " + str(tolerance))
 
     extrapolation_order = "Extrapolated_N2"
     log("Extrapolation order: " + extrapolation_order)
 
-    out_name = out_path + "/" + sxs_id.replace(':', '_') + "_Res" \
-                        + str(resolution) + ".h5"
+    out_name = out_path + "/" + sxs_id.replace(':', '_') + "_Res" + str(resolution) + ".h5"
     log("Output filename is " + out_name)
 
     with h5py.File(sxs_data_path + "/rhOverM_Asymptotic_GeometricUnits_CoM.h5", 'r') as rhOverM:
@@ -156,8 +161,8 @@ def convert_simulation(sxs_data_path, out_path,
         if version_hist is not None:
             version_hist = version_hist[:]
         modes, times, spline_amps, spline_phases, start_time, peak_time, l_max \
-            = spline_amp_phase_from_sxs(rhOverM, metadata, modes, 
-                                        extrapolation_order, log, truncation_time)
+            = spline_amp_phase_from_sxs(rhOverM, metadata, modes, extrapolation_order, log, truncation_time,
+                                        spline_degree=spline_degree, tolerance=tolerance)
     write_splines_to_H5(out_name, modes, spline_amps, spline_phases, times, log)
 
     with h5py.File(sxs_data_path + "/Horizons.h5", 'r') as horizons:
