@@ -185,6 +185,6 @@ def convert_simulation(sxs_data_path, out_path,
             log("No VersionHist.ver found. Data being converted is version 0.")
 
         # Store the log output by this script as a dataset
-        log("Finishing at "+time.strftime('%l:%M%p %Z on %b %d, %Y'))
+        log("Finishing at"+time.strftime('%l:%M%p %Z on %b %d, %Y'))
         log("Writing log")
         out_file["auxiliary-info"].create_dataset('ConversionLog.txt', data=log.history)
