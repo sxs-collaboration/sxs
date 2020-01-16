@@ -61,6 +61,7 @@ def minimal_grid(x, y, tol=1e-6, rel=False, deg=3):
             return i_next
 
     """
+    import numpy as np
     from scipy.interpolate import InterpolatedUnivariateSpline
 
     if callable(tol):

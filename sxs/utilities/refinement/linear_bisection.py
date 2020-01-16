@@ -1,4 +1,4 @@
-def minimal_grid(amp_tol, const double phi_tol, t, amp, phi):
+def minimal_grid(amp_tol, phi_tol, t, amp, phi):
     """Select a minimal grid from the input data allowing linear interpolation to given tolerances
 
     Storing the input data on the output grid will allow linear interpolation that agrees with the
@@ -9,6 +9,8 @@ def minimal_grid(amp_tol, const double phi_tol, t, amp, phi):
     MinimizeGrid in the utilities/GridRefinement directory of the ninja2 svn repository.
 
     """
+    import numpy as np
+    
     # The objective here will be to create a vector of `bool`s, the same length as t.  The truth
     # value will correspond to whether or not that time step should be kept in the final data.  We
     # begin by assuming that the very first and last steps should obviously be kept.  Then, there
@@ -21,9 +23,9 @@ def minimal_grid(amp_tol, const double phi_tol, t, amp, phi):
     i0 = 0
     i1 = ((t.size-1) >> 1)  # = midpoint of the input data set
     n_points = 2
-    output_indices = np.zeros(t.size(), dtype=bool)
-    output_indices[0] = True
-    output_indices[-1] = True
+    include_indices = np.zeros(t.size(), dtype=bool)
+    include_indices[0] = True
+    include_indices[-1] = True
 
     # Returns True if the input (x,y) data can be interpolated between indices i0 and i1 to within a
     # tolerance of tol at the midpoint between i0 and i1.
@@ -84,14 +86,13 @@ def minimal_grid(amp_tol, const double phi_tol, t, amp, phi):
     #   forms the smallest interval such that the phi tolerance
     #   is achieved by linear interpolation.  Then, it moves to
     #   the end of that interval to find the next interval, etc.
-    while ((i0+i1)>>1) < output_indices.size-1:
+    while ((i0+i1)>>1) < include_indices.size-1:
         # hunt for optimal i1
         i1 = hunt(t, phi, phi_tol, i0, i1)
         
-        if(!output_indices[i1]) {
-            output_indices[i1] = True
+        if not include_indices[i1]:
+            include_indices[i1] = True
             n_points += 1
-        }
         i0 = i1
         i1 = 2*i1 - i0
         if i1<i0+2:
@@ -111,17 +112,17 @@ def minimal_grid(amp_tol, const double phi_tol, t, amp, phi):
             while i>i1:
                 i1 += 1
             i0 = i
-            while not output_indices[i0]:
+            while not include_indices[i0]:
                 i0 -= 1
-        while not output_indices[i1]:
+        while not include_indices[i1]:
             i1 += 1
         if i != i0 and i != i1:
             if (abs(1-(amp[i0]+(t[i]-t[i0])*(amp[i1]-amp[i0])/(t[i1]-t[i0]))/amp[i]) > amp_tol
                 or abs(phi[i0]+(t[i]-t[i0])*(phi[i1]-phi[i0])/(t[i1]-t[i0])-phi[i]) > phi_tol):
                 i1 = ((i0+i1)>>1)
-                if not output_indices[i1]:
+                if not include_indices[i1]:
                     # if(i1==i0+1) { Caution(amp_tol, phi_tol); }
-                    output_indices[i1] = True
+                    include_indices[i1] = True
                     n_points += 1
                 continue
         if i==i1:
@@ -129,4 +130,4 @@ def minimal_grid(amp_tol, const double phi_tol, t, amp, phi):
             i1 += 1
         i += 1
     
-    return output_indices
+    return include_indices

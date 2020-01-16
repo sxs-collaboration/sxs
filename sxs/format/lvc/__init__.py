@@ -61,7 +61,7 @@ def convert_simulation(sxs_data_path, out_path,
     from ... import lev_number, zenodo
     from .metadata import sxs_id_from_alt_names, write_metadata_from_sxs
     from .horizons import horizon_splines_from_sxs, write_horizon_splines_from_sxs
-    from .waveforms import spline_amp_phase_from_sxs, write_splines_to_H5
+    from .waveforms import spline_and_write_sxs
 
     class Log(object):
         """Object to replace `log` function that used global `history`
