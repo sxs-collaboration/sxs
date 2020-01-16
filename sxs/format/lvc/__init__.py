@@ -43,9 +43,9 @@ def convert_simulation(sxs_data_path, out_path,
     truncation_time: None or float [defaults to None]
         If specified, truncate time series at this time instead of at the reference time
     spline_degree: int [defaults to 5]
-        Degree of spline used in `romspline.ReducedOrderSpline`.
+        Degree of spline used in `sxs.utilities.greedy_spline.minimal_indices`.
     tolerance: float [defaults to 1e-6]
-        Target tolerance used in `romspline.ReducedOrderSpline`.
+        Target tolerance used in `sxs.utilities.greedy_spline.minimal_indices`.
 
     """
     import os
@@ -56,7 +56,6 @@ def convert_simulation(sxs_data_path, out_path,
     import numpy
     import scipy
     import h5py
-    import romspline
     import sxs
 
     from ... import lev_number, zenodo
@@ -106,7 +105,6 @@ def convert_simulation(sxs_data_path, out_path,
         h5py=={h5py}
         # h5py.version.api_version: {h5py_api}
         # h5py.version.hdf5_version: {h5py_hdf5}
-        romspline=={romspline}
         sxs=={sxs}""".format(
             python=platform.python_version(),
             numpy=numpy.version.version,
@@ -114,7 +112,6 @@ def convert_simulation(sxs_data_path, out_path,
             h5py=h5py.version.version,
             h5py_api=h5py.version.api_version,
             h5py_hdf5=h5py.version.hdf5_version,
-            romspline=romspline.__version__,
             sxs=sxs.__version__
         ))
 
@@ -160,10 +157,9 @@ def convert_simulation(sxs_data_path, out_path,
         version_hist = rhOverM.get('VersionHist.ver', None)
         if version_hist is not None:
             version_hist = version_hist[:]
-        modes, times, spline_amps, spline_phases, start_time, peak_time, l_max \
-            = spline_amp_phase_from_sxs(rhOverM, metadata, modes, extrapolation_order, log, truncation_time,
-                                        spline_degree=spline_degree, tolerance=tolerance)
-    write_splines_to_H5(out_name, modes, spline_amps, spline_phases, times, log)
+        start_time, peak_time, l_max = spline_and_write_sxs(rhOverM, metadata, out_name, modes,
+                                                            extrapolation_order, log, truncation_time,
+                                                            spline_degree=spline_degree, tolerance=tolerance)
 
     with h5py.File(sxs_data_path + "/Horizons.h5", 'r') as horizons:
         horizon_splines_to_write, t_A, t_B, t_C = horizon_splines_from_sxs(horizons, start_time, peak_time, log)
