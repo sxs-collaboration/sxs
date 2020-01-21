@@ -86,8 +86,7 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
         start = first_index_before_reference_time(times, metadata)
     else:
         start = first_index_after_time(times, truncation_time)
-    peak = peak_time_from_sxs(
-        sxs_format_waveform, metadata, extrapolation_order)
+    peak = peak_time_from_sxs(sxs_format_waveform, metadata, extrapolation_order)
     for mode in modes:
         l = mode[0]
         m = mode[1]
