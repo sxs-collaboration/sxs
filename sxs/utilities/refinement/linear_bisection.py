@@ -1,4 +1,4 @@
-def minimal_grid(amp_tol, phi_tol, t, amp, phi):
+def minimal_grid(amp_tol=1e-5, phi_tol=1e-5, t, amp, phi):
     """Select a minimal grid from the input data allowing linear interpolation to given tolerances
 
     Storing the input data on the output grid will allow linear interpolation that agrees with the
