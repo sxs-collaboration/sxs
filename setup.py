@@ -56,7 +56,7 @@ if __name__ == "__main__":
     setup(name='sxs',
           packages = ['sxs', 'sxs.metadata', 'sxs.doxygen',
                       'sxs.format', 'sxs.format.lvc', 'sxs.references',
-                      'sxs.utilities', 'sxs.utilities.refinement',
+                      'sxs.utilities', 'sxs.utilities.decimation',
                       'sxs.validate', 'sxs.zenodo', 'sxs.zenodo.api'],
           scripts = ['scripts/sxs'],
           include_package_data=True,

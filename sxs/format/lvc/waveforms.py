@@ -113,7 +113,7 @@ def spline_and_write_sxs(sxs_format_waveform, metadata, out_filename,
                          spline_degree=5, tolerance=1e-06):
     """Compute rom-spline for each mode and write to file"""
     import time
-    from ...utilities.refinement.greedy_spline import minimal_grid
+    from ...utilities.decimation.greedy_spline import minimal_grid
     
     modes, times, amps, phases, start_time, peak_time, l_max \
         = amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
