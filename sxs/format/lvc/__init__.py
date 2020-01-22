@@ -85,7 +85,6 @@ def convert_simulation(sxs_data_path, out_path,
     import h5py
     import sxs
 
-    from ... import lev_number, zenodo
     from .metadata import sxs_id_from_alt_names, write_metadata_from_sxs
     from .horizons import horizon_splines_from_sxs, write_horizon_splines_from_sxs
     from .waveforms import spline_and_write_sxs
@@ -117,14 +116,6 @@ def convert_simulation(sxs_data_path, out_path,
         def __repr__(self):
             return repr(self.history)
 
-    if modes == 'all':
-        modes = [[l, m] for l in range(2, 9) for m in range(-l, l+1)]
-    elif modes == '22only':
-        modes = [[2, 2], [2, -2]]
-    else:
-        l_max = int(modes)
-        modes = [[l, m] for l in range(2, l_max+1) for m in range(-l, l+1)]
-
     code_versions = textwrap.dedent("""\
         python=={python}
         numpy=={numpy}
@@ -143,6 +134,24 @@ def convert_simulation(sxs_data_path, out_path,
         ))
 
     log = Log()
+    log("sxs.format.lvc.convert_simulation(")
+    log("    sxs_data_path='{0}',".format(sxs_data_path))
+    log("    out_path='{0}',".format(out_path))
+    log("    sxs_catalog_path='{0}',".format(sxs_catalog_path))
+    log("    resolution={0},".format(resolution))
+    log("    modes={0},".format(repr(modes)))
+    log("    truncation_time={0},".format(truncation_time))
+    log("    spline_degree={0},".format(spline_degree))
+    log("    tolerance={0}".format(tolerance))
+    log(")")
+
+    if modes == 'all':
+        modes = [[l, m] for l in range(2, 9) for m in range(-l, l+1)]
+    elif modes == '22only':
+        modes = [[2, 2], [2, -2]]
+    else:
+        l_max = int(modes)
+        modes = [[l, m] for l in range(2, l_max+1) for m in range(-l, l+1)]
 
     # Load metadata.json from this simulation
     with open(os.path.join(sxs_data_path, "metadata.json"), 'r') as f:
@@ -150,35 +159,26 @@ def convert_simulation(sxs_data_path, out_path,
 
     # Load catalog metadata
     if sxs_catalog_path is None:
-        sxs_catalog = zenodo.catalog.read()
+        sxs_catalog = sxs.zenodo.catalog.read()
     else:
-        sxs_catalog = zenodo.catalog.read(sxs_catalog_path)
+        sxs_catalog = sxs.zenodo.catalog.read(sxs_catalog_path)
 
     # Determine the resolution of the input simulation, if needed
     if resolution is None:
-        resolution = lev_number(sxs_data_path)
+        resolution = sxs.lev_number(sxs_data_path)
     if resolution is None:
         raise ValueError('No `resolution` value found in input arguments or data path.')
 
-    sxs_catalog_resolutions = zenodo.catalog.resolutions_for_simulations(sxs_catalog)
+    sxs_catalog_resolutions = sxs.zenodo.catalog.resolutions_for_simulations(sxs_catalog)
 
     sxs_id = sxs_id_from_alt_names(metadata['alternative_names'])
     log("Converting " + sxs_id)
-    log("sxs.format.lvc.convert_simulation called with the following parameters:")
-    log("  sxs_data_path: " + sxs_data_path)
-    log("  out_path: " + str(out_path))
-    log("  sxs_catalog_path: " + sxs_catalog_path)
-    log("  resolution: " + str(resolution))
-    log("  modes: " + str(modes))
-    log("  truncation_time: " + str(truncation_time))
-    log("  spline_degree: " + str(spline_degree))
-    log("  tolerance: " + str(tolerance))
 
     extrapolation_order = "Extrapolated_N2"
     log("Extrapolation order: " + extrapolation_order)
 
     out_name = out_path + "/" + sxs_id.replace(':', '_') + "_Res" + str(resolution) + ".h5"
-    log("Output filename is " + out_name)
+    log("Output filename is '{0}'".format(out_name))
 
     with h5py.File(sxs_data_path + "/rhOverM_Asymptotic_GeometricUnits_CoM.h5", 'r') as rhOverM:
         version_hist = rhOverM.get('VersionHist.ver', None)
@@ -208,6 +208,6 @@ def convert_simulation(sxs_data_path, out_path,
             log("No VersionHist.ver found. Data being converted is version 0.")
 
         # Store the log output by this script as a dataset
-        log("Finishing at "+time.strftime('%l:%M%p %Z on %b %d, %Y'))
+        log("Finishing at "+time.strftime('%H:%M%p %Z on %b %d, %Y'))
         log("Writing log")
         out_file["auxiliary-info"].create_dataset('ConversionLog.txt', data=log.history)

@@ -206,7 +206,7 @@ def write_horizon_splines_from_sxs(
     horizon_splines_from_sxs, and writes each spline into an HDF5 file. Also
     outputs the horizon times for the individual and remnant black holes,
     truncated to remove junk radiation and shifted."""
-    log("Writing horizon data to " + str(out_filename))
+    log("Writing horizon data to '{0}'".format(out_filename))
     with h5py.File(out_filename, 'a') as out_file:
         for key in horizon_splines.keys():
             out_group = out_file.create_group(key)

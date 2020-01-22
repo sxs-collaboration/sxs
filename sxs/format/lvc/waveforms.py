@@ -90,7 +90,6 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
     for mode in modes:
         l = mode[0]
         m = mode[1]
-        log("Computing mode: l = " + str(l) + ", m = " + str(m))
         mode = "Y_l" + str(l) + "_m" + str(m) + ".dat"
         hlm = sxs_format_waveform[extrap][mode]
 
@@ -114,7 +113,6 @@ def spline_and_write_sxs(sxs_format_waveform, metadata, out_filename,
         = amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
                              extrapolation_order, log, truncation_time)
 
-    log("Writing waveform data to " + str(out_filename))
     with h5py.File(out_filename, 'w') as out_file:
         for i, mode in enumerate(modes):
             log("Computing spline for amplitude of mode " + str(mode))
