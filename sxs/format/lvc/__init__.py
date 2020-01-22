@@ -72,9 +72,9 @@ def convert_simulation(sxs_data_path, out_path,
         instance can be called with a string and will print the string while
         storing all the strings passed to it.
 
-        Functions expecting taking an instance of this class can also use
-        `print` as a default argument, which will work the same, but not
-        store the value.
+        Functions expecting an instance of this class can also use `print`
+        as a default argument, which will work the same, but not store the
+        value.
 
         """
         def __init__(self):

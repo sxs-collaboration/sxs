@@ -131,7 +131,7 @@ def insert_derived_spline(spline_dictionary, spline_keys, derived_quantity, log=
     each key is the name of a group that will be written in the LVC
     file, such as Omega-vs-time or LNhatx-vs-time; and derived_quantity
     is the quantity to be splined.  The derived_quantity should be
-    computed using erived_horizon_quantities_from_sxs().
+    computed using derived_horizon_quantities_from_sxs().
 
     """
     # N.B. times already shifted, truncated to remove junk by
