@@ -36,11 +36,11 @@ def spline_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
 
     """
     times_AH, quantity_AH = prepare_horizon_quantity(sxs_horizon_quantity, start_time, peak_time)
-    spline_AH_list = []
-    for i in range(0, len(sxs_horizon_quantity[0]) - 1):
-        spline_AH_list.append(
-            romspline.ReducedOrderSpline(times_AH, quantity_AH[i]))
-    return np.array(spline_AH_list)
+    spline_AH_list = [
+        romspline.ReducedOrderSpline(times_AH, quantity_AH[i])
+        for i in range(0, len(sxs_horizon_quantity[0]) - 1)
+    ]
+    return spline_AH_list
 
 
 def insert_spline(sxs_horizons, spline_dictionary, spline_keys,
@@ -139,13 +139,8 @@ def insert_derived_spline(spline_dictionary, spline_keys, derived_quantity, log=
     log("Computing " + str(spline_keys))
     times_AH = derived_quantity[:, 0]
     quantity_AH = derived_quantity[:, 1:]
-    spline_AH_list = []
-    for a in range(0, len(derived_quantity[0]) - 1):
-        spline_AH_list.append(romspline.ReducedOrderSpline(
-            times_AH, quantity_AH[:, a]))
-    spline = np.array(spline_AH_list)
     for i, spline_key in enumerate(spline_keys):
-        spline_dictionary[spline_key] = spline[i]
+        spline_dictionary[spline_key] = romspline.ReducedOrderSpline(times_AH, quantity_AH[:, i])
 
 
 def horizon_splines_from_sxs(horizons, start_time, peak_time, log=print):
