@@ -121,7 +121,7 @@ def spline_and_write_sxs(sxs_format_waveform, metadata, out_filename,
             amp = LVCDataset(times[i], amps[i], spline_degree, tolerance)
 
             log("Computing spline for phase of mode " + str(mode))
-            phase = LVCDataset(times[i], phases[i], spline_degree, next_index, error_scaling=amps[i])
+            phase = LVCDataset(times[i], phases[i], spline_degree, tolerance, error_scaling=amps[i])
 
             log("Writing waveform data for mode " + str(mode))
             out_group_amp = out_file.create_group('amp_l{0[0]}_m{0[1]}'.format(mode))
