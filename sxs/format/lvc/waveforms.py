@@ -74,11 +74,11 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
     if modes == "all":
         modes = [[l, m] for l in range(2, 9) for m in range(-l, l+1)]
         
-    log("Modes: " + str(modes))
+    #log("Modes: " + str(modes))
     amps = []
     phases = []
     times_list = []
-    l_max = 0
+    l_max = max(lm[0] for lm in modes)
     # All modes have the same time, so just look at the l=m=2 mode to get
     # the times
     times = sxs_format_waveform[extrap]['Y_l2_m2.dat'][:, 0]
@@ -100,19 +100,15 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
         phases.append(np.unwrap(np.angle(h)))
         times_list.append(times[start:] - peak)
 
-        if l > l_max:
-            l_max = l
-
     return modes, times_list, amps, phases, times[start], peak, l_max
 
 
 def spline_and_write_sxs(sxs_format_waveform, metadata, out_filename,
                          modes, extrapolation_order="Extrapolated_N2",
                          log=print, truncation_time=None,
-                         spline_degree=5, tolerance=1e-06):
+                         spline_degree=3, tolerance=5e-07):
     """Compute rom-spline for each mode and write to file"""
-    import time
-    from ...utilities.decimation.greedy_spline import minimal_grid
+    from . import LVCDataset
     
     modes, times, amps, phases, start_time, peak_time, l_max \
         = amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
@@ -122,33 +118,16 @@ def spline_and_write_sxs(sxs_format_waveform, metadata, out_filename,
     with h5py.File(out_filename, 'w') as out_file:
         for i, mode in enumerate(modes):
             log("Computing spline for amplitude of mode " + str(mode))
-            # start = time.perf_counter()
-            amp_indices = minimal_grid(times[i], amps[i], deg=spline_degree, tol=tolerance)
-            # end = time.perf_counter()
-            # log('\tTook {0:.3f} seconds'.format(end - start))
+            amp = LVCDataset(times[i], amps[i], spline_degree, tolerance)
+
             log("Computing spline for phase of mode " + str(mode))
-            # start = time.perf_counter()
-            def next_index(x, y, y_greedy):
-                errors = amps[i] * np.abs(y-y_greedy)
-                i_next = np.argmax(errors)
-                if errors[i_next] < tolerance:
-                    return None
-                return i_next
-            phase_indices = minimal_grid(times[i], phases[i], deg=spline_degree, tol=next_index)
-            # end = time.perf_counter()
-            # log('\tTook {0:.3f} seconds'.format(end - start))
+            phase = LVCDataset(times[i], phases[i], spline_degree, next_index, error_scaling=amps[i])
 
             log("Writing waveform data for mode " + str(mode))
             out_group_amp = out_file.create_group('amp_l{0[0]}_m{0[1]}'.format(mode))
-            out_group_amp.create_dataset('deg', data=spline_degree, dtype='int')
-            out_group_amp.create_dataset('tol', data=tolerance, dtype='double')
-            out_group_amp.create_dataset('X', data=times[i][amp_indices], dtype='double', compression='gzip', shuffle=True)
-            out_group_amp.create_dataset('Y', data=amps[i][amp_indices], dtype='double', compression='gzip', shuffle=True)
+            amp.write(out_group_amp)
             out_group_phase = out_file.create_group('phase_l{0[0]}_m{0[1]}'.format(mode))
-            out_group_phase.create_dataset('deg', data=spline_degree, dtype='int')
-            out_group_phase.create_dataset('tol', data=tolerance, dtype='double')
-            out_group_phase.create_dataset('X', data=times[i][phase_indices], dtype='double', compression='gzip', shuffle=True)
-            out_group_phase.create_dataset('Y', data=phases[i][phase_indices], dtype='double', compression='gzip', shuffle=True)
+            phase.write(out_group_phase)
 
             if mode == [2, 2]:
                 out_file.create_dataset('NRtimes', data=times[i])

@@ -9,6 +9,31 @@ and Alyssa Garcia.
 """
 
 
+class LVCDataset(object):
+    def __init__(self, x, y, deg, tol, rel=False, error_scaling=None):
+        from ...utilities.decimation.greedy_spline import minimal_grid
+        self.deg = deg
+        self.tol = tol
+        if error_scaling is None:
+            indices = minimal_grid(x, y, tol=tol, rel=rel, deg=deg)
+        else:
+            def next_index(x, y, y_greedy):
+                errors = error_scaling * np.abs(y-y_greedy)
+                i_next = np.argmax(errors)
+                return None if errors[i_next] < tol else i_next
+            indices = minimal_grid(x, y, tol=next_index, rel=rel, deg=deg)
+        self.X = x[indices]
+        self.Y = y[indices]
+
+    def write(self, output_group):
+        if not isinstance(output_group, h5py.Group):
+            raise Exception("Parameter `output_group` must be an h5py.Group (or File) object.")
+        output_group.create_dataset('deg', data=self.deg, dtype='int')
+        output_group.create_dataset('tol', data=self.tol, dtype='double')
+        output_group.create_dataset('X', data=self.X, dtype='double', compression='gzip', shuffle=True)
+        output_group.create_dataset('Y', data=self.Y, dtype='double', compression='gzip', shuffle=True)
+
+
 def bbh_keys_from_simulation_keys(simulation_keys):
     """Extract BBH simulations from a list of all simulations."""
     return [simulation_key for simulation_key in simulation_keys
