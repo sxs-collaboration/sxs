@@ -115,13 +115,12 @@ def spline_and_write_sxs(sxs_format_waveform, metadata, out_filename,
 
     with h5py.File(out_filename, 'w') as out_file:
         for i, mode in enumerate(modes):
-            log("Computing spline for amplitude of mode " + str(mode))
+            log("Mode " + str(mode))
+            log("\tComputing splines for amplitude and phase")
             amp = LVCDataset(times[i], amps[i], spline_degree, tolerance)
-
-            log("Computing spline for phase of mode " + str(mode))
             phase = LVCDataset(times[i], phases[i], spline_degree, tolerance, error_scaling=amps[i])
 
-            log("Writing waveform data for mode " + str(mode))
+            log("\tWriting waveform data")
             out_group_amp = out_file.create_group('amp_l{0[0]}_m{0[1]}'.format(mode))
             amp.write(out_group_amp)
             out_group_phase = out_file.create_group('phase_l{0[0]}_m{0[1]}'.format(mode))
