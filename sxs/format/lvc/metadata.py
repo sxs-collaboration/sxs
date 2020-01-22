@@ -284,7 +284,4 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
         else:
             out_file.attrs['production-run'] = 1
             out_file.attrs['files-in-error-series'] = ""
-            comparable = find_comparable_simulations(sxs_id,
-                                                     catalog['simulations'],
-                                                     catalog_resolutions)
-            out_file.attrs['comparable-simulation'] = comparable
+            out_file.attrs['comparable-simulation'] = ""
