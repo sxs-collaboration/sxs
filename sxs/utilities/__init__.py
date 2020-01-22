@@ -3,7 +3,7 @@ from .files import (
     lock_file_manager, find_simulation_directories, md5checksum,
     find_files, update_checksum_map
 )
-
+from .decimation import linear_bisection, greedy_spline
 
 
 def fit_to_console(obj, initial_indent='', subsequent_indent='', width=None,):

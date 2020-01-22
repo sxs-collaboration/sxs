@@ -2,7 +2,7 @@
 
 import numpy as np
 import h5py
-import romspline
+from . import LVCDataset
 
 
 def prepare_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
@@ -36,11 +36,11 @@ def spline_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
 
     """
     times_AH, quantity_AH = prepare_horizon_quantity(sxs_horizon_quantity, start_time, peak_time)
-    spline_AH_list = []
-    for i in range(0, len(sxs_horizon_quantity[0]) - 1):
-        spline_AH_list.append(
-            romspline.ReducedOrderSpline(times_AH, quantity_AH[i]))
-    return np.array(spline_AH_list)
+    spline_AH_list = [
+        LVCDataset(times_AH, quantity_AH[i], deg=3, tol=1e-6)
+        for i in range(0, len(sxs_horizon_quantity[0]) - 1)
+    ]
+    return spline_AH_list
 
 
 def insert_spline(sxs_horizons, spline_dictionary, spline_keys,
@@ -131,7 +131,7 @@ def insert_derived_spline(spline_dictionary, spline_keys, derived_quantity, log=
     each key is the name of a group that will be written in the LVC
     file, such as Omega-vs-time or LNhatx-vs-time; and derived_quantity
     is the quantity to be splined.  The derived_quantity should be
-    computed using erived_horizon_quantities_from_sxs().
+    computed using derived_horizon_quantities_from_sxs().
 
     """
     # N.B. times already shifted, truncated to remove junk by
@@ -139,13 +139,8 @@ def insert_derived_spline(spline_dictionary, spline_keys, derived_quantity, log=
     log("Computing " + str(spline_keys))
     times_AH = derived_quantity[:, 0]
     quantity_AH = derived_quantity[:, 1:]
-    spline_AH_list = []
-    for a in range(0, len(derived_quantity[0]) - 1):
-        spline_AH_list.append(romspline.ReducedOrderSpline(
-            times_AH, quantity_AH[:, a]))
-    spline = np.array(spline_AH_list)
     for i, spline_key in enumerate(spline_keys):
-        spline_dictionary[spline_key] = spline[i]
+        spline_dictionary[spline_key] = LVCDataset(times_AH, quantity_AH[:, i], deg=3, tol=1e-6)
 
 
 def horizon_splines_from_sxs(horizons, start_time, peak_time, log=print):
@@ -211,7 +206,7 @@ def write_horizon_splines_from_sxs(
     horizon_splines_from_sxs, and writes each spline into an HDF5 file. Also
     outputs the horizon times for the individual and remnant black holes,
     truncated to remove junk radiation and shifted."""
-    log("Writing horizon data to " + str(out_filename))
+    log("Writing horizon data to '{0}'".format(out_filename))
     with h5py.File(out_filename, 'a') as out_file:
         for key in horizon_splines.keys():
             out_group = out_file.create_group(key)
