@@ -94,7 +94,6 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
         mode = "Y_l" + str(l) + "_m" + str(m) + ".dat"
         hlm = sxs_format_waveform[extrap][mode]
 
-        # CHECK ME: is the + sign correct here?
         h = hlm[start:, 1] + 1j * hlm[start:, 2]
 
         amps.append(np.abs(h))
