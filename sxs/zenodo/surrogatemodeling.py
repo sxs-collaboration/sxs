@@ -5,9 +5,9 @@ def sync(annex_dir='./', exclude=[], publish='if_pending',
     This function first searches for any changes in the data files; if there are any, a new version
     is created on Zenodo, and the relevant files are uploaded, deleted, etc.  It then collects the
     Zenodo metadata (author list, related identifiers, etc.) from zenodo_metadata.json, along with
-    the description to be placed on the Zenodo from zenodo_description.html.  These changes are made
-    to the Zenodo record, whether the existing record (if no files changed) or the new record (if
-    files changed).
+    the description to be placed on the Zenodo record from zenodo_description.html.  These changes
+    are made to the Zenodo record, whether the existing record (if no files changed) or the new
+    record (if files changed).
 
     Parameters
     ----------
@@ -29,22 +29,35 @@ def sync(annex_dir='./', exclude=[], publish='if_pending',
     # Get the time at which this deposit was created, for possible comparison to file times below
     deposit_created = datetime.datetime.strptime(d.representation['created'], '%Y-%m-%dT%H:%M:%S.%f%z')  # in UTC
 
-    # Read the description from the top-level file 'description.html'
+    # Read the metadata from the top-level file 'zenodo_metadata.json'
+    stored_keys = ['creators', 'related_identifiers', 'title']
+    metadata = d.metadata.copy()
+    with open(os.path.join(annex_dir, 'zenodo_metadata.json'), 'r') as f:
+        local_metadata = f.read()
+    unchanged_metadata = True
+    for key in stored_keys:
+        if d.metadata.get(key, '') != local_metadata.get(key, ''):
+            unchanged_metadata = False
+            metadata[key] = local_metadata.get(key, '')
+
+    # Read the description from the top-level file 'zenodo_description.html'
     zenodo_description = d.metadata['description']
-    with open(os.path.join(annex_dir, 'description.html'), 'r') as f:
+    with open(os.path.join(annex_dir, 'zenodo_description.html'), 'r') as f:
         local_description = f.read()
     unchanged_description = (zenodo_description == local_description)
-    if unchanged_description:
+    if not unchanged_description:
+        metadata.update({'description': local_description})
+
+    # Make any changes
+    if unchanged_description and unchanged_metadata:
         print('No zenodo metadata changed.')
     else:
         try:
             d.edit()
         except Exception:
             print("Failure to unlock deposit is probably acceptable")
-        metadata = d.metadata.copy()
-        metadata.update({'description': local_description})  # Ensure that fields we haven't changed are still present
         d.update_metadata(metadata)
-        print('Uploaded new description')
+        print('Uploaded new metadata')
 
     # Get the list of files we'll be uploading and compare to files already in the deposit to see if
     # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
