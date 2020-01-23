@@ -108,3 +108,5 @@ _version.py
 sxs/_version.py
 catalog_private_metadata.json
 Pipfile.lock
+.idea
+tmp
