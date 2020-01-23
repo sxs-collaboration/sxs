@@ -187,7 +187,7 @@ def _download_sxs_metadata(login, simulations):
             continue
         try:
             metadata = login.session.get(download_url).json()
-            simulations[sxs_id].pop('metadata_file_info')
+            simulations[sxs_id].pop('metadata_file_info', {})
             simulations[sxs_id].update(metadata)
         except KeyboardInterrupt:
             raise
