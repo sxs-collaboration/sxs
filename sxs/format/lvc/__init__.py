@@ -16,15 +16,25 @@ class LVCDataset(object):
         self.deg = deg
         self.tol = tol
         if error_scaling is None:
-            indices = minimal_grid(x, y, tol=tol, rel=rel, deg=deg)
+            indices = minimal_grid(x, y, tol=tol, rel=rel)
         else:
-            def next_index(x, y, y_greedy):
-                errors = error_scaling * np.abs(y-y_greedy)
-                i_next = np.argmax(errors)
-                return None if errors[i_next] < tol else i_next
-            indices = minimal_grid(x, y, tol=next_index, rel=rel, deg=deg)
-        self.X = x[indices]
-        self.Y = y[indices]
+            sign_tracker = [1]
+            def next_indices(x, y, y_greedy):
+                from scipy.signal import find_peaks
+                errors = error_scaling * (y - y_greedy)
+                peaks = find_peaks(sign_tracker[0]*errors)[0]
+                peaks = peaks[np.abs(errors[peaks])>tol]
+                if not peaks.size:
+                    peaks = find_peaks(-sign_tracker[0]*errors)[0]
+                    peaks = peaks[np.abs(errors[peaks])>tol]
+                    if not peaks.size:
+                        return None
+                sign_tracker[0] *= -1
+                return peaks
+            indices = minimal_grid(x, y, tol=next_indices, rel=rel)
+        self.X = x[indices].copy()
+        self.Y = y[indices].copy()
+        self.compression_ratio = x.size/self.X.size
 
     def write(self, output_group):
         import h5py
@@ -87,7 +97,7 @@ def convert_simulation(sxs_data_path, out_path,
 
     from .metadata import sxs_id_from_alt_names, write_metadata_from_sxs
     from .horizons import horizon_splines_from_sxs, write_horizon_splines_from_sxs
-    from .waveforms import spline_and_write_sxs
+    from .waveforms import convert_modes
 
     class Log(object):
         """Object to replace `log` function that used global `history`
@@ -144,6 +154,7 @@ def convert_simulation(sxs_data_path, out_path,
     log("    spline_degree={0},".format(spline_degree))
     log("    tolerance={0}".format(tolerance))
     log(")")
+    log("Starting at "+time.strftime('%H:%M%p %Z on %b %d, %Y'))
 
     if modes == 'all':
         modes = [[l, m] for l in range(2, 9) for m in range(-l, l+1)]
@@ -184,9 +195,9 @@ def convert_simulation(sxs_data_path, out_path,
         version_hist = rhOverM.get('VersionHist.ver', None)
         if version_hist is not None:
             version_hist = version_hist[:]
-        start_time, peak_time, l_max = spline_and_write_sxs(rhOverM, metadata, out_name, modes,
-                                                            extrapolation_order, log, truncation_time,
-                                                            spline_degree=spline_degree, tolerance=tolerance/2.0)
+        start_time, peak_time, l_max = convert_modes(rhOverM, metadata, out_name, modes,
+                                                     extrapolation_order, log, truncation_time,
+                                                     spline_degree=spline_degree, tolerance=tolerance/2.0)
 
     with h5py.File(sxs_data_path + "/Horizons.h5", 'r') as horizons:
         horizon_splines_to_write, t_A, t_B, t_C = horizon_splines_from_sxs(horizons, start_time, peak_time, log)

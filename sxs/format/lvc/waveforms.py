@@ -130,3 +130,70 @@ def spline_and_write_sxs(sxs_format_waveform, metadata, out_filename,
                 out_file.create_dataset('NRtimes', data=times[i])
 
     return start_time, peak_time, l_max
+
+
+def convert_modes(sxs_format_waveform, metadata, out_filename,
+                  modes, extrapolation_order="Extrapolated_N2",
+                  log=print, truncation_time=None,
+                  spline_degree=3, tolerance=5e-07):
+    """Computes amplitude and phase for an SXS-format waveform, computes
+    rom-spline for each mode, and writes to file.  If modes='all',
+    return all modes for l=2 through l=8, inclusive.
+
+    """
+    from time import perf_counter
+    from . import LVCDataset
+
+    extrap = str(extrapolation_order) + ".dir"
+
+    if modes == "all":
+        modes = [[l, m] for l in range(2, 9) for m in range(-l, l+1)]
+
+    #log("Modes: " + str(modes))
+    l_max = max(lm[0] for lm in modes)
+    # All modes have the same time, so just look at the l=m=2 mode to get
+    # the times
+    times = sxs_format_waveform[extrap]['Y_l2_m-2.dat'][:, 0]
+    if truncation_time is None:
+        start = first_index_before_reference_time(times, metadata)
+    else:
+        start = first_index_after_time(times, truncation_time)
+    peak = peak_time_from_sxs(sxs_format_waveform, metadata, extrapolation_order)
+
+    start_time = times[start]
+    peak_time = peak
+    t = times[start:] - peak
+
+    with h5py.File(out_filename, 'w') as out_file:
+        for i, mode in enumerate(modes):
+            mode_string = "Y_l{0[0]}_m{0[1]}.dat".format(mode)
+            h = (
+                sxs_format_waveform[extrap][mode_string][start:, 1]
+                + 1j * sxs_format_waveform[extrap][mode_string][start:, 2]
+            )
+            amp = np.squeeze(np.abs(h))
+            phase = np.squeeze(np.unwrap(np.angle(h)))
+
+            log("Mode {0}".format(mode))
+            log("\tComputing splines for amplitude and phase")
+            t1 = perf_counter()
+            phase_out = LVCDataset(t, phase, spline_degree, tolerance, error_scaling=amp)
+            t2 = perf_counter()
+            log("\t\tPhase compression ratio {0:.3f}x in {1:.3g} seconds".format(phase_out.compression_ratio,
+                                                                                 t2-t1))
+            t1 = perf_counter()
+            amp_out = LVCDataset(t, amp, spline_degree, tolerance)
+            t2 = perf_counter()
+            log("\t\tAmp compression ratio {0:.3f}x in {1:.3g} seconds".format(amp_out.compression_ratio,
+                                                                               t2-t1))
+
+            log("\tWriting waveform data")
+            out_group_amp = out_file.create_group('amp_l{0[0]}_m{0[1]}'.format(mode))
+            amp_out.write(out_group_amp)
+            out_group_phase = out_file.create_group('phase_l{0[0]}_m{0[1]}'.format(mode))
+            phase_out.write(out_group_phase)
+
+            if mode == [2, 2]:
+                out_file.create_dataset('NRtimes', data=t)
+
+    return start_time, peak_time, l_max
