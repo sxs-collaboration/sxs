@@ -15,7 +15,20 @@ class LVCDataset(object):
         from ...utilities.decimation.greedy_spline import minimal_grid
         self.tol = tol
         if error_scaling is None:
-            indices = minimal_grid(x, y, tol=tol, rel=rel)
+            sign_tracker = [1]
+            def next_indices(x, y, y_greedy):
+                from scipy.signal import find_peaks
+                errors = (y - y_greedy)
+                peaks = find_peaks(sign_tracker[0]*errors)[0]
+                peaks = peaks[np.abs(errors[peaks])>tol]
+                if not peaks.size:
+                    peaks = find_peaks(-sign_tracker[0]*errors)[0]
+                    peaks = peaks[np.abs(errors[peaks])>tol]
+                    if not peaks.size:
+                        return None
+                sign_tracker[0] *= -1
+                return peaks
+            indices = minimal_grid(x, y, tol=next_indices, rel=rel)
         else:
             sign_tracker = [1]
             def next_indices(x, y, y_greedy):
