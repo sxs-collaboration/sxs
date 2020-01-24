@@ -105,7 +105,7 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
 def spline_and_write_sxs(sxs_format_waveform, metadata, out_filename,
                          modes, extrapolation_order="Extrapolated_N2",
                          log=print, truncation_time=None,
-                         spline_degree=3, tolerance=5e-07):
+                         tolerance=5e-07):
     """Compute rom-spline for each mode and write to file"""
     from . import LVCDataset
     
@@ -117,8 +117,8 @@ def spline_and_write_sxs(sxs_format_waveform, metadata, out_filename,
         for i, mode in enumerate(modes):
             log("Mode " + str(mode))
             log("\tComputing splines for amplitude and phase")
-            amp = LVCDataset(times[i], amps[i], spline_degree, tolerance)
-            phase = LVCDataset(times[i], phases[i], spline_degree, tolerance, error_scaling=amps[i])
+            amp = LVCDataset(times[i], amps[i], tolerance)
+            phase = LVCDataset(times[i], phases[i], tolerance, error_scaling=amps[i])
 
             log("\tWriting waveform data")
             out_group_amp = out_file.create_group('amp_l{0[0]}_m{0[1]}'.format(mode))
@@ -135,7 +135,7 @@ def spline_and_write_sxs(sxs_format_waveform, metadata, out_filename,
 def convert_modes(sxs_format_waveform, metadata, out_filename,
                   modes, extrapolation_order="Extrapolated_N2",
                   log=print, truncation_time=None,
-                  spline_degree=3, tolerance=5e-07):
+                  tolerance=5e-07):
     """Computes amplitude and phase for an SXS-format waveform, computes
     rom-spline for each mode, and writes to file.  If modes='all',
     return all modes for l=2 through l=8, inclusive.
@@ -177,12 +177,12 @@ def convert_modes(sxs_format_waveform, metadata, out_filename,
             log("Mode {0}".format(mode))
             log("\tComputing splines for amplitude and phase")
             t1 = perf_counter()
-            phase_out = LVCDataset(t, phase, spline_degree, tolerance, error_scaling=amp)
+            phase_out = LVCDataset(t, phase, tolerance, error_scaling=amp)
             t2 = perf_counter()
             log("\t\tPhase compression ratio {0:.3f}x in {1:.3g} seconds".format(phase_out.compression_ratio,
                                                                                  t2-t1))
             t1 = perf_counter()
-            amp_out = LVCDataset(t, amp, spline_degree, tolerance)
+            amp_out = LVCDataset(t, amp, tolerance)
             t2 = perf_counter()
             log("\t\tAmp compression ratio {0:.3f}x in {1:.3g} seconds".format(amp_out.compression_ratio,
                                                                                t2-t1))

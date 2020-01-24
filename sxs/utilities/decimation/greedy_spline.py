@@ -1,4 +1,4 @@
-def minimal_grid(x, y, tol=1e-6, rel=False, deg=3):
+def minimal_grid(x, y, tol=1e-6, rel=False):
     """Greedy algorithm for building a reduced-order spline
 
     This function is a slight generalization of the core function
@@ -26,8 +26,6 @@ def minimal_grid(x, y, tol=1e-6, rel=False, deg=3):
         taken relative to the maximum absolute value in the input `y`
         data.  Note that if `tol` is callable this parameter is
         ignored.
-    deg: int [defaults to 5]
-        Degree of the interpolating spline.
 
     Returns
     =======
@@ -62,7 +60,9 @@ def minimal_grid(x, y, tol=1e-6, rel=False, deg=3):
 
     """
     import numpy as np
-    from scipy.interpolate import InterpolatedUnivariateSpline
+    from scipy.interpolate import CubicSpline as spline
+
+    deg = 3  # This used to be a parameter, before switching to CubicSpline
 
     if callable(tol):
         next_sample = tol
@@ -93,7 +93,7 @@ def minimal_grid(x, y, tol=1e-6, rel=False, deg=3):
     # Greedy algorithm
     for _ in range(len(x)):
         # Spline interpolant on current set of knots
-        s = InterpolatedUnivariateSpline(x[include_sample], y[include_sample], k=deg)
+        s = spline(x[include_sample], y[include_sample])
 
         # Evaluate this spline
         i_next = next_sample(x, y, s(x))

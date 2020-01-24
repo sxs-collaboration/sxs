@@ -10,10 +10,9 @@ and Alyssa Garcia.
 
 
 class LVCDataset(object):
-    def __init__(self, x, y, deg, tol, rel=False, error_scaling=None):
+    def __init__(self, x, y, tol, rel=False, error_scaling=None):
         import numpy as np
         from ...utilities.decimation.greedy_spline import minimal_grid
-        self.deg = deg
         self.tol = tol
         if error_scaling is None:
             indices = minimal_grid(x, y, tol=tol, rel=rel)
@@ -40,7 +39,7 @@ class LVCDataset(object):
         import h5py
         if not isinstance(output_group, h5py.Group):
             raise Exception("Parameter `output_group` must be an h5py.Group (or File) object.")
-        output_group.create_dataset('deg', data=self.deg, dtype='int')
+        output_group.create_dataset('deg', data=3, dtype='int')
         output_group.create_dataset('tol', data=self.tol, dtype='double')
         output_group.create_dataset('X', data=self.X, dtype='double', compression='gzip', shuffle=True)
         output_group.create_dataset('Y', data=self.Y, dtype='double', compression='gzip', shuffle=True)
@@ -54,7 +53,7 @@ def bbh_keys_from_simulation_keys(simulation_keys):
 
 def convert_simulation(sxs_data_path, out_path,
                        sxs_catalog_path='~/.sxs/catalog', resolution=None, modes=8,
-                       truncation_time=None, spline_degree=3, tolerance=1e-06):
+                       truncation_time=None, tolerance=1e-06):
     """Convert a simulation from the SXS BBH catalog into the LVC format.
     
     This function outputs a file in LVC format named SXS_BBH_####_Res#.h5 in out_path.
@@ -79,8 +78,6 @@ def convert_simulation(sxs_data_path, out_path,
         and is equivalent to the default value of `8`.
     truncation_time: None or float [defaults to None]
         If specified, truncate time series at this time instead of at the reference time
-    spline_degree: int [defaults to 5]
-        Degree of spline used in `sxs.utilities.greedy_spline.minimal_indices`.
     tolerance: float [defaults to 1e-6]
         Target tolerance used in `sxs.utilities.greedy_spline.minimal_indices`.
 
@@ -151,7 +148,6 @@ def convert_simulation(sxs_data_path, out_path,
     log("    resolution={0},".format(resolution))
     log("    modes={0},".format(repr(modes)))
     log("    truncation_time={0},".format(truncation_time))
-    log("    spline_degree={0},".format(spline_degree))
     log("    tolerance={0}".format(tolerance))
     log(")")
     log("Starting at "+time.strftime('%H:%M%p %Z on %b %d, %Y'))
@@ -197,7 +193,7 @@ def convert_simulation(sxs_data_path, out_path,
             version_hist = version_hist[:]
         start_time, peak_time, l_max = convert_modes(rhOverM, metadata, out_name, modes,
                                                      extrapolation_order, log, truncation_time,
-                                                     spline_degree=spline_degree, tolerance=tolerance/2.0)
+                                                     tolerance=tolerance/2.0)
 
     with h5py.File(sxs_data_path + "/Horizons.h5", 'r') as horizons:
         horizon_splines_to_write, t_A, t_B, t_C = horizon_splines_from_sxs(horizons, start_time, peak_time, log)
