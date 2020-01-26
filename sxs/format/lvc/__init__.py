@@ -66,7 +66,7 @@ def bbh_keys_from_simulation_keys(simulation_keys):
 
 def convert_simulation(sxs_data_path, out_path,
                        sxs_catalog_path='~/.sxs/catalog', resolution=None, modes=8,
-                       truncation_time=None, tolerance=1e-06):
+                       truncation_time=None, tolerance=1e-06, quiet=False):
     """Convert a simulation from the SXS BBH catalog into the LVC format.
     
     This function outputs a file in LVC format named SXS_BBH_####_Res#.h5 in out_path.
@@ -93,6 +93,9 @@ def convert_simulation(sxs_data_path, out_path,
         If specified, truncate time series at this time instead of at the reference time
     tolerance: float [defaults to 1e-6]
         Target tolerance used in `sxs.utilities.greedy_spline.minimal_indices`.
+    quiet: bool [defaults to False]
+        If False, echo each line of the log as it is created; otherwise just store the final
+        log in the output file.
 
     """
     import os
@@ -123,11 +126,13 @@ def convert_simulation(sxs_data_path, out_path,
         value.
 
         """
-        def __init__(self):
+        def __init__(self, quiet):
             self.history = ""
+            self.quiet = quiet
 
         def __call__(self, string):
-            print(string)
+            if not self.quiet:
+                print(string)
             self.history += string + "\n"
 
         def __str__(self):
@@ -153,7 +158,7 @@ def convert_simulation(sxs_data_path, out_path,
             sxs=sxs.__version__
         ))
 
-    log = Log()
+    log = Log(quiet)
     log("sxs.format.lvc.convert_simulation(")
     log("    sxs_data_path='{0}',".format(sxs_data_path))
     log("    out_path='{0}',".format(out_path))
