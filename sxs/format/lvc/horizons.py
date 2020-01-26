@@ -106,8 +106,7 @@ def derived_horizon_quantities_from_sxs(sxs_horizons, start_time, peak_time):
     # Because taking a time derivative reduces the length of the array by 1,
     # drop the last time of n_vec so n_vec and dn_vec_dt have the same number
     # of points.
-    r_cross_v = np.array([np.cross(n_vec[i], dn_vec_dt[i])
-                          for i in range(len(dn_vec_dt))])
+    r_cross_v = np.cross(n_vec[:-1], dn_vec_dt)
     r_cross_v_norm = np.linalg.norm(r_cross_v, axis=-1)
     omega_orbit = r_cross_v_norm / n_vec_norm[:-1]**2
 
@@ -115,7 +114,7 @@ def derived_horizon_quantities_from_sxs(sxs_horizons, start_time, peak_time):
     # angular momentum. That is, it is a unit vector in the direction of
     # r x p, which is the same direction as r x v.
     LN_hat = r_cross_v / r_cross_v_norm[:, None]
-              
+
     # Horizons.h5 stores quantities as functions of time. Append time to the
     # derived quantities.
     n_hat_vs_time = np.c_[t_A, n_hat]
