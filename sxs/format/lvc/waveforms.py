@@ -54,11 +54,9 @@ def peak_time_from_sxs(
     extrap = extrapolation_order + ".dir"
     # All modes have the same time, so just look at the l=m=2 mode to get the
     # times
-    times = sxs_format_waveform[extrapolation_order +
-                                ".dir"]['Y_l2_m2.dat'][:, 0]
+    times = sxs_format_waveform[extrap]['Y_l2_m2.dat'][:, 0]
     start = first_index_before_reference_time(times, metadata)
-    sum_amp_squared = waveform_norm_squared(
-        sxs_format_waveform, extrapolation_order)
+    sum_amp_squared = waveform_norm_squared(sxs_format_waveform, extrapolation_order)
     index_peak = start + sum_amp_squared[start:].argmax()
     return sxs_format_waveform[extrap]['Y_l2_m2.dat'][index_peak][0]
 
