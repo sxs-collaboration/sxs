@@ -2,7 +2,6 @@
 
 import numpy as np
 import h5py
-from . import LVCDataset
 
 
 def prepare_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
@@ -35,6 +34,8 @@ def spline_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
     and then returns a spline of the result.
 
     """
+    from . import LVCDataset
+
     times_AH, quantity_AH = prepare_horizon_quantity(sxs_horizon_quantity, start_time, peak_time)
     spline_AH_list = [
         LVCDataset(times_AH, quantity_AH[i], tol=1e-6)
@@ -134,6 +135,7 @@ def insert_derived_spline(spline_dictionary, spline_keys, derived_quantity, log=
     computed using derived_horizon_quantities_from_sxs().
 
     """
+    from . import LVCDataset
     # N.B. times already shifted, truncated to remove junk by
     # derived_horizon_quantities_from_sxs()
     log("Computing " + str(spline_keys))
