@@ -181,23 +181,23 @@ def convert_simulation(sxs_data_path, out_path,
         modes = [[l, m] for l in range(2, l_max+1) for m in range(-l, l+1)]
     ell_max = max(lm[0] for lm in modes)
 
-    # Load metadata.json from this simulation
-    with open(os.path.join(sxs_data_path, "metadata.json"), 'r') as f:
-        metadata = json.load(f)
-
     # Load catalog metadata
     if sxs_catalog_path is None:
         sxs_catalog = sxs.zenodo.catalog.read()
     else:
         sxs_catalog = sxs.zenodo.catalog.read(sxs_catalog_path)
 
+    sxs_catalog_resolutions = sxs.zenodo.catalog.resolutions_for_simulations(sxs_catalog)
+
+    # Load metadata.json from this simulation
+    with open(os.path.join(sxs_data_path, "metadata.json"), 'r') as f:
+        metadata = json.load(f)
+
     # Determine the resolution of the input simulation, if needed
     if resolution is None:
         resolution = sxs.lev_number(sxs_data_path)
     if resolution is None:
         raise ValueError('No `resolution` value found in input arguments or data path.')
-
-    sxs_catalog_resolutions = sxs.zenodo.catalog.resolutions_for_simulations(sxs_catalog)
 
     sxs_id = sxs_id_from_alt_names(metadata['alternative_names'])
     log("Converting " + sxs_id)
