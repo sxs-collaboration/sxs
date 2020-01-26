@@ -58,7 +58,7 @@ def peak_time_from_sxs(
     start = first_index_before_reference_time(times, metadata)
     sum_amp_squared = waveform_norm_squared(sxs_format_waveform, extrapolation_order)
     index_peak = start + sum_amp_squared[start:].argmax()
-    return sxs_format_waveform[extrap]['Y_l2_m2.dat'][index_peak][0]
+    return times[index_peak]
 
 
 def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
@@ -140,50 +140,44 @@ def convert_modes(sxs_format_waveform, metadata, out_filename,
 
     """
     from time import perf_counter
+    from .. import Waveform
     from . import LVCDataset
 
     extrap = str(extrapolation_order) + ".dir"
 
-    if modes == "all":
-        modes = [[l, m] for l in range(2, 9) for m in range(-l, l+1)]
-
-    #log("Modes: " + str(modes))
-    l_max = max(lm[0] for lm in modes)
-    # All modes have the same time, so just look at the l=m=2 mode to get
-    # the times
-    times = sxs_format_waveform[extrap]['Y_l2_m-2.dat'][:, 0]
+    h = Waveform(sxs_format_waveform, extrap, modes=modes)
+    
     if truncation_time is None:
-        start = first_index_before_reference_time(times, metadata)
+        start_index = first_index_before_reference_time(h.t, metadata)
     else:
-        start = first_index_after_time(times, truncation_time)
-    peak = peak_time_from_sxs(sxs_format_waveform, metadata, extrapolation_order)
+        start_index = first_index_after_time(h.t, truncation_time)
+    start_time = h.t[start_index]
+    
+    # peak = peak_time_from_sxs(sxs_format_waveform, metadata, extrapolation_order)
+    peak_time = h.t[h.peak_index(start_index)]
 
-    start_time = times[start]
-    peak_time = peak
-    t = times[start:] - peak
+    t = h.t[start_index:] - peak_time
 
     with h5py.File(out_filename, 'w') as out_file:
         for i, mode in enumerate(modes):
-            mode_string = "Y_l{0[0]}_m{0[1]}.dat".format(mode)
-            h = (
-                sxs_format_waveform[extrap][mode_string][start:, 1]
-                + 1j * sxs_format_waveform[extrap][mode_string][start:, 2]
-            )
-            amp = np.squeeze(np.abs(h))
-            phase = np.squeeze(np.unwrap(np.angle(h)))
+            # mode_string = "Y_l{0[0]}_m{0[1]}.dat".format(mode)
+            # h = (
+            #     sxs_format_waveform[extrap][mode_string][start:, 1]
+            #     + 1j * sxs_format_waveform[extrap][mode_string][start:, 2]
+            # )
+            amp = np.squeeze(np.abs(h.data[start_index:, i]))
+            phase = np.squeeze(np.unwrap(np.angle(h.data[start_index:, i])))
 
             log("Mode {0}".format(mode))
             log("\tComputing splines for amplitude and phase")
             t1 = perf_counter()
             phase_out = LVCDataset(t, phase, tolerance, error_scaling=amp)
             t2 = perf_counter()
-            log("\t\tPhase compression ratio {0:.3f}x in {1:.3g} seconds".format(phase_out.compression_ratio,
-                                                                                 t2-t1))
+            log("\t\tPhase compression ratio {0:.3f}x in {1:.3g} seconds".format(phase_out.compression_ratio, t2-t1))
             t1 = perf_counter()
             amp_out = LVCDataset(t, amp, tolerance)
             t2 = perf_counter()
-            log("\t\tAmp compression ratio {0:.3f}x in {1:.3g} seconds".format(amp_out.compression_ratio,
-                                                                               t2-t1))
+            log("\t\tAmp compression ratio {0:.3f}x in {1:.3g} seconds".format(amp_out.compression_ratio, t2-t1))
 
             log("\tWriting waveform data")
             out_group_amp = out_file.create_group('amp_l{0[0]}_m{0[1]}'.format(mode))
@@ -194,4 +188,4 @@ def convert_modes(sxs_format_waveform, metadata, out_filename,
             if mode == [2, 2]:
                 out_file.create_dataset('NRtimes', data=t)
 
-    return start_time, peak_time, l_max
+    return start_time, peak_time, h.version_hist

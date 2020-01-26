@@ -8,6 +8,8 @@ and Alyssa Garcia.
 
 """
 
+from . import waveforms, horizons, metadata
+
 
 class LVCDataset(object):
     def __init__(self, x, y, tol, rel=False, error_scaling=None):
@@ -177,6 +179,7 @@ def convert_simulation(sxs_data_path, out_path,
     else:
         l_max = int(modes)
         modes = [[l, m] for l in range(2, l_max+1) for m in range(-l, l+1)]
+    ell_max = max(lm[0] for lm in modes)
 
     # Load metadata.json from this simulation
     with open(os.path.join(sxs_data_path, "metadata.json"), 'r') as f:
@@ -205,13 +208,9 @@ def convert_simulation(sxs_data_path, out_path,
     out_name = out_path + "/" + sxs_id.replace(':', '_') + "_Res" + str(resolution) + ".h5"
     log("Output filename is '{0}'".format(out_name))
 
-    with h5py.File(sxs_data_path + "/rhOverM_Asymptotic_GeometricUnits_CoM.h5", 'r') as rhOverM:
-        version_hist = rhOverM.get('VersionHist.ver', None)
-        if version_hist is not None:
-            version_hist = version_hist[:]
-        start_time, peak_time, l_max = convert_modes(rhOverM, metadata, out_name, modes,
-                                                     extrapolation_order, log, truncation_time,
-                                                     tolerance=tolerance/2.0)
+    start_time, peak_time, version_hist = convert_modes(sxs_data_path + "/rhOverM_Asymptotic_GeometricUnits_CoM.h5",
+                                                        metadata, out_name, modes, extrapolation_order, log,
+                                                        truncation_time, tolerance=tolerance/2.0)
 
     with h5py.File(sxs_data_path + "/Horizons.h5", 'r') as horizons:
         horizon_splines_to_write, t_A, t_B, t_C = horizon_splines_from_sxs(horizons, start_time, peak_time, log)
@@ -219,7 +218,7 @@ def convert_simulation(sxs_data_path, out_path,
 
     write_metadata_from_sxs(out_name, resolution, metadata,
                             sxs_catalog, sxs_catalog_resolutions,
-                            start_time, peak_time, l_max, log)
+                            start_time, peak_time, ell_max, log)
 
     with h5py.File(out_name, 'a') as out_file:
         # Save information about versions of code used in this function
