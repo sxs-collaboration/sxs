@@ -159,33 +159,26 @@ def convert_modes(sxs_format_waveform, metadata, out_filename,
     t = h.t[start_index:] - peak_time
 
     with h5py.File(out_filename, 'w') as out_file:
+        out_file.create_dataset('NRtimes', data=t)
         for i, mode in enumerate(modes):
-            # mode_string = "Y_l{0[0]}_m{0[1]}.dat".format(mode)
-            # h = (
-            #     sxs_format_waveform[extrap][mode_string][start:, 1]
-            #     + 1j * sxs_format_waveform[extrap][mode_string][start:, 2]
-            # )
             amp = np.squeeze(np.abs(h.data[start_index:, i]))
             phase = np.squeeze(np.unwrap(np.angle(h.data[start_index:, i])))
 
-            log("Mode {0}".format(mode))
-            log("\tComputing splines for amplitude and phase")
-            t1 = perf_counter()
+            # log("Mode {0}".format(mode))
+            # log("\tComputing splines for amplitude and phase")
+            # t1 = perf_counter()
             phase_out = LVCDataset(t, phase, tolerance, error_scaling=amp)
-            t2 = perf_counter()
-            log("\t\tPhase compression ratio {0:.3f}x in {1:.3g} seconds".format(phase_out.compression_ratio, t2-t1))
-            t1 = perf_counter()
+            # t2 = perf_counter()
+            # log("\t\tPhase compression ratio {0:.3f}x in {1:.3g} seconds".format(phase_out.compression_ratio, t2-t1))
+            # t1 = perf_counter()
             amp_out = LVCDataset(t, amp, tolerance)
-            t2 = perf_counter()
-            log("\t\tAmp compression ratio {0:.3f}x in {1:.3g} seconds".format(amp_out.compression_ratio, t2-t1))
+            # t2 = perf_counter()
+            # log("\t\tAmp compression ratio {0:.3f}x in {1:.3g} seconds".format(amp_out.compression_ratio, t2-t1))
 
-            log("\tWriting waveform data")
+            # log("\tWriting waveform data")
             out_group_amp = out_file.create_group('amp_l{0[0]}_m{0[1]}'.format(mode))
             amp_out.write(out_group_amp)
             out_group_phase = out_file.create_group('phase_l{0[0]}_m{0[1]}'.format(mode))
             phase_out.write(out_group_phase)
-
-            if mode == [2, 2]:
-                out_file.create_dataset('NRtimes', data=t)
 
     return start_time, peak_time, h.version_hist
