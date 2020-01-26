@@ -11,11 +11,11 @@ class Waveform(object):
         with h5py.File(file_path, 'r') as f:
             h = f[group_path]
             self.t = h[modes_string.format(modes[0])][:, 0]
+            self.t.setflags(write=False)
             self.data = np.empty((self.t.size, len(modes)*2))
             for i, mode in enumerate(modes):
                 self.data[:, 2*i:2*i+2] = h[modes_string.format(mode)][:, 1:3]
             self.data = self.data.view(complex)
-            self.t.setflags(write=False)
             self.data.setflags(write=False)
 
             self.version_hist = f.get('VersionHist.ver', None)
