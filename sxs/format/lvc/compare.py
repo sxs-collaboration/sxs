@@ -175,24 +175,22 @@ def compare_wave_time_series(lvc, sxs_waveform, count_errors, extrap="Extrapolat
         count_errors("[=] NRtimes agrees with SXS l=m=2 times (diff = {0})".format(diff))
 
 
-def compare_sxs_vs_lvc(lvc_file, sxs_waveform_file, sxs_horizons_file, sxs_metadata_file, quiet=True):
+def compare_sxs_vs_lvc(lvc_file, sxs_data_path, quiet=True):
     """Compare SXS- and LVC-format data files
 
     Parameters
     ==========
     lvc_file: str
         Path to SXS_BBH_????_Res?.h5 file
-    sxs_waveform_file: str
-        Path to rhOverM_Asymptotic_GeometricUnits_Com.h5
-    sxs_horizons_file: str
-        Path to Horizons.h5
-    sxs_metadata_file: str
-        Path to metadata.json
+    sxs_data_path: str
+        Path to directory containing rhOverM_Asymptotic_GeometricUnits_CoM.h5, Horizons.h5,
+        and metadata.json files.
 
     """
+    import os
+    import json
     import numpy as np
     import h5py
-    import json
 
     class ErrorCounter(object):
         def __init__(self, quiet):
@@ -206,6 +204,10 @@ def compare_sxs_vs_lvc(lvc_file, sxs_waveform_file, sxs_horizons_file, sxs_metad
                 print(string)
 
     count_errors = ErrorCounter(quiet)
+
+    sxs_waveform_file = os.path.join(sxs_data_path, 'rhOverM_Asymptotic_GeometricUnits_CoM.h5')
+    sxs_horizons_file = os.path.join(sxs_data_path, 'Horizons.h5')
+    sxs_metadata_file = os.path.join(sxs_data_path, 'metadata.json')
 
     with open(sxs_metadata_file, 'r') as m:
         sxs_metadata = json.load(m)
