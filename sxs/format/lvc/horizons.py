@@ -38,7 +38,7 @@ def spline_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
 
     times_AH, quantity_AH = prepare_horizon_quantity(sxs_horizon_quantity, start_time, peak_time)
     spline_AH_list = [
-        LVCDataset(times_AH, quantity_AH[i], tol=1e-6)
+        LVCDataset.from_data(times_AH, quantity_AH[i], tol=1e-6)
         for i in range(0, len(sxs_horizon_quantity[0]) - 1)
     ]
     return spline_AH_list
@@ -141,7 +141,7 @@ def insert_derived_spline(spline_dictionary, spline_keys, derived_quantity, log=
     times_AH = derived_quantity[:, 0]
     quantity_AH = derived_quantity[:, 1:]
     for i, spline_key in enumerate(spline_keys):
-        spline_dictionary[spline_key] = LVCDataset(times_AH, quantity_AH[:, i], tol=1e-6)
+        spline_dictionary[spline_key] = LVCDataset.from_data(times_AH, quantity_AH[:, i], tol=1e-6)
 
 
 def horizon_splines_from_sxs(horizons, start_time, peak_time, log=print):
