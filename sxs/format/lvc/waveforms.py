@@ -115,8 +115,8 @@ def spline_and_write_sxs(sxs_format_waveform, metadata, out_filename,
         for i, mode in enumerate(modes):
             log("Mode " + str(mode))
             log("\tComputing splines for amplitude and phase")
-            amp = LVCDataset(times[i], amps[i], tolerance)
-            phase = LVCDataset(times[i], phases[i], tolerance, error_scaling=amps[i])
+            amp = LVCDataset.from_data(times[i], amps[i], tolerance)
+            phase = LVCDataset.from_data(times[i], phases[i], tolerance, error_scaling=amps[i])
 
             log("\tWriting waveform data")
             out_group_amp = out_file.create_group('amp_l{0[0]}_m{0[1]}'.format(mode))
@@ -135,9 +135,7 @@ def convert_modes(sxs_format_waveform, metadata, out_filename,
                   log=print, truncation_time=None,
                   tolerance=5e-07):
     """Computes amplitude and phase for an SXS-format waveform, computes
-    rom-spline for each mode, and writes to file.  If modes='all',
-    return all modes for l=2 through l=8, inclusive.
-
+    ROM-spline for each mode, and writes to file.
     """
     from time import perf_counter
     from .. import Waveform
@@ -163,8 +161,8 @@ def convert_modes(sxs_format_waveform, metadata, out_filename,
             amp = np.abs(h.data[start_index:, i])
             phase = np.unwrap(np.angle(h.data[start_index:, i]))
 
-            phase_out = LVCDataset(t, phase, tolerance, error_scaling=amp)
-            amp_out = LVCDataset(t, amp, tolerance)
+            phase_out = LVCDataset.from_data(t, phase, tolerance, error_scaling=amp)
+            amp_out = LVCDataset.from_data(t, amp, tolerance)
 
             out_group_amp = out_file.create_group('amp_l{0[0]}_m{0[1]}'.format(mode))
             amp_out.write(out_group_amp)

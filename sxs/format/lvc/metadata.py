@@ -5,6 +5,9 @@ import json
 import numpy as np
 import h5py
 
+# Compute 1 solar mass * G/c^3
+msun_seconds = 4.925491025543576e-06  # LAL value
+
 
 def sxs_id_from_alt_names(alt_names):
     """Takes an array of alternative names from an SXS metadata.json file
@@ -175,11 +178,6 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
         # is the same as the direction of the orbital angular velocity
         # at the reference time
         ln_hat = omega_orbit_vec / omega_orbit
-
-        # Compute 1 solar mass * G/c^3
-        # Use the same value as in Patricia Schmidt's conversion script,
-        # attributed to lal
-        msun_seconds = 4.925491025543576e-06
 
         # Eccentricity quantities
         eccentricity = metadata['reference_eccentricity']

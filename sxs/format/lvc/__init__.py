@@ -8,14 +8,22 @@ and Alyssa Garcia.
 
 """
 
-from . import waveforms, horizons, metadata
+from . import waveforms, horizons, metadata, compare
 
 
 class LVCDataset(object):
-    def __init__(self, x, y, tol, rel=False, error_scaling=None):
+    """Represents a single dataset of a group in an LVC-format HDF5 file"""
+    def __init__(self, *args, **kwargs):
+        if args or kwargs:
+            raise ValueError("This is an empty constructor; use `from_data` or `read` to add data.")
+
+    @classmethod
+    def from_data(cls, x, y, tol, rel=False, error_scaling=None):
+        """Construct reduced-order dataset from (x, y) data"""
         import numpy as np
         from ...utilities.decimation.greedy_spline import minimal_grid
-        self.tol = tol
+        lvc_dataset = LVCDataset()
+        lvc_dataset.tol = tol
         if error_scaling is None:
             sign_tracker = [1]
             def next_indices(x, y, y_greedy):
@@ -24,13 +32,14 @@ class LVCDataset(object):
                 # peaks = find_peaks(sign_tracker[0]*errors, height=tol)[0]
                 peaks = find_peaks(sign_tracker[0]*errors)[0]
                 peaks = peaks[np.abs(errors[peaks])>tol]
+                sign_tracker[0] *= -1
                 if not peaks.size:
-                    # peaks = find_peaks(-sign_tracker[0]*errors, height=tol)[0]
-                    peaks = find_peaks(-sign_tracker[0]*errors)[0]
+                    # peaks = find_peaks(sign_tracker[0]*errors, height=tol)[0]
+                    peaks = find_peaks(sign_tracker[0]*errors)[0]
                     peaks = peaks[np.abs(errors[peaks])>tol]
                     if not peaks.size:
                         return None
-                sign_tracker[0] *= -1
+                    sign_tracker[0] *= -1
                 return peaks
             indices = minimal_grid(x, y, tol=next_indices, rel=rel)
         else:
@@ -41,18 +50,20 @@ class LVCDataset(object):
                 # peaks = find_peaks(sign_tracker[0]*errors, height=tol)[0]
                 peaks = find_peaks(sign_tracker[0]*errors)[0]
                 peaks = peaks[np.abs(errors[peaks])>tol]
+                sign_tracker[0] *= -1
                 if not peaks.size:
-                    # peaks = find_peaks(-sign_tracker[0]*errors, height=tol)[0]
-                    peaks = find_peaks(-sign_tracker[0]*errors)[0]
+                    # peaks = find_peaks(sign_tracker[0]*errors, height=tol)[0]
+                    peaks = find_peaks(sign_tracker[0]*errors)[0]
                     peaks = peaks[np.abs(errors[peaks])>tol]
                     if not peaks.size:
                         return None
-                sign_tracker[0] *= -1
+                    sign_tracker[0] *= -1
                 return peaks
             indices = minimal_grid(x, y, tol=next_indices, rel=rel)
-        self.X = x[indices].copy()
-        self.Y = y[indices].copy()
-        self.compression_ratio = x.size/self.X.size
+        lvc_dataset.X = x[indices].copy()
+        lvc_dataset.Y = y[indices].copy()
+        lvc_dataset.compression_ratio = x.size/lvc_dataset.X.size
+        return lvc_dataset
 
     def write(self, output_group):
         import h5py
@@ -62,6 +73,22 @@ class LVCDataset(object):
         output_group.create_dataset('tol', data=self.tol, dtype='double')
         output_group.create_dataset('X', data=self.X, dtype='double', compression='gzip', shuffle=True)
         output_group.create_dataset('Y', data=self.Y, dtype='double', compression='gzip', shuffle=True)
+
+    @classmethod
+    def read(cls, input_group):
+        import h5py
+        if not isinstance(input_group, h5py.Group):
+            raise Exception("Parameter `input_group` must be an h5py.Group (or File) object.")
+        lvc_dataset = LVCDataset()
+        lvc_dataset.deg = input_group['deg'][()]
+        lvc_dataset.tol = input_group['tol'][()]
+        lvc_dataset.X = input_group['X'][:]
+        lvc_dataset.Y = input_group['Y'][:]
+        return lvc_dataset
+
+    def spline(self, xprime):
+        from scipy.interpolate import InterpolatedUnivariateSpline as spline
+        return spline(self.X, self.Y, k=self.deg)(xprime)
 
 
 def bbh_keys_from_simulation_keys(simulation_keys):
@@ -169,6 +196,7 @@ class SimulationConverter(object):
                 quiet=quiet
             ))
 
+        # Make sense of the `modes` parameter
         if modes == 'all':
             self.modes = [[l, m] for l in range(2, 9) for m in range(-l, l+1)]
         elif modes == '22only':
