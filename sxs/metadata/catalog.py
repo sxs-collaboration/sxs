@@ -2,7 +2,8 @@ from __future__ import absolute_import, division, print_function
 
 def read_catalog(catalog_root_directory='.', exclude_patterns=[r'^\.', r'^Attic', r'.*Links$'],
                  ignore_invalid_lines=False, suppress_errors=False,
-                 cache_results=False, error_on_cache_failure=True, indent=4, separators=(',', ': ')):
+                 cache_results=False, error_on_cache_failure=True,
+                 indent=4, separators=(',', ': '), verbosity=1):
     """Parse the catalog's metadata into a single ordered dictionary
 
     Parameters
@@ -32,6 +33,8 @@ def read_catalog(catalog_root_directory='.', exclude_patterns=[r'^\.', r'^Attic'
     separators: tuple of str (default: (',', ': '))
         Tuple of `(item_separator, key_separator)` to use in the json file, if `cache_results` is
         True.
+    verbosity: int
+        If greater than 0, print each simulation's directory as it is processed.
 
     Returns
     -------
@@ -70,6 +73,8 @@ def read_catalog(catalog_root_directory='.', exclude_patterns=[r'^\.', r'^Attic'
                 # times if both are present, or will simply use the only one present.
                 metadata = Metadata.from_file(os.path.join(root, 'metadata'), ignore_invalid_lines=ignore_invalid_lines)
                 key = os.path.relpath(root, catalog_root_directory)
+                if verbosity>0:
+                    print(key)
                 catalog_metadata[key] = metadata
         except Exception as e:
             if suppress_errors:
@@ -310,7 +315,8 @@ def symlink_runs(source_directory='Catalog', target_directory='CatalogLinks',
     elif verbosity > 1:
         verbosity = 2
 
-    catalog = read_catalog(source_directory, ignore_invalid_lines=True, suppress_errors=True, exclude_patterns=exclude_patterns)
+    catalog = read_catalog(source_directory, ignore_invalid_lines=True, suppress_errors=True,
+                           exclude_patterns=exclude_patterns, verbosity=verbosity)
     catalog = drop_all_but_highest_levs(catalog)
     catalog = key_by_alternative_name(catalog, alternative_name_patterns=alternative_name_patterns,
                                       error_on_duplicate_keys=True, warn_on_missing_key=(verbosity>0))
