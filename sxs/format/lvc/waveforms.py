@@ -143,7 +143,7 @@ def convert_modes(sxs_format_waveform, metadata, out_filename,
 
     extrap = str(extrapolation_order) + ".dir"
 
-    h = Waveform(sxs_format_waveform, extrap, modes=modes)
+    h = Waveform.read(sxs_format_waveform, extrap, modes=modes)
     
     if truncation_time is None:
         start_index = first_index_before_reference_time(h.t, metadata)
