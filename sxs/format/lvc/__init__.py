@@ -62,7 +62,7 @@ class LVCDataset(object):
             indices = minimal_grid(x, y, tol=next_indices, rel=rel)
         lvc_dataset.X = x[indices].copy()
         lvc_dataset.Y = y[indices].copy()
-        lvc_dataset.compression_ratio = x.size/lvc_dataset.X.size
+        # lvc_dataset.compression_ratio = x.size/lvc_dataset.X.size
         return lvc_dataset
 
     def write(self, output_group):
@@ -181,14 +181,14 @@ class SimulationConverter(object):
 
         self.command = textwrap.dedent("""\
             sxs.format.lvc.convert_simulation(
-                sxs_data_path='{{sxs_data_path}}',
-                out_path='{{out_path}}',
-                truncation_time={{truncation_time}},
-                resolution={{resolution}},
-                sxs_catalog_path='{sxs_catalog_path}',
-                modes={modes},
-                tolerance={tolerance},
-                quiet={quiet}
+                sxs_data_path={{sxs_data_path!r}},
+                out_path={{out_path!r}},
+                truncation_time={{truncation_time!r}},
+                resolution={{resolution!r}},
+                sxs_catalog_path={sxs_catalog_path!r},
+                modes={modes!r},
+                tolerance={tolerance!r},
+                quiet={quiet!r}
             )""".format(
                 sxs_catalog_path=sxs_catalog_path,
                 modes=modes,
