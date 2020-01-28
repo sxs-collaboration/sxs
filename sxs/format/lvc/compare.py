@@ -39,10 +39,10 @@ def compare_attributes(lvc, sxs_metadata, count_errors):
     compare_attribute("f_lower_at_1MSUN", f_lower_at_1_msun)
 
     eccentricity = str(sxs_metadata['reference_eccentricity'])
-    if eccentricity[0] == "<" or eccentricity[0] == ">":
+    if eccentricity == '[simulation too short]' or eccentricity == '[unknown]':
+        eccentricity = -1.0
+    elif eccentricity[0] == "<" or eccentricity[0] == ">":
         eccentricity = float(eccentricity[1:])
-    elif eccentricity == '[simulation too short]' or eccentricity == '[unknown]':
-        eccentricity = -44444444.44444444
     else:
         eccentricity = float(eccentricity)
     compare_attribute("eccentricity", eccentricity)
@@ -175,8 +175,8 @@ def compare_wave_time_series(lvc, sxs_waveform, count_errors, extrap="Extrapolat
         count_errors("[=] NRtimes agrees with SXS l=m=2 times (diff = {0})".format(diff))
 
 
-def compare_sxs_vs_lvc(lvc_file, sxs_data_path, quiet=True):
-    """Compare SXS- and LVC-format data files
+def to_sxs(lvc_file, sxs_data_path, verbosity=1):
+    """Compare an LVC-format data file to SXS-format files
 
     Parameters
     ==========
@@ -185,6 +185,9 @@ def compare_sxs_vs_lvc(lvc_file, sxs_data_path, quiet=True):
     sxs_data_path: str
         Path to directory containing rhOverM_Asymptotic_GeometricUnits_CoM.h5, Horizons.h5,
         and metadata.json files.
+    verbosity: int [defaults to 1]
+        If 0, don't print anything ever; if 1, print only if errors were found; if greater than 1,
+        print full results.
 
     """
     import os
@@ -193,17 +196,31 @@ def compare_sxs_vs_lvc(lvc_file, sxs_data_path, quiet=True):
     import h5py
 
     class ErrorCounter(object):
-        def __init__(self, quiet):
-            self.quiet = quiet
+        def __init__(self, verbosity):
+            self.verbosity = verbosity
             self.errors = 0
+            self.log = ''
 
         def __call__(self, string):
             if string.startswith('[x]'):
                 self.errors += 1
-            if not self.quiet:
+            if self.verbosity > 1:
                 print(string)
+            else:
+                self.log += string + '\n'
 
-    count_errors = ErrorCounter(quiet)
+        def __del__(self):
+            if self.errors and self.verbosity==1:
+                print(self.log)
+
+    count_errors = ErrorCounter(verbosity)
+
+    command = "sxs.format.lvc.compare.to_sxs({lvc_file!r}, {sxs_data_path!r}, verbosity={verbosity!r})""".format(
+        lvc_file=lvc_file,
+        sxs_data_path=sxs_data_path,
+        verbosity=verbosity
+    )
+    count_errors("# " + command)
 
     sxs_waveform_file = os.path.join(sxs_data_path, 'rhOverM_Asymptotic_GeometricUnits_CoM.h5')
     sxs_horizons_file = os.path.join(sxs_data_path, 'Horizons.h5')
