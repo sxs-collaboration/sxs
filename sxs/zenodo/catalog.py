@@ -225,11 +225,12 @@ def read(path='~/.sxs/catalog', download_if_not_found=True):
     # Make sure that the catalog file exists
     path = expanduser(path)
     if not path.endswith('.json'):
-        path = join(path, 'private_catalog.json')
-        if not exists(path):
-            path = join(path, 'public_catalog.json')
-        if not exists(path):
-            path = join(path, 'catalog.json')
+        new_path = join(path, 'private_catalog.json')
+        if not exists(new_path):
+            new_path = join(path, 'public_catalog.json')
+        if not exists(new_path):
+            new_path = join(path, 'catalog.json')
+        path = new_path
     if not exists(path):
         msg = "Could not find catalog file in '{0}'.".format(dirname(path))
         if download_if_not_found:
