@@ -16,13 +16,14 @@ def sync(annex_dir='./', exclude=[], publish='if_pending',
 
     """
     import os
+    import json
     import datetime
     import pytz
     from ..utilities import md5checksum, find_files, fit_to_console
     from .api import Login
 
     l = Login(sandbox=sandbox, access_token_path=access_token_path)
-    surrogate_record = l.search(q="title:'Binary black-hole surrogate waveform catalog'")[0]
+    surrogate_record = l.search(q="title:'Binary black-hole surrogate waveform catalog'", size=1, max_pages=1)[0]
     surrogate_id = surrogate_record['id']
     d = l.deposit(surrogate_id, ignore_deletion=True)
 
@@ -33,7 +34,7 @@ def sync(annex_dir='./', exclude=[], publish='if_pending',
     stored_keys = ['creators', 'related_identifiers', 'title']
     metadata = d.metadata.copy()
     with open(os.path.join(annex_dir, 'zenodo_metadata.json'), 'r') as f:
-        local_metadata = f.read()
+        local_metadata = json.load(f)
     unchanged_metadata = True
     for key in stored_keys:
         if d.metadata.get(key, '') != local_metadata.get(key, ''):
@@ -62,7 +63,7 @@ def sync(annex_dir='./', exclude=[], publish='if_pending',
     # Get the list of files we'll be uploading and compare to files already in the deposit to see if
     # any have changed.  If so, we need to create a new version.  Otherwise, we can just edit this
     # version.
-    zenodo_filenames = d.file_names
+    zenodo_filenames = [fn for fn in d.file_names if not fn.endswith('.html')]
     local_paths_and_names = find_files(os.path.join(annex_dir, 'data'), exclude=exclude,
                                        include_top_directory_in_name=False)
     if len(local_paths_and_names) == 0:
