@@ -254,7 +254,7 @@ def main():
         print(package.__version__)
         return 0
 
-    if len(argv) > 1 and argv[1] == '--help':
+    if len(argv) > 1 and (argv[1] == '--help' or argv[1] == '-h'):
         print(__doc__)
         return 0
 
