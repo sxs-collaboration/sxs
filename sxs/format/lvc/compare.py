@@ -7,7 +7,7 @@ def compare_attributes(lvc, sxs_metadata, count_errors):
 
     def compare_attribute(lvc_key, sxs_value):
         lvc_value = lvc.attrs[lvc_key]
-        if np.allclose(lvc_value, sxs_value, atol=1e-15, rtol=1e-15, equal_nan=True):
+        if lvc_value==sxs_value or np.allclose(lvc_value, sxs_value, atol=1e-15, rtol=1e-15, equal_nan=True):
             count_errors("[=] {0} ({1})".format(lvc_key, lvc_value))
         else:
             count_errors("[x] {0} (lvc: {1}, sxs: {2})".format(lvc_key, lvc_value, sxs_value))
