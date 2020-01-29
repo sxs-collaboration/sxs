@@ -55,17 +55,39 @@ def minimal_grid(x, y, tol=1e-6, error_scale=1.0):
         def error(ydiff):
             return error_scale * ydiff
 
+    # Implementation notes
+    # ====================
+    #
+    # The following function is the core of this algorithm.  There are reasonable different choices
+    # for the parameters passed to `find_peaks`.  In particular the "prominence" argument seems like
+    # it should help in some situations by ensuring that only peaks that actually stand out above
+    # their neighbors by `tol` will be added.  However, tests on our waveforms suggest that this
+    # only saves ~4% in file size, while slowing things down by ~20%.  I also worry that this could
+    # leave off peaks from the final product that should have been included to actually get within
+    # the tolerances.  The solution to that would be to start with prominence=tol, and then switch
+    # to prominence=None for safety.  Again, however, tests suggest that this has precisely no
+    # effect on file sizes (meaning that no more points get added on the second round), but slows
+    # down the whole thing by ~5%.  I suspect that the reason this is not very helpful is specific
+    # to our data, because so many of the peaks are *very* sharp and very large (mostly coming from
+    # junk radiation, and made worse by extrapolation).  In any case, I think the tradeoff is in
+    # favor of ignoring the prominence for our use case.
+    #
+    # Also, the `find_peaks` function has a `height` argument that could select only peaks outside
+    # of the desired tolerance (i.e., doing essentially what this code does in the lines following
+    # each call to `find_peaks`).  Tests show that using that argument somehow actually increases
+    # file size by ~0.2%, while slowing down the code by ~7%.  Evidently, I don't understand
+    # precisely what that argument does.  But I am confident that the code below does what we want
+    # -- in addition to being faster.
+
     def next_sample(y, y_greedy, sign):
         if sign[0] == 1:
             errors = error(y - y_greedy)
         else:
             errors = error(y_greedy - y)
-        # peaks = find_peaks(errors, height=tol)[0]
         peaks = find_peaks(errors)[0]
         peaks = peaks[np.abs(errors[peaks])>tol]
         sign[0] *= -1
         if not peaks.size:
-            # peaks = find_peaks(-errors, height=tol)[0]
             peaks = find_peaks(-errors)[0]
             peaks = peaks[np.abs(errors[peaks])>tol]
             sign[0] *= -1
