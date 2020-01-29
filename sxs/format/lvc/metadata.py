@@ -122,15 +122,15 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
     """Write metadata to an LVC-format file.
 
     Adds both auxiliary-info/metadata.json and setting attributes
-    conforming to the format given by arXiv:1703.01076. Input arguments
-    are the output filename out_filename, the resolution of the
-    simulation (an int), metadata (read from metadata.json) for this
-    simulation/resolution, the start_time, peak time, and l_max
-    determined by amp_phase_from_sxs().  The argument
+    conforming to the format given by arXiv:1703.01076. Input
+    arguments are the output filename out_filename, the resolution of
+    the simulation (an int), metadata (read from metadata.json) for
+    this simulation/resolution, the start_time, peak time, and l_max
+    determined by waveforms.convert_modes.  The argument
     catalog_resolutions is a dictionary (read from a json file) whose
     keys are SXS ID numbers, and whose values are lists of integers
-    corresponding to the resolutions available for that SXS ID number in
-    the SXS catalog. The argument catalog should point to the SXS
+    corresponding to the resolutions available for that SXS ID number
+    in the SXS catalog. The argument catalog should point to the SXS
     catalog metadata JSON file, available at
     https://data.black-holes.org/catalog.json or via
     get_sxs_public_metadata.py.

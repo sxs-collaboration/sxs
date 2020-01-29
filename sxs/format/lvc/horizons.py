@@ -149,7 +149,7 @@ def horizon_splines_from_sxs(horizons, start_time, peak_time, log=print):
 
     The LVC format expects such a dictionary.  This function creates
     one, starting with an SXS-format Horizons.h5. The start_time and
-    peak_time are determined by amp_phase_from_sxs().
+    peak_time are determined by waveforms.convert_modes.
 
     """
     horizon_splines = {}
