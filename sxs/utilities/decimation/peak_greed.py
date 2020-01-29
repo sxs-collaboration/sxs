@@ -60,10 +60,14 @@ def minimal_grid(x, y, tol=1e-6, error_scale=1.0):
             errors = error(y - y_greedy)
         else:
             errors = error(y_greedy - y)
-        peaks = find_peaks(errors, height=tol)[0]
+        # peaks = find_peaks(errors, height=tol)[0]
+        peaks = find_peaks(errors)[0]
+        peaks = peaks[np.abs(errors[peaks])>tol]
         sign[0] *= -1
         if not peaks.size:
-            peaks = find_peaks(-errors, height=tol)[0]
+            # peaks = find_peaks(-errors, height=tol)[0]
+            peaks = find_peaks(-errors)[0]
+            peaks = peaks[np.abs(errors[peaks])>tol]
             sign[0] *= -1
             if not peaks.size:
                 return None
@@ -80,10 +84,10 @@ def minimal_grid(x, y, tol=1e-6, error_scale=1.0):
     # Peak-greed algorithm
     sign = [1]
     for _ in range(len(x)):
-        # Spline interpolant on current set of knots
+        # Compute the spline interpolant on the current set of knots
         s = spline(x[include_sample], y[include_sample])
 
-        # Evaluate this spline
+        # Evaluate this spline on all input data points and find peak errors
         i_next = next_sample(y, s(x), sign)
 
         # Break out of this loop if `tol` is satisfied
