@@ -49,33 +49,25 @@ def minimal_grid(x, y, tol=1e-6, error_scale=1.0):
     if np.ndim(error_scale) == 0:
         if error_scale != 1.0:
             tol /= error_scale[()]
-        def next_sample(y, y_greedy, sign):
-            if sign[0] == 1:
-                errors = y - y_greedy
-            else:
-                errors = y_greedy - y
-            peaks = find_peaks(errors, height=tol)[0]
-            sign[0] *= -1
-            if not peaks.size:
-                peaks = find_peaks(-errors, height=tol)[0]
-                sign[0] *= -1
-                if not peaks.size:
-                    return None
-            return peaks
+        def error(ydiff):
+            return ydiff
     else:
-        def next_sample(y, y_greedy, sign):
-            if sign[0] == 1:
-                errors = error_scale * (y - y_greedy)
-            else:
-                errors = error_scale * (y_greedy - y)
-            peaks = find_peaks(errors, height=tol)[0]
+        def error(ydiff):
+            return error_scale * ydiff
+
+    def next_sample(y, y_greedy, sign):
+        if sign[0] == 1:
+            errors = error(y - y_greedy)
+        else:
+            errors = error(y_greedy - y)
+        peaks = find_peaks(errors, height=tol)[0]
+        sign[0] *= -1
+        if not peaks.size:
+            peaks = find_peaks(-errors, height=tol)[0]
             sign[0] *= -1
             if not peaks.size:
-                peaks = find_peaks(-errors, height=tol)[0]
-                sign[0] *= -1
-                if not peaks.size:
-                    return None
-            return peaks
+                return None
+        return peaks
 
     # Create an array describing whether or not to include a given
     # sample in the spline.  Start with all False.
