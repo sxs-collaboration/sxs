@@ -175,6 +175,33 @@ def compare_wave_time_series(lvc, sxs_waveform, count_errors, extrap="Extrapolat
         count_errors("[=] NRtimes agrees with SXS l=m=2 times (diff = {0})".format(diff))
 
 
+def compare_peaks(lvc, sxs_waveform, lvc_amp_keys, count_errors, extrap_order="Extrapolated_N2"):
+    import numpy as np
+    from . import LVCDataset
+
+    start_time = lvc.attrs["NR_start_time"]
+    peak_time = lvc.attrs["NR_peak_time"]
+
+    # Get SXS time array
+    sxs_key = "Y_l2_m2.dat"
+    hlm = sxs_waveform[extrap_order + ".dir"][sxs_key]
+    times_raw = hlm[:, 0]
+    start_h = np.abs(times_raw - start_time).argmin() + 1
+    sxs_times = hlm[start_h:, 0] - peak_time
+
+    # Get LVC values
+    lvc_l2norm = np.zeros_like(sxs_times)
+    for lvc_amp_key in lvc_amp_keys:
+        lvc_l2norm += LVCDataset.read(lvc[lvc_amp_key]).spline(sxs_times)**2
+
+    # Check that the peak LVC amplitude is near t=0
+    lvc_t_peak = sxs_times[np.argmax(lvc_l2norm)]
+    if not np.allclose(lvc_t_peak, 0.0, atol=1e-12, rtol=0.0):
+        count_errors("[x] LVC peak amplitude does not occur near t=0 (occurs at {0})".format(lvc_t_peak))
+    else:
+        count_errors("[=] LVC peak amplitude occurs near t=0 (occurs at {0})".format(lvc_t_peak))
+
+
 def to_sxs(lvc_file, sxs_data_path, verbosity=1):
     """Compare an LVC-format data file to SXS-format files
 
@@ -257,6 +284,7 @@ def to_sxs(lvc_file, sxs_data_path, verbosity=1):
         with h5py.File(sxs_waveform_file, 'r') as sxs_waveform:
             count_errors("# Comparing waveforms")
             compare_wave_time_series(lvc, sxs_waveform, count_errors)
+            compare_peaks(lvc, sxs_waveform, lvc_amp_keys, count_errors)
             for mode_string in amp_modes:
                 diff = compare_waveform_splines(lvc, sxs_waveform, mode_string)
                 tol = lvc['phase'+mode_string]['tol'][()] + lvc['amp'+mode_string]['tol'][()]
