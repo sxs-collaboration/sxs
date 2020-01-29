@@ -138,28 +138,28 @@ def convert_modes(sxs_format_waveform, metadata, out_filename,
     ROM-spline for each mode, and writes to file.
     """
     from time import perf_counter
-    from .. import Waveform
+    from .. import WaveformAmpPhase
     from . import LVCDataset
 
     extrap = str(extrapolation_order) + ".dir"
 
-    h = Waveform.read(sxs_format_waveform, extrap, modes=modes)
-    
     if truncation_time is None:
-        start_index = first_index_before_reference_time(h.t, metadata)
-    else:
-        start_index = first_index_after_time(h.t, truncation_time)
-    start_time = h.t[start_index]
-    
-    peak_time = h.t[h.peak_index(start_index)]
+        truncation_time = metadata['reference_time']
 
-    t = h.t[start_index:] - peak_time
+    mode_strings = ["Y_l{0[0]}_m{0[1]}.dat".format(ellm) for ellm in modes]
+    h = WaveformAmpPhase.read(sxs_format_waveform, extrap, mode_strings=mode_strings, start_time=truncation_time)
+
+    start_time = h.t[0]
+    
+    peak_time = h.t[h.peak_index()]
+
+    t = h.t - peak_time
 
     with h5py.File(out_filename, 'w') as out_file:
         out_file.create_dataset('NRtimes', data=t)
         for i, mode in enumerate(modes):
-            amp = np.abs(h.data[start_index:, i])
-            phase = np.unwrap(np.angle(h.data[start_index:, i]))
+            amp = h.data[:, 2*i]
+            phase = h.data[:, 2*i+1]
 
             phase_out = LVCDataset.from_data(t, phase, tolerance, error_scaling=amp)
             amp_out = LVCDataset.from_data(t, amp, tolerance)
