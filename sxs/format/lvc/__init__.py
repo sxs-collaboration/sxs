@@ -21,45 +21,48 @@ class LVCDataset(object):
     def from_data(cls, x, y, tol, rel=False, error_scaling=None):
         """Construct reduced-order dataset from (x, y) data"""
         import numpy as np
-        from ...utilities.decimation.greedy_spline import minimal_grid
+        # from ...utilities.decimation.greedy_spline import minimal_grid
+        from ...utilities.decimation.peak_greed import minimal_grid
         lvc_dataset = LVCDataset()
         lvc_dataset.tol = tol
         if error_scaling is None:
-            sign_tracker = [1]
-            def next_indices(x, y, y_greedy):
-                from scipy.signal import find_peaks
-                errors = (y - y_greedy)
-                # peaks = find_peaks(sign_tracker[0]*errors, height=tol)[0]
-                peaks = find_peaks(sign_tracker[0]*errors)[0]
-                peaks = peaks[np.abs(errors[peaks])>tol]
-                sign_tracker[0] *= -1
-                if not peaks.size:
-                    # peaks = find_peaks(sign_tracker[0]*errors, height=tol)[0]
-                    peaks = find_peaks(sign_tracker[0]*errors)[0]
-                    peaks = peaks[np.abs(errors[peaks])>tol]
-                    if not peaks.size:
-                        return None
-                    sign_tracker[0] *= -1
-                return peaks
-            indices = minimal_grid(x, y, tol=next_indices, rel=rel)
+            # sign_tracker = [1]
+            # def next_indices(x, y, y_greedy):
+            #     from scipy.signal import find_peaks
+            #     errors = (y - y_greedy)
+            #     # peaks = find_peaks(sign_tracker[0]*errors, height=tol)[0]
+            #     peaks = find_peaks(sign_tracker[0]*errors)[0]
+            #     peaks = peaks[np.abs(errors[peaks])>tol]
+            #     sign_tracker[0] *= -1
+            #     if not peaks.size:
+            #         # peaks = find_peaks(sign_tracker[0]*errors, height=tol)[0]
+            #         peaks = find_peaks(sign_tracker[0]*errors)[0]
+            #         peaks = peaks[np.abs(errors[peaks])>tol]
+            #         if not peaks.size:
+            #             return None
+            #         sign_tracker[0] *= -1
+            #     return peaks
+            # indices = minimal_grid(x, y, tol=next_indices, rel=rel)
+            indices = minimal_grid(x, y, tol=tol)
         else:
-            sign_tracker = [1]
-            def next_indices(x, y, y_greedy):
-                from scipy.signal import find_peaks
-                errors = error_scaling * (y - y_greedy)
-                # peaks = find_peaks(sign_tracker[0]*errors, height=tol)[0]
-                peaks = find_peaks(sign_tracker[0]*errors)[0]
-                peaks = peaks[np.abs(errors[peaks])>tol]
-                sign_tracker[0] *= -1
-                if not peaks.size:
-                    # peaks = find_peaks(sign_tracker[0]*errors, height=tol)[0]
-                    peaks = find_peaks(sign_tracker[0]*errors)[0]
-                    peaks = peaks[np.abs(errors[peaks])>tol]
-                    if not peaks.size:
-                        return None
-                    sign_tracker[0] *= -1
-                return peaks
-            indices = minimal_grid(x, y, tol=next_indices, rel=rel)
+            # sign_tracker = [1]
+            # def next_indices(x, y, y_greedy):
+            #     from scipy.signal import find_peaks
+            #     errors = error_scaling * (y - y_greedy)
+            #     # peaks = find_peaks(sign_tracker[0]*errors, height=tol)[0]
+            #     peaks = find_peaks(sign_tracker[0]*errors)[0]
+            #     peaks = peaks[np.abs(errors[peaks])>tol]
+            #     sign_tracker[0] *= -1
+            #     if not peaks.size:
+            #         # peaks = find_peaks(sign_tracker[0]*errors, height=tol)[0]
+            #         peaks = find_peaks(sign_tracker[0]*errors)[0]
+            #         peaks = peaks[np.abs(errors[peaks])>tol]
+            #         if not peaks.size:
+            #             return None
+            #         sign_tracker[0] *= -1
+            #     return peaks
+            # indices = minimal_grid(x, y, tol=next_indices, rel=rel)
+            indices = minimal_grid(x, y, tol=tol, error_scaling)
         lvc_dataset.X = x[indices].copy()
         lvc_dataset.Y = y[indices].copy()
         # lvc_dataset.compression_ratio = x.size/lvc_dataset.X.size
