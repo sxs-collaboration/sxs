@@ -40,6 +40,7 @@ def minimal_grid(x, y, tol=1e-6, error_scale=1.0):
     """
     import numpy as np
     from scipy.interpolate import CubicSpline as spline
+    from scipy.signal import find_peaks
 
     deg = 3  # This used to be a parameter, before switching to CubicSpline
 
