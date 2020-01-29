@@ -62,7 +62,7 @@ class LVCDataset(object):
             #         sign_tracker[0] *= -1
             #     return peaks
             # indices = minimal_grid(x, y, tol=next_indices, rel=rel)
-            indices = minimal_grid(x, y, tol=tol, error_scaling)
+            indices = minimal_grid(x, y, tol=tol, error_scale=error_scaling)
         lvc_dataset.X = x[indices].copy()
         lvc_dataset.Y = y[indices].copy()
         # lvc_dataset.compression_ratio = x.size/lvc_dataset.X.size
