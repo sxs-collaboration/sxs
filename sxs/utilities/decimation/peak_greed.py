@@ -49,29 +49,29 @@ def minimal_grid(x, y, tol=1e-6, error_scale=1.0):
     if np.ndim(error_scale) == 0:
         if error_scale != 1.0:
             tol /= error_scale[()]
-        def next_sample(y, y_greedy, sign, prominence):
+        def next_sample(y, y_greedy, sign):
             if sign[0] == 1:
                 errors = y - y_greedy
             else:
                 errors = y_greedy - y
-            peaks = find_peaks(errors, height=tol, prominence=prominence)[0]
+            peaks = find_peaks(errors, height=tol)[0]
             sign[0] *= -1
             if not peaks.size:
-                peaks = find_peaks(-errors, height=tol, prominence=prominence)[0]
+                peaks = find_peaks(-errors, height=tol)[0]
                 sign[0] *= -1
                 if not peaks.size:
                     return None
             return peaks
     else:
-        def next_sample(y, y_greedy, sign, prominence):
+        def next_sample(y, y_greedy, sign):
             if sign[0] == 1:
                 errors = error_scale * (y - y_greedy)
             else:
                 errors = error_scale * (y_greedy - y)
-            peaks = find_peaks(errors, height=tol, prominence=prominence)[0]
+            peaks = find_peaks(errors, height=tol)[0]
             sign[0] *= -1
             if not peaks.size:
-                peaks = find_peaks(-errors, height=tol, prominence=prominence)[0]
+                peaks = find_peaks(-errors, height=tol)[0]
                 sign[0] *= -1
                 if not peaks.size:
                     return None
@@ -87,21 +87,18 @@ def minimal_grid(x, y, tol=1e-6, error_scale=1.0):
 
     # Peak-greed algorithm
     sign = [1]
-    # for prominence in [tol, None]:
-    # for prominence in [tol,]:
-    for prominence in [None,]:
-        for _ in range(len(x)):
-            # Spline interpolant on current set of knots
-            s = spline(x[include_sample], y[include_sample])
+    for _ in range(len(x)):
+        # Spline interpolant on current set of knots
+        s = spline(x[include_sample], y[include_sample])
 
-            # Evaluate this spline
-            i_next = next_sample(y, s(x), sign, prominence)
+        # Evaluate this spline
+        i_next = next_sample(y, s(x), sign)
 
-            # Break out of this loop if `tol` is satisfied
-            if i_next is None:
-                break
+        # Break out of this loop if `tol` is satisfied
+        if i_next is None:
+            break
 
-            # Include data point that gives largest interpolation error
-            include_sample[i_next] = True
+        # Include data point that gives largest interpolation error
+        include_sample[i_next] = True
         
     return include_sample
