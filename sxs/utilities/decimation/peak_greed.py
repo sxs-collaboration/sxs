@@ -87,7 +87,8 @@ def minimal_grid(x, y, tol=1e-6, error_scale=1.0):
 
     # Peak-greed algorithm
     sign = [1]
-    for prominence in [tol, None]:
+    # for prominence in [tol, None]:
+    for prominence in [tol,]:
         for _ in range(len(x)):
             # Spline interpolant on current set of knots
             s = spline(x[include_sample], y[include_sample])
