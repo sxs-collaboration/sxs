@@ -35,8 +35,10 @@ This gets transformed into a function call containing the kwarg `foo=["bar", "ba
 Also note the following options that can be passed to this script:
 
   * --help: display this docstring and exit
+  * --file: print the path to the copy of the package that is actually used here, then exit
   * --version: display the version number of the python module and exit
-  * --update or --upgrade: Call pip to upgrade this python module
+  * --update or --upgrade: Call pip to upgrade this python module, but no dependencies
+  * --update-all or --upgrade-all: Call pip to upgrade this python module AND dependencies
   * --test-parsing: Show the args and kwargs as they will be passed to the function
 
 """
@@ -248,10 +250,17 @@ def main():
 
     # Upgrade through pip
     if len(argv) > 1 and (argv[1] == '--upgrade' or argv[1] == '--update'):
+        return subprocess.call(['pip', 'install', '--upgrade', '--no-cache', '--force', '--no-dependencies', package.__name__])
+
+    if len(argv) > 1 and (argv[1] == '--upgrade-all' or argv[1] == '--update-all'):
         return subprocess.call(['pip', 'install', '--upgrade', '--no-cache', '--force', package.__name__])
 
     if len(argv) > 1 and argv[1] == '--version':
         print(package.__version__)
+        return 0
+
+    if len(argv) > 1 and (argv[1] == '--file' or argv[1] == '--path'):
+        print(package.__path__[0])
         return 0
 
     if len(argv) > 1 and (argv[1] == '--help' or argv[1] == '-h'):
