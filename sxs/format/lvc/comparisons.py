@@ -202,7 +202,7 @@ def compare_peaks(lvc, sxs_waveform, lvc_amp_keys, count_errors, extrap_order="E
         count_errors("[=] LVC peak amplitude occurs near t=0 (occurs at {0})".format(lvc_t_peak))
 
 
-def to_sxs(lvc_file, sxs_data_path, verbosity=1):
+def compare(lvc_file, sxs_data_path, verbosity=1):
     """Compare an LVC-format data file to SXS-format files
 
     Parameters

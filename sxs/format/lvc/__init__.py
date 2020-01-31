@@ -8,7 +8,8 @@ and Alyssa Garcia.
 
 """
 
-from . import waveforms, horizons, metadata, compare
+from . import waveforms, horizons, metadata, comparisons
+from .comparisons import compare
 
 
 class LVCDataset(object):
