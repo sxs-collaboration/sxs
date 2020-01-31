@@ -284,7 +284,7 @@ def compare(lvc_file, sxs_data_path, verbosity=1):
         with h5py.File(sxs_waveform_file, 'r') as sxs_waveform:
             count_errors("# Comparing waveforms")
             compare_wave_time_series(lvc, sxs_waveform, count_errors)
-            compare_peaks(lvc, sxs_waveform, lvc_amp_keys, count_errors)
+            # compare_peaks(lvc, sxs_waveform, lvc_amp_keys, count_errors)
             for mode_string in amp_modes:
                 diff = compare_waveform_splines(lvc, sxs_waveform, mode_string)
                 tol = lvc['phase'+mode_string]['tol'][()] + lvc['amp'+mode_string]['tol'][()]
