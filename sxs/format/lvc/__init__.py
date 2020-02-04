@@ -13,7 +13,28 @@ from .comparisons import compare
 
 
 class LVCDataset(object):
-    """Represents a single dataset of a group in an LVC-format HDF5 file"""
+    """Represents a single dataset of a group in an LVC-format HDF5 file
+
+    Note that the de facto LVC format definition is in the code that
+    checks it, which seems to be the lvcnr module.  More
+    specifically, the classes in lvcnrpy.format.specs at
+    https://git.ligo.org/waveforms/lvcnrpy.  In particular, fields
+    for format 3 are required to have subfields 'X', 'Y', 'deg',
+    'tol', and 'errors'.
+
+    The first four of these make perfect sense.  The last is not so
+    relevant for LVC purposes; it is inherited from romspline, and is
+    actually the L1 convergence measure of romspline.  In particular,
+    it is nearly -- but distinctly not -- the same size as 'X' and
+    'Y'.  This is naturally useful for investigating the algorithm
+    itself, but is irrelevant to using its results.  Moreover, since
+    this class uses the "peak-greed" variant of the algorithm, that
+    dataset no longer means the same thing.  But since it is
+    required, we include here an `errors` member, containing a single
+    element, being the largest error (scaled, if relevant) in the
+    final result.
+
+    """
     def __init__(self, *args, **kwargs):
         if args or kwargs:
             raise ValueError("This is an empty constructor; use `from_data` or `read` to add data.")
@@ -29,8 +50,13 @@ class LVCDataset(object):
             indices = minimal_grid(x, y, tol=tol)
         else:
             indices = minimal_grid(x, y, tol=tol, error_scale=error_scaling)
+        lvc_dataset.deg = 3
         lvc_dataset.X = x[indices].copy()
         lvc_dataset.Y = y[indices].copy()
+        if error_scaling is None:
+            lvc_dataset.errors = np.array([np.max(np.abs(y - lvc_dataset.spline(x)))])
+        else:
+            lvc_dataset.errors = np.array([np.max(np.abs(error_scaling * (y - lvc_dataset.spline(x))))])
         # lvc_dataset.compression_ratio = x.size/lvc_dataset.X.size
         return lvc_dataset
 
@@ -38,8 +64,9 @@ class LVCDataset(object):
         import h5py
         if not isinstance(output_group, h5py.Group):
             raise Exception("Parameter `output_group` must be an h5py.Group (or File) object.")
-        output_group.create_dataset('deg', data=3, dtype='int')
+        output_group.create_dataset('deg', data=self.deg, dtype='int')
         output_group.create_dataset('tol', data=self.tol, dtype='double')
+        output_group.create_dataset('errors', data=self.errors, dtype='double', compression='gzip', shuffle=True)
         output_group.create_dataset('X', data=self.X, dtype='double', compression='gzip', shuffle=True)
         output_group.create_dataset('Y', data=self.Y, dtype='double', compression='gzip', shuffle=True)
 
@@ -51,6 +78,7 @@ class LVCDataset(object):
         lvc_dataset = LVCDataset()
         lvc_dataset.deg = input_group['deg'][()]
         lvc_dataset.tol = input_group['tol'][()]
+        lvc_dataset.errors = input_group['errors'][:]
         lvc_dataset.X = input_group['X'][:]
         lvc_dataset.Y = input_group['Y'][:]
         return lvc_dataset
