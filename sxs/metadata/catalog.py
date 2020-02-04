@@ -108,7 +108,9 @@ def drop_all_but_highest_levs(catalog):
     drop_all_but_selected_resolutions
 
     """
-    return drop_all_but_selected_resolutions(catalog)
+    import itertools
+    highest_levs = [max(g) for k, g in itertools.groupby(sorted(catalog), key=lambda k: k.split('/Lev')[0])]
+    return {k: catalog[k] for k in highest_levs}
 
 
 def drop_all_but_selected_resolutions(catalog,
