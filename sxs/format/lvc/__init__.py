@@ -297,8 +297,12 @@ class SimulationConverter(object):
 def convert_simulation(sxs_data_path, out_path, truncation_time=None, resolution=None,
                        sxs_catalog_path='~/.sxs/catalog', modes=8, tolerance=1e-06, quiet=False):
     """Convert a simulation from the SXS BBH catalog into the LVC format.
-    
+
     This function outputs a file in LVC format named SXS_BBH_####_Res#.h5 in out_path.
+
+    Note that this function is essentially a wrapper for `SimulationConverter.convert`.  If you have
+    very many systems to convert, it can be about twice as fast to create the SimulationConverter
+    object once, and then call the `convert` method for each system.
 
     Parameters
     ==========
