@@ -261,15 +261,11 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
         )
         out_file.attrs['Lmax'] = l_max
 
-        # Resolution-related functions
         # If highest resoultion available, 'production-run' = 1, otherwise
         # 'production-run' = 0. If multiple resolutions available, list their
-        # file names for 'files-in-error-series'. Otherwise, list filenames of a
-        # comparable simulation with multiple resolutions.
-        # This can all be determined from metadata_all_simulations, a json file
-        # containing all simulations in the catalog.
-
-        resolutions = catalog_resolutions[sxs_id]
+        # file names for 'files-in-error-series'. Otherwise, list filenames of
+        # a comparable simulation with multiple resolutions.
+        resolutions = catalog_resolutions.get(sxs_id, [])
         if len(resolutions) > 1:
             error_name_base = out_filename.split('/')[-1].split("_Res")[0] + "_Res"
             error_series = [error_name_base + str(i) + ".h5" for i in resolutions]
