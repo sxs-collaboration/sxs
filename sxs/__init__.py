@@ -13,7 +13,7 @@ import sxs.utilities
 import sxs.validate
 import sxs.zenodo
 
-sxs_identifier_regex = r'(?P<sxs_identifier>SXS:(?P<simulation_type>BBH|BHNS|NSNS):(?P<sxs_number>[0-9]*))'
+sxs_identifier_regex = r'(?P<sxs_identifier>SXS:(?P<simulation_type>BBH|BHNS|NSNS):(?P<sxs_number>[0-9]*))v?(?P<version>[0-9]*)'
 lev_regex = r'Lev(?P<lev>[-0-9]*)'
 
 
@@ -58,6 +58,25 @@ def sxs_id(s):
         return m['sxs_identifier']
     else:
         return ''
+
+
+def simulation_title(sxs_id):
+    import re
+    sxs_system_re = re.compile(sxs_identifier_regex)
+    m = sxs_system_re.search(sxs_id)
+    if not m:
+        raise ValueError(f"No SXS identifier found in '{sxs_id}'")
+    sxs_identifier = m['sxs_identifier']
+    simulation_type = m['simulation_type']
+    if simulation_type == 'BBH':
+        title = f"Binary black-hole simulation {sxs_identifier}"
+    elif simulation_type == 'BHNS':
+        title = f"Black-hole neutron-star binary simulation {sxs_identifier}"
+    elif simulation_type == 'NSNS':
+        title = f"Binary neutron-star simulation {sxs_identifier}"
+    else:
+        raise ValueError(f"Did not recognize SXS system type '{simulation_type}'; should be BBH, BHNS, or NSNS.")
+    return title
 
 
 def lev_number(s):
