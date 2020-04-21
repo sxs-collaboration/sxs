@@ -17,6 +17,7 @@ lxml = "*"
 feedparser = "*"
 tqdm = "*"
 pytz = "*"
+caltechdata-api = "*"
 
 [requires]
 python_version = ">=3.3"

@@ -2,10 +2,11 @@ numpy
 scipy
 h5py
 requests  # For interacting over HTTP
-requests_toolbelt  # For dumping information about requests/responses
+requests-toolbelt  # For dumping information about requests/responses
 ads  # For searching ADS via the API
 pylatexenc  # For converting unicode to latex  
 lxml  # For parsing doxygen
 feedparser  # For parsing arxiv responses
 tqdm  # For nice progress bars
 pytz  # For timezone information
+caltechdata-api  # For interacting with the CaltechDATA repository

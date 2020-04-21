@@ -57,7 +57,8 @@ if __name__ == "__main__":
           packages = ['sxs', 'sxs.metadata', 'sxs.doxygen',
                       'sxs.format', 'sxs.format.lvc', 'sxs.references',
                       'sxs.utilities', 'sxs.utilities.decimation',
-                      'sxs.validate', 'sxs.zenodo', 'sxs.zenodo.api'],
+                      'sxs.validate', 'sxs.zenodo', 'sxs.zenodo.api',
+                      'sxs.data', 'sxs.data.api'],
           scripts = ['scripts/sxs'],
           include_package_data=True,
           version=version,
@@ -71,13 +72,14 @@ if __name__ == "__main__":
               'scipy',
               'h5py',
               'requests',  # For interacting over HTTP
-              'requests_toolbelt',  # For dumping information about requests/responses
+              'requests-toolbelt',  # For dumping information about requests/responses
               'ads',  # For searching ADS via the API
               'pylatexenc',  # For converting unicode to latex
               'lxml',  # For parsing doxygen
               'feedparser',  # For parsing arxiv responses
               'tqdm',  # For nice progress bars
               'pytz',  # For timezone information
+              'caltechdata-api',  # For interacting with the CaltechDATA repository
           ],
           # download_url = 'https://github.com/moble/sxs/archive/master.tar.gz',
     )
