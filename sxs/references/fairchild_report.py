@@ -11,7 +11,7 @@ def format_paper_list_entry(arxiv_id, submission_comment='', desired_authors=Non
     entry = get_entry_by_arxiv_id(arxiv_id)
     authors = [author['name'] for author in entry['authors']]
     authors = limit_author_list(authors, desired_authors=desired_authors, author_list_length_limit=author_list_length_limit)
-    authors = [utf8tolatex(a) for a in authors]
+    authors = [utf8tolatex(a).replace(r'{\textasciitilde}', '~') for a in authors]
     author_list = ', '.join(authors)
     title = r'\textit{{{0}}}'.format(entry['title'])
     submission_comment = submission_comment.strip()
