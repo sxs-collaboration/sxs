@@ -1,0 +1,19 @@
+name: sxs-docs
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - ads
+  - h5py
+  - hdf5
+  - numpy
+  - python>=3.7
+  - pytz
+  - requests
+  - requests-toolbelt
+  - scipy
+  - sxs
+  - tqdm
+  - numpydoc
+  - sphinx
+  - recommonmark
