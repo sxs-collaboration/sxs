@@ -1,0 +1,12 @@
+version: 2
+
+conda:
+  environment: docs/environment.yml
+
+python:
+  install:
+    - method: pip
+      path: .
+
+# Don't build any extra formats
+formats: []
