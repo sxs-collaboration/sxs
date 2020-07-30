@@ -58,7 +58,7 @@ if __name__ == "__main__":
                       'sxs.format', 'sxs.format.lvc', 'sxs.references',
                       'sxs.utilities', 'sxs.utilities.decimation',
                       'sxs.validate', 'sxs.zenodo', 'sxs.zenodo.api',
-                      'sxs.data', 'sxs.data.api'],
+                      'sxs.data', 'sxs.data.api', 'sxs.doi', 'sxs.doi.api'],
           scripts = ['scripts/sxs'],
           include_package_data=True,
           version=version,
