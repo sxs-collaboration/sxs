@@ -1,6 +1,7 @@
 numpy
 scipy
 h5py
+numba>=0.49.1
 requests  # For interacting over HTTP
 requests-toolbelt  # For dumping information about requests/responses
 ads  # For searching ADS via the API
