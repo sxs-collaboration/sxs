@@ -6,12 +6,82 @@ import sxs
 
 
 def test_creation():
-    with  pytest.raises(ValueError):
-        sxs.TimeSeries(np.random.rand(13, 7, 2), np.random.rand(13), np.random.rand(2))
-    with pytest.raises(ValueError):
-        sxs.TimeSeries(np.array(3), np.random.rand(13))
-    
+    np.random.seed(1234)
     n_times = 57
+
+    # Pass more than one positional argument
+    with  pytest.raises(ValueError):
+        sxs.data.TimeSeries(np.random.rand(13, 7, 2), np.linspace(0, 10, num=13), np.random.rand(2))
+
+    # Pass 0-dimensional input array
+    with pytest.raises(ValueError):
+        sxs.data.TimeSeries(np.array(3.0), np.linspace(0, 10))
+    with pytest.raises(ValueError):
+        sxs.data.TimeSeries(np.array(3.0), np.array(4.0))
+
+    # Pass input array with non-finite values
+    for non_finite in [np.inf, -np.inf, np.nan]:
+        t = np.linspace(0, n_times)
+        a = np.random.rand(n_times, 17)
+        a[1, 2] = non_finite
+        with pytest.raises(ValueError):
+            sxs.data.TimeSeries(a, t)
+
+    # Forget to specify time array
+    with pytest.raises(ValueError):
+        sxs.data.TimeSeries(np.random.rand(n_times, 17))
+
+    # Pass complex time array
+    with pytest.raises(ValueError):
+        sxs.data.TimeSeries(np.random.rand(n_times, 17), np.linspace(0, n_times) + 0j)
+
+    # Pass time array with ndim != 1
+    with pytest.raises(ValueError):
+        sxs.data.TimeSeries(np.random.rand(n_times, 17), np.array(3.0))
+    with pytest.raises(ValueError):
+        sxs.data.TimeSeries(np.random.rand(n_times, 17), np.linspace(0, n_times, 18).reshape((-1, 2)))
+
+    # Pass time array with non-finite values
+    for non_finite in [np.inf, -np.inf, np.nan]:
+        t = np.linspace(0, 10, num=n_times)
+        a = np.random.rand(n_times, 17)
+        t[3] = non_finite
+        with pytest.raises(ValueError):
+            sxs.data.TimeSeries(a, t)
+
+    # Pass time array with non-monotonic values
+    t = np.linspace(0, 10, num=n_times)
+    a = np.random.rand(n_times, 17)
+    t[3] = t[2]
+    with pytest.raises(ValueError):
+        sxs.data.TimeSeries(a, t)
+    t[3] = (t[1] + t[2]) / 2.0
+    with pytest.raises(ValueError):
+        sxs.data.TimeSeries(a, t)
+
+    # Impossible time_axis
+    for d_size in [-2, -1, 1, 2]:
+        t = np.linspace(0, 10, num=n_times)
+        a = np.random.rand(n_times+d_size)
+        with pytest.raises(ValueError):
+            sxs.data.TimeSeries(a, t)
+        a = np.random.rand(n_times+d_size, 7)
+        with pytest.raises(ValueError):
+            sxs.data.TimeSeries(a, t)
+        a = np.random.rand(7, n_times+d_size)
+        with pytest.raises(ValueError):
+            sxs.data.TimeSeries(a, t)
+
+    # Incorrectly specified time_axis
+    t = np.linspace(0, 10, num=n_times)
+    a = np.random.rand(n_times, 7)
+    with pytest.raises(ValueError):
+        sxs.data.TimeSeries(a, t, time_axis=1)
+    a = np.random.rand(7, n_times)
+    with pytest.raises(ValueError):
+        sxs.data.TimeSeries(a, t, time_axis=0)
+
+
     shapes = [
         (n_times,),
         (n_times, 7),
@@ -26,73 +96,14 @@ def test_creation():
         1,
         2,
     ]
-
-    for data_type in [float, complex]:
-        for shape, axis in zip(shapes, axes):
-            t = np.random.rand(n_times)
-            a = np.random.rand(shape, dtype=data_type)
-            with pytest.raises(ValueError):
-                sxs.TimeSeries(a, np.random.rand(n_times) + 1j * np.random.rand(n_times))
-            with pytest.raises(ValueError):
-                sxs.TimeSeries(a, np.random.rand(n_times-1))
-            b = sxs.TimeSeries(a, t)
-            assert b.time_axis == axis
-            b = sxs.TimeSeries(a, time=t)
-            assert b.time_axis == axis
-
-    # # Test successful creation with real data of the right shape
-    # a = np.random.rand(3, 7, sf.LM_total_size(ell_min, ell_max)*2)
-    # m = sf.Modes(a, spin_weight=s, ell_min=ell_min, ell_max=ell_max)
-    # assert m.s == s
-    # assert m.ell_min == 0  # NOTE: This is hard coded!!!
-    # assert m.ell_max == ell_max
-    # assert np.array_equal(a.view(complex), m[..., sf.LM_total_size(0, ell_min-1):])
-    # assert np.all(m[..., :sf.LM_total_size(0, abs(s)-1)] == 0.0)
-    # m = sf.Modes(a, spin_weight=s, ell_min=ell_min)  # ell_max is deduced!
-    # assert m.s == s
-    # assert m.ell_min == 0  # NOTE: This is hard coded!!!
-    # assert m.ell_max == ell_max
-    # assert np.array_equal(a.view(complex), m[..., sf.LM_total_size(0, ell_min-1):])
-    # assert np.all(m[..., :sf.LM_total_size(0, abs(s)-1)] == 0.0)
-
-    # # Test successful creation with complex data of the right shape
-    # a = a.view(complex)
-    # m = sf.Modes(a, spin_weight=s, ell_min=ell_min, ell_max=ell_max)
-    # assert m.s == s
-    # assert m.ell_min == 0  # NOTE: This is hard coded!!!
-    # assert m.ell_max == ell_max
-    # assert np.array_equal(a, m[..., sf.LM_total_size(0, ell_min-1):])
-    # assert np.all(m[..., :sf.LM_total_size(0, abs(s)-1)] == 0.0)
-    # m = sf.Modes(a, spin_weight=s, ell_min=ell_min)  # ell_max is deduced!
-    # assert m.s == s
-    # assert m.ell_min == 0  # NOTE: This is hard coded!!!
-    # assert m.ell_max == ell_max
-    # assert np.array_equal(a, m[..., sf.LM_total_size(0, ell_min-1):])
-    # assert np.all(m[..., :sf.LM_total_size(0, abs(s)-1)] == 0.0)
-
-    # # Test failed creation with complex data of inconsistent shape
-    # if ell_min != 0:
-    #     with pytest.raises(ValueError):
-    #         m = sf.Modes(a, spin_weight=s)
-    # with pytest.raises(ValueError):
-    #     m = sf.Modes(a, spin_weight=s, ell_min=ell_min-1, ell_max=ell_max)
-    # with pytest.raises(ValueError):
-    #     m = sf.Modes(a, spin_weight=s, ell_min=ell_min+1, ell_max=ell_max)
-    # with pytest.raises(ValueError):
-    #     m = sf.Modes(a, spin_weight=s, ell_min=ell_min, ell_max=ell_max-1)
-    # with pytest.raises(ValueError):
-    #     m = sf.Modes(a, spin_weight=s, ell_min=ell_min, ell_max=ell_max+1)
-
-    # # Test failed creation with complex data of impossible shape
-    # with pytest.raises(ValueError):
-    #     m = sf.Modes(a[..., 1:], spin_weight=s, ell_min=ell_min)
-
-    # # Test successful creation with complex data containing extraneous data at ell<abs(s)
-    # a = np.random.rand(3, 7, sf.LM_total_size(0, ell_max)*2)
-    # a = a.view(complex)
-    # m = sf.Modes(a, spin_weight=s)
-    # assert m.s == s
-    # assert m.ell_min == 0  # NOTE: This is hard coded!!!
-    # assert m.ell_max == ell_max
-    # assert np.all(m[..., :sf.LM_total_size(0, abs(s)-1)] == 0.0)
-
+    for shape, axis in zip(shapes, axes):
+        t = np.linspace(0, 10, num=n_times)
+        a = np.random.rand(*shape)
+        with pytest.raises(ValueError):
+            sxs.data.TimeSeries(a, np.linspace(0, n_times) + 1j * np.linspace(0, n_times))
+        with pytest.raises(ValueError):
+            sxs.data.TimeSeries(a, np.linspace(0, n_times-1))
+        b = sxs.data.TimeSeries(a, t)
+        assert b.time_axis == axis
+        b = sxs.data.TimeSeries(a, time=t)
+        assert b.time_axis == axis

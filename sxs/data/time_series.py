@@ -1,6 +1,4 @@
 import numpy as np
-from scipy.interpolate import CubicSpline
-import spherical_functions
 
 
 class TimeSeries(np.ndarray):
@@ -43,15 +41,27 @@ class TimeSeries(np.ndarray):
         input_array = np.asanyarray(input_array, order='C')
         if input_array.ndim == 0:
             raise ValueError("Input array has 0 dimensions; it must have at least one")
+        if not np.all(np.isfinite(input_array)):
+            raise ValueError("Input array must contain only finite values.")
 
         # Get time array
         time = metadata.get("time", None)
         if time is None:
-            raise ValueError("Time data must be specified as part of input TimeSeries or as keyword argument")
-        time = np.asarray(time).view(float)
-        metadata["time"] = time
+            raise ValueError(
+                "Time data must be specified as part of input TimeSeries, as "
+                "the second positional argument, or as a keyword argument."
+            )
+        time = np.asarray(time)
+        if np.issubdtype(time.dtype, np.complexfloating):
+            raise ValueError("Input `time` must contain real values; it has complex type.")
+        time = time.astype(float)
         if time.ndim != 1:
             raise ValueError(f"Input `time` array must have exactly 1 dimension; it has {time.ndim}.")
+        if not np.all(np.isfinite(time)):
+            raise ValueError("Input `time` must contain only finite values.")
+        if np.any(np.diff(time) <= 0):
+            raise ValueError("Input `time` must be strictly increasing sequence.")
+        metadata["time"] = time
 
         # Get time_axis
         time_axis = metadata.get("time_axis", None)
@@ -65,14 +75,11 @@ class TimeSeries(np.ndarray):
                 f"Cannot find axis of size time.size={time.size} in input_array, "
                 f"which has shape input_array.shape={input_array.shape}"
             )
-        if abs(time_axis) >= input_array.ndim:
-            raise ValueError(f"time_axis={time_axis} does not exist in input_array with {input_array.ndim} dimensions")
-        if time_axis < 0:
-            time_axis = input_array.ndim + time_axis
-        if input_array.shape[time_axis] != time.size:
+        time_axis = time_axis % input_array.ndim  # Map time_axis into [0, input_array.ndim)
+        if input_array.shape[time_axis] != time.shape[0]:
             raise ValueError(
                 f"input_array.shape[time_axis]={input_array.shape[time_axis]} (with time_axis={time_axis}) "
-                f"does not match time.size={time.size}"
+                f"does not match time.shape[0]={time.shape[0]}"
             )
         metadata["time_axis"] = time_axis
 
@@ -81,12 +88,14 @@ class TimeSeries(np.ndarray):
         return obj
 
     def __array_finalize__(self, obj):
+        import copy
         if obj is None:
             return
-        super().__array_finalize__(obj)
+        # # Since ndarray.__array_finalize__ is None, we skip this in its direct descendents:
+        # super().__array_finalize__(obj)
         self._metadata = copy.copy(getattr(self, '_metadata', getattr(obj, '_metadata', {})))
         if "time" not in self._metadata:
-            raise ValueError("Cannot create {type(self)} without `time` data.")
+            self._metadata["time"] = None  # Placeholder about to be updated
 
     def __getitem__(self, key):
         # Slice this thing like it's an instance of the parent class
@@ -115,22 +124,6 @@ class TimeSeries(np.ndarray):
         return self.view(np.ndarray)
 
     @property
-    def ndarray_float(self):
-        """View this array as a numpy ndarray of real data
-
-        This function returns a real-valued view (without copying) of the
-        underlying data.  If the underlying data is complex, this function
-        results in an extra dimension of size 2 (corresponding to the real and
-        imaginary parts, respectively).  Because the `time_axis` of this object
-        is normalized to a positive number, the `time_axis` remains correct
-        even if the extra dimension is added.
-
-        """
-        if np.iscomplexobj(self.ndarray):
-            return self.view(np.ndarray, dtype=float).reshape((-1, 2))
-        return self.view(np.ndarray)
-
-    @property
     def time(self):
         """Return an array of the time steps"""
         return self._metadata["time"]
@@ -143,6 +136,7 @@ class TimeSeries(np.ndarray):
         return self._metadata["time_axis"]
 
     def interpolate(self, new_time, derivative_order=0, out=None):
+        from scipy.interpolate import CubicSpline
         if derivative_order > 3:
             raise ValueError(
                 f"{type(self)} interpolation uses CubicSpline, which cannot take a derivative of order {derivative_order}"
@@ -168,12 +162,7 @@ class TimeSeries(np.ndarray):
             spline = spline.antiderivative(-derivative_order)
         elif 0 < derivative_order <= 3:
             spline = spline.derivative(derivative_order)
-        if np.iscomplexobj(self):
-            result = result.view(dtype=float).reshape((-1, 2))
-            result[:] = spline(new_time)
-            result = result.view(dtype=self.dtype)
-        else:
-            result[:] = spline(new_time)
+        result[:] = spline(new_time)
         metadata = self._metadata.copy()
         metadata["time"] = new_time
         return type(self)(result, **metadata)
