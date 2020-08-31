@@ -59,7 +59,7 @@ def test_creation():
     with pytest.raises(ValueError):
         sxs.data.TimeSeries(a, t)
 
-    # Impossible time_axis
+    # Mismatched sizes
     for d_size in [-2, -1, 1, 2]:
         t = np.linspace(0, 10, num=n_times)
         a = np.random.rand(n_times+d_size)
@@ -81,6 +81,41 @@ def test_creation():
     with pytest.raises(ValueError):
         sxs.data.TimeSeries(a, t, time_axis=0)
 
+    shapes = [
+        (n_times,),
+        (n_times, 7),
+        (n_times, 3, 7),
+        (3, n_times, 7),
+        (3, 7, n_times),
+    ]
+    axes = [
+        0,
+        0,
+        0,
+        1,
+        2,
+    ]
+    for shape, axis in zip(shapes, axes):
+        t = np.linspace(0, 10, num=n_times)
+        a = np.random.rand(*shape)
+        b = sxs.data.TimeSeries(a, t)
+        assert b.time_axis == axis
+        assert np.array_equal(b.ndarray, a)
+        assert b.base is a
+        i = (0,)*b.ndim
+        b[i] = 1.2
+        assert a[i] == 1.2
+        b = sxs.data.TimeSeries(a, time=t)
+        assert b.time_axis == axis
+        assert np.array_equal(b.ndarray, a)
+        b = sxs.data.TimeSeries(a, time=t, time_axis=axis)
+        assert b.time_axis == axis
+        assert np.array_equal(b.ndarray, a)
+
+
+def test_view():
+    np.random.seed(1234)
+    n_times = 57
 
     shapes = [
         (n_times,),
@@ -99,11 +134,48 @@ def test_creation():
     for shape, axis in zip(shapes, axes):
         t = np.linspace(0, 10, num=n_times)
         a = np.random.rand(*shape)
-        with pytest.raises(ValueError):
-            sxs.data.TimeSeries(a, np.linspace(0, n_times) + 1j * np.linspace(0, n_times))
-        with pytest.raises(ValueError):
-            sxs.data.TimeSeries(a, np.linspace(0, n_times-1))
+        b = a.view(sxs.data.TimeSeries)
+
+
+def test_slice():
+    np.random.seed(1234)
+    n_times = 57
+
+    shapes = [
+        (n_times,),
+        (n_times, 7),
+        (n_times, 3, 7),
+        (3, n_times, 7),
+        (3, 7, n_times),
+    ]
+    axes = [
+        0,
+        0,
+        0,
+        1,
+        2,
+    ]
+    take_indices = [0, 2, -1]
+    for shape, axis in zip(shapes, axes):
+        t = np.linspace(0, 10, num=n_times)
+        a = np.random.rand(*shape)
         b = sxs.data.TimeSeries(a, t)
-        assert b.time_axis == axis
-        b = sxs.data.TimeSeries(a, time=t)
-        assert b.time_axis == axis
+        indices = tuple(slice(None) if i != b.time_axis else take_indices for i in range(b.ndim))
+        c = b[indices]
+        assert isinstance(c, type(b))
+        assert c.time_axis == b.time_axis
+        shape = list(b.shape)
+        shape[b.time_axis] = len(take_indices)
+        assert c.shape == tuple(shape)
+        assert c.n_times == len(take_indices)
+        assert np.array_equal(c.time, b.time[take_indices])
+        # c = np.take(b, take_indices, axis=b.time_axis)
+
+    a = np.array([
+        [0.0, 1.0, 2.0],
+        [-1.0, 0.0, 1.0],
+        [-2.0, -1.0, 0.0]
+    ])
+    b = sxs.data.TimeSeries(a, time=np.array([-1, 0, 1]), time_axis=0)
+    with pytest.raises(ValueError):
+        b[b < 0.0]

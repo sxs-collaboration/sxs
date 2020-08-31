@@ -98,25 +98,159 @@ class TimeSeries(np.ndarray):
             self._metadata["time"] = None  # Placeholder about to be updated
 
     def __getitem__(self, key):
-        # Slice this thing like it's an instance of the parent class
+        """Extract a slice of this object
+
+        Note that slicing this object works slightly differently than slicing
+        the underlying ndarray object.
+
+        First, if a single element is requested along the time dimension, that
+        dimension will not be removed.  For example, with a 2-d ndarray `arr`,
+        taking `arr[3]` will return a 1-d array (the first dimension will be
+        removed); with a 2-d TimeSeries having `time_axis=0`, the returned
+        TimeSeries will still be 2-d, where the first dimension will have size
+        1.  If the requested element is not along the time dimension, the
+        requested dimension will be removed as usual.
+
+        Also, taking an irregular slice of this object is not permitted.  For
+        example:
+
+            >>> a = np.arange(3*4).reshape(3, 4)
+            >>> a[a % 5 == 0]
+            array([ 0,  5, 10])
+
+        Even though `a % 5 == 0` is a 2-d array, indexing flattens `a` and the
+        indexing set, so that the result is a 1-d array.  This probably does
+        not make sense for TimeSeries arrays, so attempting to do something
+        like this raises a ValueError.
+
+        """
+        from numbers import Integral
+        from collections.abc import Iterable
+
+        if key == ():
+            raise ValueError(f"Empty index to {type(self)} does not make sense")
+
+        if len(key) == self.ndim and all(isinstance(e, Iterable) for e in key) and len(set(len(e) for e in key)) == 1:
+            raise ValueError(
+                "Indexing an `n`-dimensional TimeSeries with `n` index arrays is not supported, "
+                "as it is hard to do, and more often than not is not what the user wants anyway."
+            )
+
+        def basic_indexing(key):
+            """Test if basic slicing occurs given this key
+
+            Numpy's indexing documentation says "Basic slicing occurs when
+            `obj` is a `slice` object (constructed by `start:stop:step`
+            notation inside of brackets), an integer, or a tuple of slice
+            objects and integers. Ellipsis and newaxis objects can be
+            interspersed with these as well."
+
+            <https://numpy.org/doc/stable/reference/arrays.indexing.html#basic-slicing-and-indexing>
+
+            """
+            if isinstance(key, Integral):
+                return True
+            elif isinstance(key, (slice, type(Ellipsis))):
+                return True
+            if not isinstance(key, tuple):
+                return False
+            for e in key:
+                if not isinstance(e, (slice, Integral, type(Ellipsis))) and e is not np.newaxis:
+                    return False
+            return True
+
+        def normalize_basic_indexing_key(key, ndim):
+            """Translate key into full-size tuples, without Ellipsis
+
+            Returns a pair of keys, one appropriate for the original array
+            (with `newaxis` removed), and one for the new array (with `newaxis`
+            replaced by `slice(None)`).
+
+            """
+            if not isinstance(key, tuple):
+                key = (key,)
+            n_missing = ndim - len(tuple(e for e in key if e not in [np.newaxis, None]))
+            count = key.count(Ellipsis)
+            if count == 0:
+                full_key = key + (slice(None),) * n_missing
+            elif count == 1:
+                i_ellipsis = key.index(Ellipsis)
+                full_key = key[:i_ellipsis] + (slice(None),) * n_missing + key[i_ellipsis+1:]
+            else:
+                raise ValueError(f"Cannot use more than one Ellipsis in key; found {count}.")
+            old_key = tuple(e for e in full_key if e not in [np.newaxis, None])
+            new_key = tuple(e if e not in [np.newaxis, None] else slice(None) for e in full_key)
+            return old_key, full_key, new_key
+
+        if basic_indexing(key):
+            old_key, full_key, new_key = normalize_key(key, self.ndim)
+            # Find the new time_axis
+            i = 0
+            new_time_axis = 0
+            while i < self.time_axis:
+                if full_key[new_time_axis] not in [np.newaxis, None]:
+                    i += 1
+                new_time_axis += 1
+            # Index the old time array
+            time_key = old_key[self.time_axis]
+            if isinstance(time_key, Integral):
+                full_key = list(full_key)
+                full_key[new_time_axis] = slice(full_key[new_time_axis], full_key[new_time_axis]+1)
+                full_key = tuple(full_key)
+                time_key = slice(time_key, time_key+1)
+            new_time = self.time[time_key]
+            new_data = self.ndarray[full_key]
+                
+
+        # Slice the data like it's an instance of the parent class
         sliced = super().__getitem__(key)
+        new_ndim = sliced.ndim
+
         # Now slice the time data, if necessary
-        if isinstance(tuple, key):
+        if isinstance(key, Integral):
+            if self.time_axis == 0:
+                new_time = self.time[key]
+                new_time_axis = self.time_axis
+                sliced = sliced[np.newaxis]
+            else:
+                new_time = self.time
+                new_time_axis = self.time_axis - 1
+        elif isinstance(key, (slice, type(Ellipsis))):
+            if self.time_axis == 0:
+                new_time = self.time[key]
+                new_time_axis = self.time_axis
+            else:
+                new_time = self.time
+                new_time_axis = self.time_axis
+        elif basic_indexing_tuple(key):
+            old_key, new_key = normalize_key(key, new_ndim)
             if len(key) > self.time_axis:
                 new_time = self.time[key[self.time_axis]]
             elif key[0] == Ellipsis and self.time_axis - self.ndim >=  1 - len(key):
                 new_time = self.time[key[self.time_axis - self.ndim]]
             else:
                 new_time = self.time
-        elif self.time_axis == 0:
-            new_time = self.time[key]
-        else:
+        elif key is np.newaxis:
             new_time = self.time
+            new_time_axis = self.time_axis + 1
+        elif isinstance(key, np.ndarray):
+            if key.ndim < self.time_axis:
+                new_time = self.time
+            else:
+                raise NotImplementedError()
+        else:
+            # Advanced indexing
+            raise NotImplementedError()
         # Create the new sliced object along with its metadata
         metadata = self._metadata.copy()
         metadata.update(**getattr(sliced, '_metadata', {}))
         metadata["time"] = new_time
-        return type(self)(sliced, **metadata)
+        metadata["time_axis"] = new_time_axis
+        try:
+            sliced = type(self)(sliced, **metadata)
+        except:
+            pass
+        return sliced
 
     @property
     def ndarray(self):
@@ -124,16 +258,39 @@ class TimeSeries(np.ndarray):
         return self.view(np.ndarray)
 
     @property
-    def time(self):
-        """Return an array of the time steps"""
-        return self._metadata["time"]
-
-    # Alias
-    t = time
-
-    @property
     def time_axis(self):
         return self._metadata["time_axis"]
+
+    @property
+    def time(self):
+        """Array of the time steps corresponding to the data"""
+        return self._metadata["time"]
+
+    @property
+    def n_times(self):
+        return self.time.size
+
+    @property
+    def time_broadcast(self):
+        """Array of the time steps broadcast to same shape as data
+
+        This property returns a new view (usually involving no copying of
+        memory) of the `time` array, with additional dimensions to match the
+        shape of the data.
+
+        """
+        new_shape = [1,] * self.ndim
+        new_shape[self.time_axis] = self.n_times
+        # This method is from the comment in np.broadcast_arrays, used so that
+        # we don't have to disturb the data array (e.g., copying because of
+        # weird ordering).
+        nditer = np.nditer(
+            self.time[tuple(new_shape)],
+            flags=['multi_index', 'zerosize_ok'],
+            itershape=self.shape,
+            order='C'
+        )
+        return nditer.itviews[0]
 
     def interpolate(self, new_time, derivative_order=0, out=None):
         from scipy.interpolate import CubicSpline
@@ -165,6 +322,7 @@ class TimeSeries(np.ndarray):
         result[:] = spline(new_time)
         metadata = self._metadata.copy()
         metadata["time"] = new_time
+        metadata["time_axis"] = self.time_axis
         return type(self)(result, **metadata)
 
     def antiderivative(self, antiderivative_order=1):
