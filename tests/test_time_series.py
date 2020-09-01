@@ -179,3 +179,58 @@ def test_slice():
     b = sxs.data.TimeSeries(a, time=np.array([-1, 0, 1]), time_axis=0)
     with pytest.raises(ValueError):
         b[b < 0.0]
+
+
+def test_basic_indexing():
+    np.random.seed(1234)
+    n_times = 57
+    t = np.linspace(0, 10, num=n_times)
+
+    for axis in [0, 1, 2]:
+        shape = [7, 9, 11, 12]
+        shape[axis] = n_times
+        a = np.random.rand(*shape)
+        b = sxs.data.TimeSeries(a, time=t, time_axis=axis)
+
+        # Only key is newaxis
+        c = b[np.newaxis]
+        assert type(c) == type(b)
+        assert c.time_axis == b.time_axis + 1
+        assert c.shape[0] == 1
+        assert c.shape[1:] == b.shape
+        assert np.array_equal(c.ndarray[0], b.ndarray)
+
+        # Only key is a single integer
+        c = b[2]
+        assert type(c) == type(b)
+        assert c.time_axis == b.time_axis
+        if axis == 0:
+            assert c.shape[1:] == b.shape[1:]
+            assert c.shape[0] == 1
+            assert np.array_equal(c.ndarray[0], b.ndarray[2])
+        else:
+            assert c.shape == b.shape[1:]
+            assert np.array_equal(c.ndarray, b.ndarray)
+
+        # b[1:4]
+
+        # b[...]
+
+        # b[..., 1]
+
+        # b[..., 1:4]
+
+        # b[1, ...]
+
+        # b[1:4, ...]
+
+        # b[1, 1:4]
+
+        # b[1:4, 2]
+
+        # b[np.newaxis, 3]
+
+        # b[2, np.newaxis, 3]
+
+        # with pytest.raises(ValueError):
+        #     b[..., 3, ...]

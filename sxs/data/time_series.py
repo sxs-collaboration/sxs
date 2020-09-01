@@ -125,12 +125,13 @@ class TimeSeries(np.ndarray):
 
         """
         from numbers import Integral
-        from collections.abc import Iterable
+        from collections.abc import Iterable, Sized
 
         if key == ():
             raise ValueError(f"Empty index to {type(self)} does not make sense")
 
-        if len(key) == self.ndim and all(isinstance(e, Iterable) for e in key) and len(set(len(e) for e in key)) == 1:
+        if (isinstance(key, Sized) and len(key) == self.ndim and
+            all(isinstance(e, Iterable) for e in key) and len(set(len(e) for e in key)) == 1):
             raise ValueError(
                 "Indexing an `n`-dimensional TimeSeries with `n` index arrays is not supported, "
                 "as it is hard to do, and more often than not is not what the user wants anyway."
@@ -148,14 +149,12 @@ class TimeSeries(np.ndarray):
             <https://numpy.org/doc/stable/reference/arrays.indexing.html#basic-slicing-and-indexing>
 
             """
-            if isinstance(key, Integral):
-                return True
-            elif isinstance(key, (slice, type(Ellipsis))):
+            if isinstance(key, (Integral, slice, type(Ellipsis))):
                 return True
             if not isinstance(key, tuple):
                 return False
             for e in key:
-                if not isinstance(e, (slice, Integral, type(Ellipsis))) and e is not np.newaxis:
+                if not isinstance(e, (Integral, slice, type(Ellipsis))) and e not in [np.newaxis, None]:
                     return False
             return True
 
@@ -182,8 +181,13 @@ class TimeSeries(np.ndarray):
             new_key = tuple(e if e not in [np.newaxis, None] else slice(None) for e in full_key)
             return old_key, full_key, new_key
 
-        if basic_indexing(key):
-            old_key, full_key, new_key = normalize_key(key, self.ndim)
+        if key is np.newaxis:
+            new_time = self.time
+            new_time_axis = self.time_axis + 1
+            new_data = super().__getitem__(key)
+
+        elif basic_indexing(key):
+            old_key, full_key, new_key = normalize_basic_indexing_key(key, self.ndim)
             # Find the new time_axis
             i = 0
             new_time_axis = 0
@@ -199,58 +203,44 @@ class TimeSeries(np.ndarray):
                 full_key = tuple(full_key)
                 time_key = slice(time_key, time_key+1)
             new_time = self.time[time_key]
-            new_data = self.ndarray[full_key]
+            new_data = super().__getitem__(full_key)
                 
+        # elif isinstance(key, np.ndarray) and key.ndim == 1:
+        #     # This is okay; it's just indexing the first dimension
+        #     raise NotImplementedError()
 
-        # Slice the data like it's an instance of the parent class
-        sliced = super().__getitem__(key)
-        new_ndim = sliced.ndim
+        # elif :
+        #     # Ellipses, slices, newaxis and a single ndarray also just fancy indexes one dimension
+        #     raise NotImplementedError()
 
-        # Now slice the time data, if necessary
-        if isinstance(key, Integral):
-            if self.time_axis == 0:
-                new_time = self.time[key]
-                new_time_axis = self.time_axis
-                sliced = sliced[np.newaxis]
-            else:
-                new_time = self.time
-                new_time_axis = self.time_axis - 1
-        elif isinstance(key, (slice, type(Ellipsis))):
-            if self.time_axis == 0:
-                new_time = self.time[key]
-                new_time_axis = self.time_axis
-            else:
-                new_time = self.time
-                new_time_axis = self.time_axis
-        elif basic_indexing_tuple(key):
-            old_key, new_key = normalize_key(key, new_ndim)
-            if len(key) > self.time_axis:
-                new_time = self.time[key[self.time_axis]]
-            elif key[0] == Ellipsis and self.time_axis - self.ndim >=  1 - len(key):
-                new_time = self.time[key[self.time_axis - self.ndim]]
-            else:
-                new_time = self.time
-        elif key is np.newaxis:
-            new_time = self.time
-            new_time_axis = self.time_axis + 1
-        elif isinstance(key, np.ndarray):
-            if key.ndim < self.time_axis:
-                new_time = self.time
-            else:
-                raise NotImplementedError()
+        # elif :
+        #     # Boolean indexing has to be checked carefully, to ensure that
+        #     # every dimension other than `time_axis` is uniform (either
+        #     # entirely True or entirely False)
+        #     all_axes = tuple(i for i in range(self.ndim) if i != time_axis)
+        #     other_axes_uniform = np.all(bool_array, axis=all_axes) | np.all(~bool_array, axis=all_axes)
+        #     if not np.all(other_axes_uniform):
+        #         raise ValueError(f"Cannot index {type(self)} object with non-uniform boolean array")
+        #     raise NotImplementedError()
+
+        # elif :
+        #     # key is a tuple of broadcastable arrays, which will select individual terms, and thus is probably non-uniform
+        #     raise NotImplementedError()
+
         else:
-            # Advanced indexing
-            raise NotImplementedError()
+            raise NotImplementedError(f"Unkown key format [{key}]")
+
+            # # Slice the data like it's an instance of the parent class
+            # new_data = super().__getitem__(key)
+            # new_ndim = sliced.ndim
+
         # Create the new sliced object along with its metadata
         metadata = self._metadata.copy()
-        metadata.update(**getattr(sliced, '_metadata', {}))
+        metadata.update(**getattr(new_data, '_metadata', {}))
         metadata["time"] = new_time
         metadata["time_axis"] = new_time_axis
-        try:
-            sliced = type(self)(sliced, **metadata)
-        except:
-            pass
-        return sliced
+
+        return type(self)(new_data, **metadata)
 
     @property
     def ndarray(self):
