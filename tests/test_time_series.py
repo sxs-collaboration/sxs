@@ -353,10 +353,7 @@ def test_basic_indexing():
             assert np.array_equal(c.time, b.time)
 
         # Add a new axis between two int-indexed dimensions
-        # print()
-        # print('Starting b[2, np.newaxis, 3] with axis {axis}', flush=True)
         c = b[2, np.newaxis, 3]
-        # print('Finished b[2, np.newaxis, 3]', flush=True)
         assert type(c) == type(b)
         if axis == 0:
             assert c.shape[0] == 1
