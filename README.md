@@ -3,6 +3,7 @@
 [![Documentation Status](https://readthedocs.org/projects/sxs/badge/?version=latest)](https://sxs.readthedocs.io/en/latest/?badge=latest)
 [![PyPI Version](https://img.shields.io/pypi/v/sxs?color=)](https://pypi.org/project/sxs/)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/sxs.svg?color=)](https://anaconda.org/conda-forge/sxs)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sxs-collaboration/sxs/blob/master/LICENSE)
 
 
 # Simulating eXtreme Spacetimes python package
