@@ -18,6 +18,8 @@ black = {version = ">=20.8b1", optional = true, markers = "implementation_name =
 mktheapidocs = {version = ">=0.2", optional = true, markers = "implementation_name == 'cpython'"}
 pymdown-extensions = {version = "^8", optional = true, markers = "implementation_name == 'cpython'"}
 quaternionic = "*"
+h5py = "^2.10.0"
+inflection = "^0.5.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.0"
