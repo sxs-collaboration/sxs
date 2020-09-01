@@ -5,12 +5,18 @@ import pytest
 import sxs
 
 
-def test_creation():
+def test_creation_failures():
     np.random.seed(1234)
     n_times = 57
 
+    # Ask to store in Fortran order
+    with pytest.raises(ValueError):
+        sxs.data.TimeSeries(np.random.rand(13, 7, 2), np.linspace(0, 10, num=13), time_axis=0, order="F")
+    with pytest.raises(ValueError):
+        sxs.data.TimeSeries(np.random.rand(13, 7, 2), np.linspace(0, 10, num=13), time_axis=0, dtype=float, order="F")
+
     # Pass more than one positional argument
-    with  pytest.raises(ValueError):
+    with pytest.raises(ValueError):
         sxs.data.TimeSeries(np.random.rand(13, 7, 2), np.linspace(0, 10, num=13), np.random.rand(2))
 
     # Pass 0-dimensional input array
@@ -34,6 +40,10 @@ def test_creation():
     # Pass complex time array
     with pytest.raises(ValueError):
         sxs.data.TimeSeries(np.random.rand(n_times, 17), np.linspace(0, n_times) + 0j)
+
+    # Pass bool time array
+    with pytest.raises(ValueError):
+        sxs.data.TimeSeries(np.random.rand(n_times, 17), np.random.randint(0, 2, size=n_times, dtype=bool))
 
     # Pass time array with ndim != 1
     with pytest.raises(ValueError):
@@ -80,6 +90,10 @@ def test_creation():
     a = np.random.rand(7, n_times)
     with pytest.raises(ValueError):
         sxs.data.TimeSeries(a, t, time_axis=0)
+
+def test_creation_successes():
+    np.random.seed(1234)
+    n_times = 57
 
     shapes = [
         (n_times,),
@@ -155,21 +169,21 @@ def test_slice():
         1,
         2,
     ]
-    take_indices = [0, 2, -1]
+    take_indices = np.array([0, 2, -1])
     for shape, axis in zip(shapes, axes):
         t = np.linspace(0, 10, num=n_times)
         a = np.random.rand(*shape)
         b = sxs.data.TimeSeries(a, t)
-        indices = tuple(slice(None) if i != b.time_axis else take_indices for i in range(b.ndim))
-        c = b[indices]
-        assert isinstance(c, type(b))
-        assert c.time_axis == b.time_axis
-        shape = list(b.shape)
-        shape[b.time_axis] = len(take_indices)
-        assert c.shape == tuple(shape)
-        assert c.n_times == len(take_indices)
-        assert np.array_equal(c.time, b.time[take_indices])
-        # c = np.take(b, take_indices, axis=b.time_axis)
+        # indices = tuple(slice(None) if i != b.time_axis else take_indices for i in range(b.ndim))
+        # c = b[indices]
+        # assert isinstance(c, type(b))
+        # assert c.time_axis == b.time_axis
+        # shape = list(b.shape)
+        # shape[b.time_axis] = len(take_indices)
+        # assert c.shape == tuple(shape)
+        # assert c.n_times == len(take_indices)
+        # assert np.array_equal(c.time, b.time[take_indices])
+        # # c = np.take(b, take_indices, axis=b.time_axis)
 
     a = np.array([
         [0.0, 1.0, 2.0],
@@ -181,7 +195,7 @@ def test_slice():
         b[b < 0.0]
 
 
-def test_basic_indexing():
+def test_basic_slicing():
     np.random.seed(1234)
     n_times = 57
     t = np.linspace(0, 10, num=n_times)
@@ -378,3 +392,31 @@ def test_basic_indexing():
 
         with pytest.raises(ValueError):
             b[..., 3, ...]
+
+
+def test_compare():
+    np.random.seed(1234)
+    n_times = 57
+    a = np.array([
+        [0.0, 1.0, 2.0],
+        [-1.0, 0.0, 1.0],
+        [-2.0, -1.0, 0.0]
+    ])
+    b = sxs.data.TimeSeries(a, time=np.array([-1, 0, 1]), time_axis=0)
+    c = b < 0.0
+    assert np.array_equal(b.time, c.time)
+    assert b.time_axis == c.time_axis
+    assert np.array_equal(a < 0.0, c)
+    with pytest.raises(ValueError):
+        b[c]
+
+
+# def test_repr():
+#     np.random.seed(1234)
+#     n_times = 57
+#     t = np.linspace(0, 10, num=n_times)
+#     a = np.random.rand(n_times, 3, 5)
+#     b = sxs.data.TimeSeries(a, time=t, time_axis=0)
+#     print('repr:', repr(b))
+#     print('str:', str(b))
+    

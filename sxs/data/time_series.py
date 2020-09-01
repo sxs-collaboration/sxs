@@ -30,6 +30,11 @@ class TimeSeries(np.ndarray):
 
     def __new__(cls, input_array, *args, **kwargs):
         import copy
+
+        dtype = kwargs.pop("dtype", None)
+        order = kwargs.pop("order", "C")
+        if order == "F":
+            raise ValueError(f"Requested array order '{order}' is not supported; it must be 'C'.")
         if len(args) > 1:
             raise ValueError("Only one positional argument may be passed")
         elif len(args) == 1:
@@ -38,7 +43,7 @@ class TimeSeries(np.ndarray):
         metadata.update(**kwargs)
 
         # Interpret input_array as some type of array
-        input_array = np.asanyarray(input_array, order='C')
+        input_array = np.asanyarray(input_array, dtype=dtype, order=order)
         if input_array.ndim == 0:
             raise ValueError("Input array has 0 dimensions; it must have at least one")
         if not np.all(np.isfinite(input_array)):
@@ -54,6 +59,8 @@ class TimeSeries(np.ndarray):
         time = np.asarray(time)
         if np.issubdtype(time.dtype, np.complexfloating):
             raise ValueError("Input `time` must contain real values; it has complex type.")
+        if not np.issubdtype(time.dtype, np.number):
+            raise ValueError("Input `time` must contain numbers; its dtype is '{time.dtype}'.")
         time = time.astype(float)
         if time.ndim != 1:
             raise ValueError(f"Input `time` array must have exactly 1 dimension; it has {time.ndim}.")
@@ -101,15 +108,17 @@ class TimeSeries(np.ndarray):
         """Extract a slice of this object
 
         Note that slicing this object works slightly differently than slicing
-        the underlying ndarray object.
+        the underlying ndarray object, basically because we want to ensure that
+        the returned object is still a TimeSeries object.
 
         First, if a single element is requested along the time dimension, that
-        dimension will not be removed.  For example, with a 2-d ndarray `arr`,
-        taking `arr[3]` will return a 1-d array (the first dimension will be
-        removed); with a 2-d TimeSeries having `time_axis=0`, the returned
-        TimeSeries will still be 2-d, where the first dimension will have size
-        1.  If the requested element is not along the time dimension, the
-        requested dimension will be removed as usual.
+        dimension will not be removed.  For a 2-d ndarray `arr`, taking
+        `arr[3]` will return a 1-d array; the first dimension will be removed
+        because only the third element is extracted.  For a 2-d TimeSeries `ts`
+        with `time_axis=0`, `ts[3]` will return a 2-d TimeSeries; the first
+        dimension will just have size 1, representing the third element.  If
+        the requested element is not along the time dimension, the requested
+        dimension will be removed as usual.
 
         Also, taking an irregular slice of this object is not permitted.  For
         example:
@@ -127,17 +136,13 @@ class TimeSeries(np.ndarray):
         from numbers import Integral
         from collections.abc import Iterable, Sized
 
-        if key == ():
-            raise ValueError(f"Empty index to {type(self)} does not make sense")
+        if isinstance(key, tuple) and len(key) == 0:
+            raise ValueError(f"Empty index to {type(self).__name__} does not make sense")
 
-        if (isinstance(key, Sized) and len(key) == self.ndim and
-            all(isinstance(e, Iterable) for e in key) and len(set(len(e) for e in key)) == 1):
-            raise ValueError(
-                "Indexing an `n`-dimensional TimeSeries with `n` index arrays is not supported, "
-                "as it is hard to do, and more often than not is not what the user wants anyway."
-            )
+        def newaxis_type(e):
+            return isinstance(e, (type(np.newaxis), type(None)))
 
-        def basic_indexing(key):
+        def basic_slicing(key):
             """Test if basic slicing occurs given this key
 
             Numpy's indexing documentation says "Basic slicing occurs when
@@ -154,11 +159,11 @@ class TimeSeries(np.ndarray):
             if not isinstance(key, tuple):
                 return False
             for e in key:
-                if not isinstance(e, (Integral, slice, type(Ellipsis))) and e not in [np.newaxis, None]:
+                if not isinstance(e, (Integral, slice, type(Ellipsis), type(np.newaxis), type(None))):
                     return False
             return True
 
-        def normalize_basic_indexing_key(key, ndim):
+        def normalize_basic_slicing_key(key, ndim):
             """Translate key into full-size tuples, without Ellipsis
 
             Returns a pair of keys, one appropriate for the original array
@@ -168,7 +173,7 @@ class TimeSeries(np.ndarray):
             """
             if not isinstance(key, tuple):
                 key = (key,)
-            n_missing = ndim - len(tuple(e for e in key if e not in [np.newaxis, None]))
+            n_missing = ndim - len(tuple(e for e in key if not newaxis_type(e)))
             count = key.count(Ellipsis)
             if count == 0:
                 full_key = key + (slice(None),) * n_missing
@@ -177,66 +182,68 @@ class TimeSeries(np.ndarray):
                 full_key = key[:i_ellipsis] + (slice(None),) * (n_missing+1) + key[i_ellipsis+1:]
             else:
                 raise ValueError(f"Cannot use more than one Ellipsis in key; found {count}.")
-            old_key = tuple(e for e in full_key if e not in [np.newaxis, None])
-            new_key = tuple(e if e not in [np.newaxis, None] else slice(None) for e in full_key)
-            return old_key, full_key, new_key
+            old_key = tuple(e for e in full_key if not newaxis_type(e))
+            return old_key, full_key
 
         if key is np.newaxis:
             new_time = self.time
             new_time_axis = self.time_axis + 1
             new_data = super().__getitem__(key)
 
-        elif basic_indexing(key):
-            old_key, full_key, new_key = normalize_basic_indexing_key(key, self.ndim)
+        elif basic_slicing(key):
+            old_key, full_key = normalize_basic_slicing_key(key, self.ndim)
             # Find the new time_axis
-            i_old, integral_key_correction, new_time_axis = 0, 0, 0
-            for full_time_axis in range(len(new_key)):
+            i_old, integral_key_correction = 0, 0
+            for full_time_axis in range(len(full_key)):
                 key_i = full_key[full_time_axis]
-                if key_i not in [np.newaxis, None]:
+                if not newaxis_type(key_i):
                     i_old += 1
                 if i_old > self.time_axis:
                     break
                 if isinstance(key_i, Integral):
                     integral_key_correction += 1
             new_time_axis = full_time_axis - integral_key_correction
-            # Index the old time array
+            # Expand the dimensions along the time axis if we're taking just one element
             time_key = old_key[self.time_axis]
             if isinstance(time_key, Integral):
-                full_key = list(full_key)
-                full_key[full_time_axis] = slice(full_key[full_time_axis], full_key[full_time_axis]+1)
-                full_key = tuple(full_key)
-                time_key = slice(time_key, time_key+1)
-            new_time = self.time[time_key]
+                if time_key == -1:
+                    time_key = slice(time_key, None)
+                else:
+                    time_key = slice(time_key, time_key+1)
+                full_key = tuple(e if i != full_time_axis else time_key for i, e in enumerate(full_key))
+            # Index the data and time arrays
             new_data = super().__getitem__(full_key)
+            new_time = self.time[time_key]
 
-        # elif isinstance(key, np.ndarray) and key.ndim == 1:
-        #     # This is okay; it's just indexing the first dimension
-        #     raise NotImplementedError()
+        elif isinstance(key, np.ndarray) and key.ndim-1 <= self.time_axis:
+            # This is okay; it's just indexing the leading dimensions
+            new_data = super().__getitem__(key)
+            new_time = self.time
+            new_time_axis = self.time_axis
 
-        # elif :
-        #     # Ellipses, slices, newaxis and a single ndarray also just fancy indexes one dimension
-        #     raise NotImplementedError()
-
-        # elif :
-        #     # Boolean indexing has to be checked carefully, to ensure that
-        #     # every dimension other than `time_axis` is uniform (either
-        #     # entirely True or entirely False)
-        #     all_axes = tuple(i for i in range(self.ndim) if i != time_axis)
-        #     other_axes_uniform = np.all(bool_array, axis=all_axes) | np.all(~bool_array, axis=all_axes)
-        #     if not np.all(other_axes_uniform):
-        #         raise ValueError(f"Cannot index {type(self)} object with non-uniform boolean array")
-        #     raise NotImplementedError()
-
-        # elif :
-        #     # key is a tuple of broadcastable arrays, which will select individual terms, and thus is probably non-uniform
-        #     raise NotImplementedError()
-
-        else:
-            raise NotImplementedError(f"Unkown key format [{key}]")
-
-            # # Slice the data like it's an instance of the parent class
-            # new_data = super().__getitem__(key)
-            # new_ndim = sliced.ndim
+        else:  # Try the slow way
+            new_data = super().__getitem__(key)
+            if new_data.ndim != self.ndim:
+                raise ValueError(
+                    f"\nAdvanced indexing of this {type(self).__name__} object with the key\n\n"
+                    + "    " + "\n    ".join(str(key).split("\n")) + "\n\n" +
+                    f"changes the shape of the data from {self.shape} to {new_data.shape}.  It is not clear how this\n"
+                    f"should affect the time data.  If you still want to index the data like this, extract the\n"
+                    f"underlying data as `a.ndarray` and the time as `a.time`, slice them as desired, and reassemble\n"
+                    f"them as\n\n"
+                    f"    {type(self).__name__}(sliced_data, time=sliced_time, time_axis=sliced_time_axis)\n"
+                )
+            try:
+                new_time_slice = tuple(0 if i != self.time_axis else slice(None) for i in range(self.ndim))
+                new_time = self.time_broadcast[key][new_time_slice].copy()
+            except Exception as e:
+                raise ValueError(
+                    f"\nAdvanced indexing fails when trying to slice time information from this {type(self).__name__}\n"
+                    f"object with the key\n\n"
+                    + "    " + "\n    ".join(str(key).split("\n")) + "\n\n" +
+                    f"The shape of the {type(self).__name__} is {self.shape} and the time axis is {self.time_axis}."
+                ) from e
+            new_time_axis = self.time_axis
 
         # Create the new sliced object along with its metadata
         metadata = self._metadata.copy()
@@ -273,24 +280,31 @@ class TimeSeries(np.ndarray):
         shape of the data.
 
         """
-        new_shape = [1,] * self.ndim
-        new_shape[self.time_axis] = self.n_times
+        new_shape = tuple(np.newaxis if i != self.time_axis else slice(None) for i in range(self.ndim))
         # This method is from the comment in np.broadcast_arrays, used so that
         # we don't have to disturb the data array (e.g., copying because of
         # weird ordering).
         nditer = np.nditer(
-            self.time[tuple(new_shape)],
+            self.time[new_shape],
             flags=['multi_index', 'zerosize_ok'],
             itershape=self.shape,
             order='C'
         )
         return nditer.itviews[0]
 
+    def __repr__(self):
+        r = repr(self.ndarray)
+        return f"{type(self).__name__}{r[max(0, r.find('(')):-1]}, time={self.time!r}, time_axis={self.time_axis})"
+
+    def __str__(self):
+        return repr(self)
+
     def interpolate(self, new_time, derivative_order=0, out=None):
         from scipy.interpolate import CubicSpline
         if derivative_order > 3:
             raise ValueError(
-                f"{type(self)} interpolation uses CubicSpline, which cannot take a derivative of order {derivative_order}"
+                f"{type(self).__name__} interpolation uses CubicSpline, which cannot take a derivative "
+                f"of order {derivative_order}."
             )
         new_time = np.asarray(new_time)
         if new_time.ndim != 1:
