@@ -186,7 +186,7 @@ def test_basic_indexing():
     n_times = 57
     t = np.linspace(0, 10, num=n_times)
 
-    for axis in [0, 1, 2]:
+    for axis in [0, 1, 2, 3]:
         shape = [7, 9, 11, 12]
         shape[axis] = n_times
         a = np.random.rand(*shape)
@@ -203,34 +203,181 @@ def test_basic_indexing():
         # Only key is a single integer
         c = b[2]
         assert type(c) == type(b)
-        assert c.time_axis == b.time_axis
         if axis == 0:
+            assert c.time_axis == b.time_axis
             assert c.shape[1:] == b.shape[1:]
             assert c.shape[0] == 1
             assert np.array_equal(c.ndarray[0], b.ndarray[2])
+            assert np.array_equal(c.time, b.time[2:3])
         else:
+            assert c.time_axis == b.time_axis - 1
             assert c.shape == b.shape[1:]
-            assert np.array_equal(c.ndarray, b.ndarray)
+            assert np.array_equal(c.ndarray, b.ndarray[2])
+            assert np.array_equal(c.time, b.time)
 
-        # b[1:4]
+        # Only key is a slice
+        c = b[1:4]
+        assert type(c) == type(b)
+        assert c.time_axis == b.time_axis
+        assert c.shape[0] == 3
+        assert c.shape[1:] == b.shape[1:]
+        assert np.array_equal(c.ndarray, b.ndarray[1:4])
+        if axis == 0:
+            assert np.array_equal(c.time, b.time[1:4])
+        else:
+            assert np.array_equal(c.time, b.time)
 
-        # b[...]
+        # Only key is an Ellipsis
+        c = b[...]
+        assert type(c) == type(b)
+        assert c.time_axis == b.time_axis
+        assert c.shape == b.shape
+        assert np.array_equal(c.ndarray, b.ndarray)
+        assert np.array_equal(c.time, b.time)
+        
+        # Ellipsis + last key is a single integer
+        c = b[..., 2]
+        assert type(c) == type(b)
+        if axis == b.ndim - 1:
+            assert c.time_axis == b.time_axis
+            assert c.shape[:-1] == b.shape[:-1]
+            assert c.shape[-1] == 1
+            assert np.array_equal(c.ndarray[..., 0], b.ndarray[..., 2])
+            assert np.array_equal(c.time, b.time[2:3])
+        else:
+            assert c.time_axis == b.time_axis
+            assert c.shape == b.shape[:-1], (axis, a.shape, b.shape, c.shape)
+            assert np.array_equal(c.ndarray, b.ndarray[..., 2])
+            assert np.array_equal(c.time, b.time)
 
-        # b[..., 1]
+        # Ellipsis + last key is a slice
+        c = b[..., 1:4]
+        assert type(c) == type(b)
+        assert c.time_axis == b.time_axis
+        assert c.shape[:-1] == b.shape[:-1]
+        assert c.shape[-1] == 3
+        assert np.array_equal(c.ndarray, b.ndarray[..., 1:4])
+        if axis == b.ndim - 1:
+            assert np.array_equal(c.time, b.time[1:4])
+        else:
+            assert np.array_equal(c.time, b.time)
 
-        # b[..., 1:4]
+        # First key is a single integer + Ellipsis
+        c = b[2, ...]
+        assert type(c) == type(b)
+        if axis == 0:
+            assert c.time_axis == b.time_axis
+            assert c.shape[1:] == b.shape[1:]
+            assert c.shape[0] == 1
+            assert np.array_equal(c.ndarray[0], b.ndarray[2])
+            assert np.array_equal(c.time, b.time[2:3])
+        else:
+            assert c.time_axis == b.time_axis - 1
+            assert c.shape == b.shape[1:]
+            assert np.array_equal(c.ndarray, b.ndarray[2])
+            assert np.array_equal(c.time, b.time)
 
-        # b[1, ...]
+        # First key is a slice + Ellipsis
+        c = b[1:4, ...]
+        assert type(c) == type(b)
+        assert c.time_axis == b.time_axis
+        assert c.shape[0] == 3
+        assert c.shape[1:] == b.shape[1:]
+        assert np.array_equal(c.ndarray, b.ndarray[1:4])
+        if axis == 0:
+            assert np.array_equal(c.time, b.time[1:4])
+        else:
+            assert np.array_equal(c.time, b.time)
 
-        # b[1:4, ...]
+        # Single int + slice
+        c = b[1, 1:4]
+        assert type(c) == type(b)
+        if axis == 0:
+            assert c.shape[0] == 1
+            assert c.shape[1] == 3
+            assert c.shape[2:] == b.shape[2:]
+            assert c.time_axis == b.time_axis
+            assert np.array_equal(c.ndarray, b.ndarray[1:2, 1:4])
+            assert np.array_equal(c.time, b.time[1:2])
+        elif axis == 1:
+            assert c.shape[0] == 3
+            assert c.shape[1:] == b.shape[2:]
+            assert c.time_axis == b.time_axis - 1
+            assert np.array_equal(c.ndarray, b.ndarray[1, 1:4])
+            assert np.array_equal(c.time, b.time[1:4])
+        else:
+            assert c.shape[0] == 3
+            assert c.shape[1:] == b.shape[2:]
+            assert c.time_axis == b.time_axis - 1
+            assert np.array_equal(c.ndarray, b.ndarray[1, 1:4])
+            assert np.array_equal(c.time, b.time)
 
-        # b[1, 1:4]
+        # Slice + single int
+        c = b[1:4, 2]
+        assert type(c) == type(b)
+        if axis == 0:
+            assert c.shape[0] == 3
+            assert c.shape[1:] == b.shape[2:]
+            assert c.time_axis == b.time_axis
+            assert np.array_equal(c.ndarray, b.ndarray[1:4, 2])
+            assert np.array_equal(c.time, b.time[1:4])
+        elif axis == 1:
+            assert c.shape[0] == 3
+            assert c.shape[1] == 1
+            assert c.shape[2:] == b.shape[2:]
+            assert c.time_axis == b.time_axis
+            assert np.array_equal(c.ndarray, b.ndarray[1:4, 2:3])
+            assert np.array_equal(c.time, b.time[2:3])
+        else:
+            assert c.shape[0] == 3
+            assert c.shape[1:] == b.shape[2:]
+            assert c.time_axis == b.time_axis - 1
+            assert np.array_equal(c.ndarray, b.ndarray[1:4, 2])
+            assert np.array_equal(c.time, b.time)
 
-        # b[1:4, 2]
+        # Add a new axis in front of int-indexed first dimension
+        c = b[np.newaxis, 3]
+        assert type(c) == type(b)
+        if axis == 0:
+            assert c.shape[0] == 1
+            assert c.shape[1] == 1
+            assert c.shape[2:] == b.shape[1:]
+            assert c.time_axis == b.time_axis + 1
+            assert np.array_equal(c.ndarray, b.ndarray[np.newaxis, 3:4])
+            assert np.array_equal(c.time, b.time[3:4])
+        else:
+            assert c.shape[0] == 1
+            assert c.shape[1:] == b.shape[1:]
+            assert c.time_axis == b.time_axis
+            assert np.array_equal(c.ndarray, b.ndarray[np.newaxis, 3])
+            assert np.array_equal(c.time, b.time)
 
-        # b[np.newaxis, 3]
+        # Add a new axis between two int-indexed dimensions
+        # print()
+        # print('Starting b[2, np.newaxis, 3] with axis {axis}', flush=True)
+        c = b[2, np.newaxis, 3]
+        # print('Finished b[2, np.newaxis, 3]', flush=True)
+        assert type(c) == type(b)
+        if axis == 0:
+            assert c.shape[0] == 1
+            assert c.shape[1] == 1
+            assert c.shape[2:] == b.shape[2:]
+            assert c.time_axis == b.time_axis
+            assert np.array_equal(c.ndarray, b.ndarray[2:3, np.newaxis, 3])
+            assert np.array_equal(c.time, b.time[2:3])
+        elif axis == 1:
+            assert c.shape[0] == 1
+            assert c.shape[1] == 1
+            assert c.shape[2:] == b.shape[2:]
+            assert c.time_axis == b.time_axis
+            assert np.array_equal(c.ndarray, b.ndarray[2, np.newaxis, 3:4])
+            assert np.array_equal(c.time, b.time[3:4])
+        else:
+            assert c.shape[0] == 1
+            assert c.shape[1:] == b.shape[2:]
+            assert c.time_axis == b.time_axis - 1
+            assert np.array_equal(c.ndarray, b.ndarray[2, np.newaxis, 3])
+            assert np.array_equal(c.time, b.time)
 
-        # b[2, np.newaxis, 3]
-
-        # with pytest.raises(ValueError):
-        #     b[..., 3, ...]
+        with pytest.raises(ValueError):
+            b[..., 3, ...]

@@ -174,7 +174,7 @@ class TimeSeries(np.ndarray):
                 full_key = key + (slice(None),) * n_missing
             elif count == 1:
                 i_ellipsis = key.index(Ellipsis)
-                full_key = key[:i_ellipsis] + (slice(None),) * n_missing + key[i_ellipsis+1:]
+                full_key = key[:i_ellipsis] + (slice(None),) * (n_missing+1) + key[i_ellipsis+1:]
             else:
                 raise ValueError(f"Cannot use more than one Ellipsis in key; found {count}.")
             old_key = tuple(e for e in full_key if e not in [np.newaxis, None])
@@ -187,24 +187,46 @@ class TimeSeries(np.ndarray):
             new_data = super().__getitem__(key)
 
         elif basic_indexing(key):
+            # print(f'starting with {key}, shape={self.shape}', flush=True)
             old_key, full_key, new_key = normalize_basic_indexing_key(key, self.ndim)
             # Find the new time_axis
-            i = 0
-            new_time_axis = 0
-            while i < self.time_axis:
-                if full_key[new_time_axis] not in [np.newaxis, None]:
-                    i += 1
-                new_time_axis += 1
+            i_old, integral_key_correction, new_time_axis = 0, 0, 0
+            # while i_old <= self.time_axis:
+            #     key_i = full_key[new_time_axis]
+            #     if key_i not in [np.newaxis, None]:
+            #         i_old += 1
+            #     if isinstance(key_i, Integral):
+            #         integral_key_correction += 1
+            #     new_time_axis += 1
+            # new_time_axis -= integral_key_correction
+            for full_time_axis in range(len(new_key)):
+                key_i = full_key[full_time_axis]
+                if key_i not in [np.newaxis, None]:
+                    i_old += 1
+                if i_old > self.time_axis:
+                    break
+                if isinstance(key_i, Integral):
+                    integral_key_correction += 1
+            new_time_axis = full_time_axis - integral_key_correction
             # Index the old time array
             time_key = old_key[self.time_axis]
+            # print(f'time_key: {time_key}  new_time_axis: {new_time_axis}  full_time_axis: {full_time_axis}  full_key: {full_key}', flush=True)
+            # print('checking time_key Integral', flush=True)
             if isinstance(time_key, Integral):
+                # print('converting full_key', flush=True)
                 full_key = list(full_key)
-                full_key[new_time_axis] = slice(full_key[new_time_axis], full_key[new_time_axis]+1)
+                # print('altering full_key', flush=True)
+                full_key[full_time_axis] = slice(full_key[full_time_axis], full_key[full_time_axis]+1)
+                # print('converting full_key back', flush=True)
                 full_key = tuple(full_key)
+                # print('converting time_key', flush=True)
                 time_key = slice(time_key, time_key+1)
+            # print(f'slicing new time with {time_key}', flush=True)
             new_time = self.time[time_key]
+            # print(f'slicing super with {full_key}', flush=True)
             new_data = super().__getitem__(full_key)
-                
+            # print('finished basic indexing', flush=True)
+
         # elif isinstance(key, np.ndarray) and key.ndim == 1:
         #     # This is okay; it's just indexing the first dimension
         #     raise NotImplementedError()
@@ -240,6 +262,7 @@ class TimeSeries(np.ndarray):
         metadata["time"] = new_time
         metadata["time_axis"] = new_time_axis
 
+        # print(f'About to construct {type(self)} with shape {new_data.shape}, time_axis={metadata["time_axis"]}', flush=True)
         return type(self)(new_data, **metadata)
 
     @property
