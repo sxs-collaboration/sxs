@@ -1,7 +1,77 @@
-
+"""Interfaces for horizon quantities"""
 
 
 class HorizonQuantities(object):
+    """Container object for various TimeSeries related to a single horizon
+
+    Parameters
+    ----------
+    time : (N,) array_like
+        Times at which the horizon quantities are measured.
+    areal_mass : (N,) array_like
+        The areal (or irreducible) mass of the horizon, defined as the square-root
+        of its surface area divided by 16π, where area is measured as a function of
+        time.
+    christodoulou_mass : (N,) array_like
+        The Christodoulou mass `mᵪ` of the horizon is related to the irreducible
+        mass `mᵢ` and the spin magnitude `s` by `mᵪ² = mᵢ² + s²/4mᵢ²`.
+    coord_center_inertial : (N, 3) array_like
+        Cartesian coordinates of the center of the apparent horizon, in the
+        "inertial frame," the asymptotically inertial frame in which the
+        gravitational waves are measured.
+    dimensionful_inertial_spin : (N, 3) array_like
+        Cartesian vector components of the spin angular momentum measured on the
+        apparent horizon in the "inertial frame".
+    chi_inertial : (N, 3) array_like
+        Cartesian components of the spin angular momentum measured in the "inertial
+        frame", made dimensionless by dividing by the square of the Christodoulou
+        mass.
+
+    Attributes
+    ----------
+    All of the above parameters are converted to TimeSeries objects and accessible
+    as attributes, along with the following
+
+    dimensionful_inertial_spin_mag : (N,) TimeSeries
+        Euclidean norm of the `dimensionful_inertial_spin` quantity
+    chi_inertial_mag : (N,) TimeSeries
+        Euclidean norm of the `chi_inertial` quantity
+    chi_mag_inertial : (N,) TimeSeries
+        Euclidean norm of the `chi_inertial` quantity (alias for the above,
+        maintained for backwards compatibility)
+
+    Methods
+    -------
+    __getitem__(key)
+        Another interface for accessing the attributes, with more flexibility.  See
+        below for explanation.
+
+    Notes
+    -----
+    In addition to the standard attribute access, as in
+
+        horizon.coord_center_inertial
+
+    it is also possible to access that attribute equivalently via indexing as
+
+        horizon["coord_center_inertial"]
+        horizon["CoordCenterInertial"]
+
+    Here, the latter is simply an alias for the former.  For backwards
+    compatibility, it is also possible to access the attributes "horizontally
+    stacked" (via `np.hstack`) with the time data.  That is, rather than being an
+    Nx3 vector-valued function of time as returned above, when an attribute ends
+    with ".dat" it returns an Nx4 array:
+
+       horizon["CoordCenterInertial.dat"]
+
+    The result of that call can be sliced as `[:, 0]` to access the time data and
+    `[:, 1:]` to access the 3-d vector as a function of time.  Together with
+    related behavior in the `Horizons` class, this provides full backward
+    compatibility with SpEC-format Horizons.h5 files, in the sense that a
+    `Horizons` object can be indexed in exactly the same way as a Horizons.h5 file.
+
+    """
     import numpy as np
 
     def __init__(self, **kwargs):
@@ -40,12 +110,36 @@ class HorizonQuantities(object):
 class Horizons(object):
     """Container object for several HorizonQuantities objects
 
-    This is a fairly small container to provide an interface for several
-    HorizonQuantities objects, which can be accessed in several ways.  Up to
-    three horizons are supported, and are named A, B, and C.  Typically A and B
-    will represent objects in a merging binary and C will represent the
-    remnant, though this convention is not enforced.  If this object is named
-    `horizons`, each individual horizon can be accessed in any of these ways:
+    Parameters
+    ----------
+    A, B, C : HorizonQuantities, optional
+        If these are not given, they will be `None`.
+
+    Attributes
+    ----------
+    A, B, C, a, b, c : {HorizonQuantities, None}
+        The lowercase versions are simply aliases for the uppercase ones.
+
+    Methods
+    -------
+    __getitem__(key)
+        Indexes the individual HorizonQuantities objects, and optionally passes
+        indexes through to the underlying object.  See below for explanation.
+
+    See also
+    --------
+    HorizonQuantities : Containers for data pertaining to each of the horizons
+
+    Notes
+    -----
+    This is a small container to provide an interface for several HorizonQuantities
+    objects, which can be accessed in several ways.  Up to three horizons are
+    supported, and are named A, B, and C.  Typically A and B will represent objects
+    in a merging binary and C will represent the remnant, though this convention is
+    not enforced.  It is expected that components that do not have horizons (e.g.,
+    neutron stars) will be represented as `None` rather than HorizonQuantities
+    objects.  If this object is named `horizons`, each individual horizon can be
+    accessed in any of these ways:
 
         horizons.A
         horizons.a
@@ -54,27 +148,28 @@ class Horizons(object):
         horizons["AhA.dir"]
 
     and similarly for B and C.  These different ways of accessing `A` are
-    essentially aliases; they return precisely the same object.  In addition,
-    the attributes of those horizon objects are passed through — for example,
-    as
+    essentially aliases; they return precisely the same object.  In addition, the
+    attributes of those horizon objects are passed through — for example, as
 
         horizons.A.time
         horizons["A/time"]
 
-    to axis the time data for horizon A, or
+    to access the time data for horizon A, or
 
         horizons.A.coord_center_inertial
         horizons["A/coord_center_inertial"]
         horizons["AhA.dir/CoordCenterInertial"]
         horizons["AhA.dir/CoordCenterInertial.dat"]
 
-    Note that these are equivalent and return precisely the same thing, except
-    for the last one.  If an attribute ends with ".dat", the returned quantity
-    will be the quantity that appears in a SpEC-format Horizons.h5 file, which
-    is "stacked" with the time data.  That is, rather than being an Nx3
-    vector-valued function of time, when this attribute ends with ".dat" it
-    returns an Nx4 array.  For scalar-valued functions of time, the returned
-    object has shape Nx2, rather than just N.
+    These are equivalent and return precisely the same thing, except for the last
+    one.  If an attribute ends with ".dat", the returned quantity will be the
+    quantity that appears in a SpEC-format Horizons.h5 file, which is "horizontally
+    stacked" (via `np.hstack`) with the time data.  That is, rather than being an
+    Nx3 vector-valued function of time, when this attribute ends with ".dat" it
+    returns an Nx4 array.  For scalar-valued functions of time, the returned object
+    has shape Nx2, rather than just N.  This provides full backward compatibility
+    with SpEC-format Horizons.h5 files, in the sense that a `Horizons` object can
+    be indexed in exactly the same way as a Horizons.h5 file.
 
     """
     import numpy as np

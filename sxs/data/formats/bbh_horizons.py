@@ -1,53 +1,76 @@
+"""File I/O for SpEC-format Horizons.h5 files"""
 
-
-def save():
-    raise NotImplementedError()
-
-
-def load(file_name):
-    """Load SpEC Horizons.h5 file as `Horizons` object
+def save(file, horizons):
+    """Save `Horizons` object as SpEC Horizons.h5 file
 
     Parameters
     ----------
-    file_name : str or file-like
-        Name of the file on disk, or file-like object (such as an open file
+    file : file-like object, string, or pathlib.Path
+        Path to the file on disk or a file-like object (such as an open file
+        handle) to be written by h5py.File.
+    horizons : sxs.data.Horizons
+        Horizons object to be written to file.
+
+    """
+    import h5py
+
+    with h5py.File(file, "w") as f:
+        for horizon_name in "ABC":
+            horizon = horizons[horizon_name]
+            if horizon is not None:
+                g = f.create_group(f"Ah{horizon_name}.dir")
+                # 1-d data sets
+                for dat in [
+                    "ArealMass.dat", "ChristodoulouMass.dat", "DimensionfulInertialSpinMag.dat", "chiMagInertial.dat"
+                ]:
+                    g.create_dataset(dat, horizon[dat], shuffle=True, compression="gzip", chunks=(time.size,))
+                # 2-d data sets
+                for dat in [
+                    "CoordCenterInertial.dat", "DimensionfulInertialSpin.dat", "chiInertial.dat"
+                ]:
+                    g.create_dataset(dat, horizon[dat], shuffle=True, compression="gzip", chunks=(time.size, 1))
+
+
+def load(file):
+    """Load SpEC-format Horizons.h5 file as `Horizons` object
+
+    Parameters
+    ----------
+    file : file-like object, string, or pathlib.Path
+        Path to the file on disk or a file-like object (such as an open file
         handle) to be opened by h5py.File.
 
     Returns
     -------
-    horizons : sxs.data.Horizons object
+    horizons : sxs.data.Horizons
         This is a container for the horizon objects.  See Notes below.
+
+    See also
+    --------
+    sxs.data.Horizons : Container object for all of the horizons
+    sxs.data.HorizonQuantities : Container objects for each of the horizons
 
     Notes
     -----
-    The returned object can be indexed just like the original h5 file — as in
+    The returned object can be indexed just like the original SpEC-format HDF5 file
+    — as in
 
         horizons["AhA.dir/CoordCenterInertial.dat"]
 
-    This returns an array of shape Nx4, where N corresponds to the number of
-    time steps, and each time step contains the time itself and the three
-    components of the coordinate vector.  Alternatively, the object can be
-    accessed more naturally, so that `horizons.A` returns an object
-    encapsulating all the data for horizon A
+    However, the `horizons` object also has a more natural and general interface
+    that should be preferred for compatibility with other formats, in which the
+    same vector-valued function of time can be accessed as
 
-        horizons.A  # returns an object encapsulating data for horizon A
-        horizons["A"]  # equivalent to the above
-        horizons.A.time  # array of all the time values
-        horizons.A["time"]  # equivalent to the above
-        horizons["A/time"]  # equivalent to the above
-        horizons.A.coord_center_inertial  # Nx3 array of coordinate values
-        horizons.A["coord_center_inertial"]  # equivalent to the above
+        horizons.A.coord_center_inertial
 
-    Note that, unless the requested quantity ends with ".dir", the returned
-    values do not come with the redundant time information; you are expected to
-    access that separately.
+    See the documentation of `Horizons` and `HorizonQuantities` for more details.
 
     """
     import h5py
     from .. import Horizons, HorizonQuantities
 
     hqs = {}
-    with h5py.File(file_name, "r") as f:
+    with h5py.File(file, "r") as f:
         for horizon_name in "ABC":
             dir_name = f"Ah{horizon_name}.dir"
             if dir_name in f:
