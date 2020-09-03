@@ -360,3 +360,8 @@ class TimeSeries(np.ndarray):
     def iint(self):
         """Integrate modes twice with respect to time"""
         return self.antiderivative(2)
+
+    @property
+    def xor(self):
+        from ..utilities import xor
+        return xor(self.ndarray, axis=self.time_axis)
