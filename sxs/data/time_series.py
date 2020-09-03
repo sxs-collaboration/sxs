@@ -5,26 +5,26 @@ class TimeSeries(np.ndarray):
     """Array-like object representing time-series data
 
     This object wraps the basic numpy array object, but stores (at least a
-    reference to) a corresponding array of time values, and provides several
-    member functions for interpolating, differentiating, and integrating.
+    reference to) a corresponding array of time values, and provides several member
+    functions for interpolating, differentiating, and integrating.
 
     Parameters
     ----------
-    input_array : array_like, shape (..., n, ...)
+    input_array : (..., N, ...) array_like
         Input data representing the dependent variable, in any form that can be
-        converted to a numpy array.  This includes scalars, lists, lists of
-        tuples, tuples, tuples of tuples, tuples of lists, and numpy ndarrays.
-        It can have an arbitrary number of dimensions, but the length along
-        `time_axis` (see below) must match the length of `time`.  Values must
-        be finite.
-    time : array_like, shape (n,)
-        1-D array containing values of the independent variable.  Values must
-        be real, finite, and in strictly increasing order.
+        converted to a numpy array.  This includes scalars, lists, lists of tuples,
+        tuples, tuples of tuples, tuples of lists, and numpy ndarrays.  It can have
+        an arbitrary number of dimensions, but the length along `time_axis` (see
+        below) must match the length of `time`.  Values must be finite.
+    time : (N,) array_like
+        1-D array containing values of the independent variable.  Values must be
+        real, finite, and in strictly increasing order.
     time_axis : int, optional
-        Axis along which `input_array` is assumed to be varying in time,
-        meaning that for `time[i]` the corresponding values are
-        `np.take(input_array, i, axis=time_axis)`.  Default is the first axis
-        of `input_array` that has the same length as `time`.
+        Axis along which `input_array` is assumed to be varying in time, meaning
+        that for `time[i]` the corresponding values are `np.take(input_array, i,
+        axis=time_axis)`.  If this is not given, the first axis of `input_array`
+        that has the same length as `time` is chosen as the time axis — which may
+        be prone to errors.
 
     """
 
@@ -107,18 +107,18 @@ class TimeSeries(np.ndarray):
     def __getitem__(self, key):
         """Extract a slice of this object
 
-        Note that slicing this object works slightly differently than slicing
-        the underlying ndarray object, basically because we want to ensure that
-        the returned object is still a TimeSeries object.
+        Note that slicing this object works slightly differently than slicing the
+        underlying ndarray object, basically because we want to ensure that the
+        returned object is still a TimeSeries object.
 
         First, if a single element is requested along the time dimension, that
-        dimension will not be removed.  For a 2-d ndarray `arr`, taking
-        `arr[3]` will return a 1-d array; the first dimension will be removed
-        because only the third element is extracted.  For a 2-d TimeSeries `ts`
-        with `time_axis=0`, `ts[3]` will return a 2-d TimeSeries; the first
-        dimension will just have size 1, representing the third element.  If
-        the requested element is not along the time dimension, the requested
-        dimension will be removed as usual.
+        dimension will not be removed.  For a 2-d ndarray `arr`, taking `arr[3]`
+        will return a 1-d array; the first dimension will be removed because only
+        the third element is extracted.  For a 2-d TimeSeries `ts` with
+        `time_axis=0`, `ts[3]` will return a 2-d TimeSeries; the first dimension
+        will just have size 1, representing the third element.  If the requested
+        element is not along the time dimension, the requested dimension will be
+        removed as usual.
 
         Also, taking an irregular slice of this object is not permitted.  For
         example:
@@ -128,9 +128,9 @@ class TimeSeries(np.ndarray):
             array([ 0,  5, 10])
 
         Even though `a % 5 == 0` is a 2-d array, indexing flattens `a` and the
-        indexing set, so that the result is a 1-d array.  This probably does
-        not make sense for TimeSeries arrays, so attempting to do something
-        like this raises a ValueError.
+        indexing set, so that the result is a 1-d array.  This probably does not
+        make sense for TimeSeries arrays, so attempting to do something like this
+        raises a ValueError.
 
         """
         from numbers import Integral
@@ -145,11 +145,11 @@ class TimeSeries(np.ndarray):
         def basic_slicing(key):
             """Test if basic slicing occurs given this key
 
-            Numpy's indexing documentation says "Basic slicing occurs when
-            `obj` is a `slice` object (constructed by `start:stop:step`
-            notation inside of brackets), an integer, or a tuple of slice
-            objects and integers. Ellipsis and newaxis objects can be
-            interspersed with these as well."
+            Numpy's indexing documentation says "Basic slicing occurs when `obj` is
+            a `slice` object (constructed by `start:stop:step` notation inside of
+            brackets), an integer, or a tuple of slice objects and
+            integers. Ellipsis and newaxis objects can be interspersed with these
+            as well."
 
             <https://numpy.org/doc/stable/reference/arrays.indexing.html#basic-slicing-and-indexing>
 
@@ -166,9 +166,9 @@ class TimeSeries(np.ndarray):
         def normalize_basic_slicing_key(key, ndim):
             """Translate key into full-size tuples, without Ellipsis
 
-            Returns a pair of keys, one appropriate for the original array
-            (with `newaxis` removed), and one for the new array (with `newaxis`
-            replaced by `slice(None)`).
+            Returns a pair of keys, one appropriate for the original array (with
+            `newaxis` removed), and one for the new array (with `newaxis` replaced
+            by `slice(None)`).
 
             """
             if not isinstance(key, tuple):
@@ -275,9 +275,9 @@ class TimeSeries(np.ndarray):
     def time_broadcast(self):
         """Array of the time steps broadcast to same shape as data
 
-        This property returns a new view (usually involving no copying of
-        memory) of the `time` array, with additional dimensions to match the
-        shape of the data.
+        This property returns a new view (usually involving no copying of memory)
+        of the `time` array, with additional dimensions to match the shape of the
+        data.
 
         """
         new_shape = tuple(np.newaxis if i != self.time_axis else slice(None) for i in range(self.ndim))
