@@ -24,16 +24,13 @@ def save(file, horizons):
             horizon = horizons[horizon_name]
             if horizon is not None:
                 g = f.create_group(f"Ah{horizon_name}.dir")
-                # 1-d data sets
                 for dat in [
-                    "ArealMass.dat", "ChristodoulouMass.dat", "DimensionfulInertialSpinMag.dat", "chiMagInertial.dat"
-                ]:
-                    g.create_dataset(dat, horizon[dat], shuffle=True, compression="gzip", chunks=(time.size,))
-                # 2-d data sets
-                for dat in [
+                    "ArealMass.dat", "ChristodoulouMass.dat", "DimensionfulInertialSpinMag.dat", "chiMagInertial.dat",
                     "CoordCenterInertial.dat", "DimensionfulInertialSpin.dat", "chiInertial.dat"
                 ]:
-                    g.create_dataset(dat, horizon[dat], shuffle=True, compression="gzip", chunks=(time.size, 1))
+                    data = horizon[dat]
+                    chunks = (data.shape[0], 1)
+                    g.create_dataset(dat, data=data, shuffle=True, compression="gzip", chunks=chunks)
 
 
 def load(file):
