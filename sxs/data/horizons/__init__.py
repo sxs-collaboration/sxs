@@ -18,6 +18,10 @@ formats:
 
 """
 
+from . import spec_horizons_h5, xor_multishuffle_bzip2
+
+xmb = xor_multishuffle_bzip2
+
 
 def load(file, **kwargs):
     """Load horizon data from an SXS-format file
@@ -133,10 +137,9 @@ class HorizonQuantities(object):
     `Horizons` object can be indexed in exactly the same way as a Horizons.h5 file.
 
     """
-    import numpy as np
 
     def __init__(self, **kwargs):
-        from . import TimeSeries
+        from .. import TimeSeries
         self.time = kwargs["time"]
         self.areal_mass = TimeSeries(kwargs["areal_mass"], time=self.time, time_axis=0)
         self.christodoulou_mass = TimeSeries(kwargs["christodoulou_mass"], time=self.time, time_axis=0)
@@ -146,15 +149,18 @@ class HorizonQuantities(object):
 
     @property
     def dimensionful_inertial_spin_mag(self):
+        import numpy as np
         return np.linalg.norm(self.dimensionful_inertial_spin, axis=1)
 
     @property
     def chi_inertial_mag(self):
+        import numpy as np
         return np.linalg.norm(self.chi_inertial, axis=1)
 
     chi_mag_inertial = chi_inertial_mag  # backwards-compatible alias because the name is inconsistent
 
     def __getitem__(self, key):
+        import numpy as np
         import inflection
         dat = key.endswith(".dat")
         standardized_key = inflection.underscore(key.replace(".dat", ""))
@@ -233,8 +239,6 @@ class Horizons(object):
     be indexed in exactly the same way as a Horizons.h5 file.
 
     """
-    import numpy as np
-
     def __init__(self, **kwargs):
         self.A = kwargs.pop("A", None)
         self.B = kwargs.pop("B", None)
