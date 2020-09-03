@@ -1,6 +1,6 @@
 """File I/O for XMB-format horizons.h5 files"""
 
-from .. import default_shuffle_widths
+from ...utilities import default_shuffle_widths
 
 
 def save(file, horizons, truncate=lambda x:x, shuffle_widths=default_shuffle_widths):
@@ -33,6 +33,7 @@ def save(file, horizons, truncate=lambda x:x, shuffle_widths=default_shuffle_wid
 
     """
     import bz2
+    import numpy as np
     import h5py
     from ...utilities import xor, multishuffle
 
@@ -46,9 +47,7 @@ def save(file, horizons, truncate=lambda x:x, shuffle_widths=default_shuffle_wid
             if horizon is not None:
                 compressor = bz2.BZ2Compressor()
                 # Time
-                data = compressor.compress(
-                    shuffle(xor(horizon.time.view(np.uint64))).tobytes()
-                )
+                data = compressor.compress(shuffle(xor(horizon.time)).tobytes())
                 # 1-d data sets
                 for dat in ["areal_mass", "christodoulou_mass"]:
                     data = data + compressor.compress(
@@ -61,7 +60,7 @@ def save(file, horizons, truncate=lambda x:x, shuffle_widths=default_shuffle_wid
                     )
                 data = data + compressor.flush()
                 d = f.create_dataset(horizon_name, data=np.void(data))
-                d.attrs["n_times"]
+                d.attrs["n_times"] = horizon.time.size
 
 
 def load(file, ignore_format=False):
@@ -107,9 +106,10 @@ def load(file, ignore_format=False):
 
     """
     import bz2
+    import numpy as np
     import h5py
     from .. import Horizons, HorizonQuantities
-    from ...utilities import unxor, multishuffle
+    from ...utilities import xor, multishuffle
 
     hqs = {}
     with h5py.File(file, "r") as f:
@@ -137,18 +137,18 @@ def load(file, ignore_format=False):
                 hqkwargs = {}
                 i = 0
 
-                # 1-d data sets
+                # scalar data sets
                 for dat in ["time", "areal_mass", "christodoulou_mass"]:
-                    hqkwargs[dat] = unxor(unshuffle(
+                    hqkwargs[dat] = xor(unshuffle(
                         np.frombuffer(uncompressed_data[i : i + bytes_per_series], dtype=np.uint64)
-                    ).view(np.float64))
+                    ), reverse=True).view(np.float64)
                     i += bytes_per_series
 
-                # 2-d data sets
+                # 3-vector data sets
                 for dat in ["coord_center_inertial", "dimensionful_inertial_spin", "chi_inertial"]:
-                    hqkwargs[dat] = unxor(unshuffle(
+                    hqkwargs[dat] = np.asarray(xor(unshuffle(
                         np.frombuffer(uncompressed_data[i : i + 3 * bytes_per_series], dtype=np.uint64)
-                    ).view(np.float64))
+                    ), reverse=True, preserve_dtype=True).reshape((3, -1)).T.view(np.float64), order="C")
                     i += 3 * bytes_per_series
 
                 horizon = HorizonQuantities(**hqkwargs)
