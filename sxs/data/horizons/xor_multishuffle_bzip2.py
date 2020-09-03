@@ -1,0 +1,158 @@
+"""File I/O for XMB-format horizons.h5 files"""
+
+from .. import default_shuffle_widths
+
+
+def save(file, horizons, truncate=lambda x:x, shuffle_widths=default_shuffle_widths):
+    """Save `Horizons` object as XMB-format horizons.h5 file
+
+    This function saves the input horizons object in a more compact form than the
+    older SpEC-format Horizons.h5 file.  Unlike the older format, only one copy of
+    the time data is stored and magnitude datasets are not stored.
+
+    Parameters
+    ----------
+    file : file-like object, string, or pathlib.Path
+        Path to the file on disk or a file-like object (such as an open file
+        handle) to be written by h5py.File.
+    horizons : sxs.data.Horizons
+        Horizons object to be written to file.
+    truncate : callable, optional
+        Function that truncates the data to a desired accuracy.  This should set
+        bits beyond a desired precision to 0 so that they will compress
+        effectively.  By default, no truncation is performed.
+    shuffle_widths : array_like, optional
+        This must be a series of integers totalling 64 (or the bit width of the
+        data in the input `horizons`).  This argument is passed to the multishuffle
+        routine.
+
+    See Also
+    --------
+    sxs.data.horizons.xor_multishuffle_bzip2.load : load the output file format
+    sxs.utilities.xor_multishuffle_bzip2 : compresses data
+
+    """
+    import bz2
+    import h5py
+    from ...utilities import xor, multishuffle
+
+    shuffle = multishuffle(tuple(shuffle_widths))
+
+    with h5py.File(file, "w") as f:
+        f.attrs["sxs_format"] = "horizons.xor_multishuffle_bzip2"
+        f.attrs["shuffle_widths"] = np.array(shuffle_widths, dtype=np.uint8)
+        for horizon_name in "ABC":
+            horizon = horizons[horizon_name]
+            if horizon is not None:
+                compressor = bz2.BZ2Compressor()
+                # Time
+                data = compressor.compress(
+                    shuffle(xor(horizon.time.view(np.uint64))).tobytes()
+                )
+                # 1-d data sets
+                for dat in ["areal_mass", "christodoulou_mass"]:
+                    data = data + compressor.compress(
+                        shuffle(xor(horizon[dat].ndarray.view(np.uint64))).tobytes()
+                    )
+                # 2-d data sets
+                for dat in ["coord_center_inertial", "dimensionful_inertial_spin", "chi_inertial"]:
+                    data = data + compressor.compress(
+                        shuffle(xor(horizon[dat].ndarray.view(np.uint64).flatten("F"))).tobytes()
+                    )
+                data = data + compressor.flush()
+                d = f.create_dataset(horizon_name, data=np.void(data))
+                d.attrs["n_times"]
+
+
+def load(file, ignore_format=False):
+    """Load SpEC-format Horizons.h5 file as `Horizons` object
+
+    Parameters
+    ----------
+    file : file-like object, string, or pathlib.Path
+        Path to the file on disk or a file-like object (such as an open file
+        handle) to be opened by h5py.File.
+    ignore_format : bool, optional
+        If True, the format attribute in the input file will be ignored, and this
+        function will attempt to load the data regardless.  Note that this will
+        return incorrect data or raise an exception if the format is incompatible.
+        The default is False, meaning that a ValueError will be raised if the
+        format is incorrect.
+
+    Returns
+    -------
+    horizons : sxs.data.Horizons
+        This is a container for the horizon objects.  See Notes below.
+
+    See also
+    --------
+    sxs.data.Horizons : Container object for all of the horizons
+    sxs.data.HorizonQuantities : Container objects for each of the horizons
+    sxs.data.horizons.xor_multishuffle_bzip2.save : save to this file format
+
+    Notes
+    -----
+    The returned object can be indexed just like the original SpEC-format
+    Horizons.h5 file:
+
+        horizons["AhA.dir/CoordCenterInertial.dat"]
+
+    However, the `horizons` object also has a more natural and general interface
+    that should be preferred for compatibility with other formats, in which the
+    same vector-valued function of time can be accessed as
+
+        horizons.A.coord_center_inertial
+
+    See the documentation of `Horizons` and `HorizonQuantities` for more details.
+
+    """
+    import bz2
+    import h5py
+    from .. import Horizons, HorizonQuantities
+    from ...utilities import unxor, multishuffle
+
+    hqs = {}
+    with h5py.File(file, "r") as f:
+        if not ignore_format:
+            if "sxs_format" not in f.attrs:
+                raise ValueError(f"Attribute 'sxs_format' not found in '{file}'")
+            sxs_format = f.attrs["sxs_format"]
+            if sxs_format != "horizons.xor_multishuffle_bzip2":
+                raise ValueError(
+                    f"\nAttribute 'sxs_format' found in '{file}' is '{sxs_format}'.\n"
+                    f"This function only accepts 'horizons.spec_horizons_h5' formats.\n"
+                    f"Use a higher-level `load` function to auto-detect the format."
+                )
+
+        shuffle_widths = tuple(f.attrs["shuffle_widths"])
+        unshuffle = multishuffle(shuffle_widths, forward=False)
+
+        for horizon_name in "ABC":
+            if horizon_name in f:
+                d = f[horizon_name]
+                uncompressed_data = bz2.decompress(d[...])
+                n_times = d.attrs["n_times"]
+                sizeof_float = 8  # in bytes
+                bytes_per_series = n_times * sizeof_float
+                hqkwargs = {}
+                i = 0
+
+                # 1-d data sets
+                for dat in ["time", "areal_mass", "christodoulou_mass"]:
+                    hqkwargs[dat] = unxor(unshuffle(
+                        np.frombuffer(uncompressed_data[i : i + bytes_per_series], dtype=np.uint64)
+                    ).view(np.float64))
+                    i += bytes_per_series
+
+                # 2-d data sets
+                for dat in ["coord_center_inertial", "dimensionful_inertial_spin", "chi_inertial"]:
+                    hqkwargs[dat] = unxor(unshuffle(
+                        np.frombuffer(uncompressed_data[i : i + 3 * bytes_per_series], dtype=np.uint64)
+                    ).view(np.float64))
+                    i += 3 * bytes_per_series
+
+                horizon = HorizonQuantities(**hqkwargs)
+
+                hqs[horizon_name] = horizon
+
+    return Horizons(**hqs)

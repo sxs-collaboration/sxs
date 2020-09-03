@@ -11,10 +11,15 @@ def save(file, horizons):
     horizons : sxs.data.Horizons
         Horizons object to be written to file.
 
+    See Also
+    --------
+    sxs.data.horizons.spec_horizons_h5.load : load the output file format
+
     """
     import h5py
 
     with h5py.File(file, "w") as f:
+        f.attrs["sxs_format"] = "horizons.spec_horizons_h5"
         for horizon_name in "ABC":
             horizon = horizons[horizon_name]
             if horizon is not None:
@@ -49,11 +54,12 @@ def load(file):
     --------
     sxs.data.Horizons : Container object for all of the horizons
     sxs.data.HorizonQuantities : Container objects for each of the horizons
+    sxs.data.horizons.spec_horizons_h5.save : save to this file format
 
     Notes
     -----
-    The returned object can be indexed just like the original SpEC-format HDF5 file
-    — as in
+    The returned object can be indexed just like the original SpEC-format
+    Horizons.h5 file:
 
         horizons["AhA.dir/CoordCenterInertial.dat"]
 
@@ -71,6 +77,13 @@ def load(file):
 
     hqs = {}
     with h5py.File(file, "r") as f:
+        sxs_format = f.attrs.get("sxs_format", "horizons.spec_horizons_h5")
+        if sxs_format != "horizons.spec_horizons_h5":
+            raise ValueError(
+                f"\nAttribute 'sxs_format' found in '{file}' is '{sxs_format}'.\n"
+                f"This function only accepts 'horizons.spec_horizons_h5' formats.\n"
+                f"Use a higher-level `load` function to auto-detect the format."
+            )
         for horizon_name in "ABC":
             dir_name = f"Ah{horizon_name}.dir"
             if dir_name in f:
