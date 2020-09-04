@@ -1,10 +1,58 @@
 
 
-# choose_file_from_catalog
+# choose_file_from_catalog [Catalog.__call__]
 # locate_file
 # download_file
 # format_peek
 # load
+
+def file_format(file):
+    """Return format stored in file
+
+    If a format is specified, we assume that it is a top-level attribute or member
+    named "sxs_format" or just "format".  If neither exists, return None, and the 
+
+    Parameters
+    ----------
+    file : file-like object, string, or pathlib.Path
+
+    Returns
+    -------
+    format : {None, str}
+        If the format is not specified, return None.  Otherwise, return the format
+        as a string.
+
+    """
+    from pathlib import Path
+    import json
+    import h5py
+    if isinstance(file, (str, Path)):
+        path = Path(file).expanduser().resolve()
+        if not path.exists():
+            raise FileNotFoundError(f"Could not find {path}")
+        if h5py.is_hdf5(str(path)):
+            with h5py.File(str(path), "r") as f:
+                return f.attrs.get("sxs_format", f.attrs.get("format", None))
+        else:
+            try:
+                with path.open("r") as f:
+                    f_json = json.load(f)
+                    return f_json.get("sxs_format", f_json.get("format", None))
+            except Exception as e:
+                raise ValueError("Failed to interpret input `file` as HDF5 or JSON file") from e
+    elif hasattr(file, "read"):
+        try:
+            with h5py.File(file, "r") as f:
+                return f.attrs.get("sxs_format", f.attrs.get("format", None))
+        except Exception as e:
+            try:
+                f_json = json.load(f)
+                return f_json.get("sxs_format", f_json.get("format", None))
+            except Exception as d:
+                raise ValueError("Failed to interpret input `file` as HDF5 or JSON file") from d
+    else:
+        raise ValueError(f"Input `file` has type {type(file)}; it should be str, pathlib.Path, or a file-like object")
+
 
 
 def load(location, /, download=None, cache=None, **kwargs):

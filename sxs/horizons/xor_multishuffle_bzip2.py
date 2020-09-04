@@ -1,6 +1,6 @@
 """File I/O for XMB-format horizons.h5 files"""
 
-from ...utilities import default_shuffle_widths
+from ..utilities import default_shuffle_widths
 
 
 def save(file, horizons, truncate=lambda x:x, shuffle_widths=default_shuffle_widths):
@@ -35,7 +35,7 @@ def save(file, horizons, truncate=lambda x:x, shuffle_widths=default_shuffle_wid
     import bz2
     import numpy as np
     import h5py
-    from ...utilities import xor, multishuffle
+    from ..utilities import xor, multishuffle
 
     shuffle = multishuffle(tuple(shuffle_widths))
 

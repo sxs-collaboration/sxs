@@ -1,6 +1,4 @@
-"""Interface to SXS catalog of data
-
-
+"""Interface to the catalog of SXS data
 
 """
 
