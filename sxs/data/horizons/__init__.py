@@ -19,7 +19,6 @@ formats:
 """
 
 from . import spec_horizons_h5, xor_multishuffle_bzip2
-
 xmb = xor_multishuffle_bzip2
 
 
@@ -64,6 +63,8 @@ def load(file, **kwargs):
 
     """
     raise NotImplementedError()
+    horizons.full_path = full_path
+    return horizons
 
 
 class HorizonQuantities(object):
