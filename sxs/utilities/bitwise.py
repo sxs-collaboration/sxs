@@ -77,7 +77,7 @@ def xor(x, reverse=False, preserve_dtype=False, axis=-1, **kwargs):
     x = np.asarray(x)
     itemsize = x.itemsize
     if itemsize not in [1, 2, 4, 8]:
-        raise ValueError(f"Input array's byte size must be one of [1, 2, 4, 8], not {itemsize}")
+        raise ValueError(f"Input array's byte size must be one of {{1, 2, 4, 8}}, not {itemsize}")
     dtype = np.dtype(f"u{itemsize}")
     u = x.view(dtype)
     kwargs["axis"] = axis
