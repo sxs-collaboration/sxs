@@ -21,6 +21,14 @@ formats:
 from . import spec_horizons_h5, xor_multishuffle_bzip2
 xmb = xor_multishuffle_bzip2
 
+formats = {
+    None: spec_horizons_h5,
+    "nrar": spec_horizons_h5,
+    "spec_horizons_h5": spec_horizons_h5,
+    "xmb": xmb,
+    "xor_multishuffle_bzip2": xor_multishuffle_bzip2,
+}
+
 
 def load(file, **kwargs):
     """Load horizon data from an SXS-format file
