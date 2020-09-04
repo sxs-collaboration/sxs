@@ -351,7 +351,7 @@ class Metadata(collections.OrderedDict):
                                 history = history.decode()
                             for parameter_name in ["boost_velocity", "space_translation"]:
                                 if parameter_name not in g_parameters:
-                                    pattern = r""{0}": array\((.*?)\)".format(parameter_name)
+                                    pattern = rf'"{parameter_name}": array\((.*?)\)'
                                     matches = re.search(pattern, history)
                                     if matches:
                                         g_parameters[parameter_name] = ast.literal_eval(matches.group(1))

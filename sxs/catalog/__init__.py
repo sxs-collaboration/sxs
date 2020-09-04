@@ -38,6 +38,7 @@ class Catalog(object):
         # "SXS:BBH:0123v4/Lev4/h_Extrapolated_N2.h5"
 
         # return tuple of 2-tuples (full_match_string, URL)
+        raise NotImplementedError()
 
     @property
     @functools.lru_cache()

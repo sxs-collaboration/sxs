@@ -1,7 +1,8 @@
+import abc
 from .. import TimeSeries
 
 
-class WaveformMixin(TimeSeries):
+class WaveformMixin(abc.ABC):
     def __init__(self, *args, **kwargs):
         raise NotImplementedError()
 
