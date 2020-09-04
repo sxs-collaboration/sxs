@@ -1,6 +1,13 @@
 
 
-def load(location, /, download=False, cache=None, **kwargs):
+# choose_file_from_catalog
+# locate_file
+# download_file
+# format_peek
+# load
+
+
+def load(location, /, download=None, cache=None, **kwargs):
     """Load an SXS-format dataset, optionally downloading and caching
 
     The dataset can be the full catalog of all SXS simulations, or metadata,
@@ -14,21 +21,29 @@ def load(location, /, download=False, cache=None, **kwargs):
         'SXS:BBH:1234/Lev5/h_Extrapolated_N2.h5'.  In the former case, all
         following parameters are ignored.  In the latter case, this file is first
         sought in the cache directory, or optionally downloaded from CaltechDATA.
-    download : bool, optional
-        If this is True and the data is recognized as starting with an SXS ID
-        but cannot be found in the cache, the data will be downloaded from
-        CaltechDATA.  Note that if this is True but `cache` is None, it will
-        automatically be switched to True.
-    cache: {None, str, bool}, optional
-        If `location` is not found directly, the cache is used, with `location`
-        appended to the cache path.  If this is a string, it is interpreted as a
-        path to the cache directory.  If it is True, the cache directory is
-        obtained from `sxs.utilities.get_sxs_directory`.
+    download : {None, bool}, optional
+        If this is True and the data is recognized as starting with an SXS ID but
+        cannot be found in the cache, the data will be downloaded from CaltechDATA.
+        If this is None (the default) and an SXS configuration file is found with a
+        `download` key, that value will be used.  If this is False, any
+        configuration will be ignored, and no files will be downloaded.  Note that
+        if this is True but `cache` is None, `cache` will automatically be switched
+        to True.
+    cache: {None, bool}, optional
+        If this is True, the cache directory is determined by
+        `sxs.utilities.get_sxs_directory`, and any downloads will be stored in that
+        directory.  If this is None (the default) and `download` is True it will be
+        set to True.  If this is False, any configuration will be ignored and no
+        downloads will be stored in the cache.
 
     Keyword Parameters
     ------------------
     All remaining parameters are passed to the `load` function responsible for the
     requested data.
+
+    See Also
+    --------
+    sxs.utilities.get_sxs_directory : Locate configuration and cache files
 
     Notes
     -----
@@ -61,12 +76,6 @@ def load(location, /, download=False, cache=None, **kwargs):
     import tempfile
     import json
     import h5py
-
-    sxs_formats = {
-        # 'format name': (format_load_function, requires_json)
-        'corotating_paired_xor': (rotating_paired_xor.load, False),
-        'rotating_paired_xor': (rotating_paired_xor.load, False),
-    }
 
     if download and cache is None:
         cache = True
