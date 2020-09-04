@@ -3,7 +3,7 @@ import functools
 
 @functools.lru_cache()
 def get_sxs_directory(directory_type):
-    """Return the SXS directory location
+    """Return the SXS directory location, creating it if necessary
 
     Parameters
     ----------
@@ -18,15 +18,19 @@ def get_sxs_directory(directory_type):
 
     Notes
     -----
-    This function determines the location of the SXS directory of the given type —
-    either 'cache' or 'config' — and ensures that it exists and is writeable.
+    In order of priority, this function will choose one of these directories:
 
-    1) Environment variable 'SXSCACHEDIR' or 'SXSCONFIGDIR'
-    2) On 'linux' or 'freebsd' platforms
-       a) Environment variable 'XDG_CACHE_HOME' or 'XDG_CONFIG_HOME'
-       b) The '.cache/sxs' or '.config/sxs' directory in the user's home directory
-    3) The '.sxs' directory in the user's home directory
-    4) A temporary directory that will be removed when python exits
+      1) Environment variable 'SXSCACHEDIR' or 'SXSCONFIGDIR'
+      2) On 'linux' or 'freebsd' platforms
+         a) Environment variable 'XDG_CACHE_HOME' or 'XDG_CONFIG_HOME'
+         b) The '.cache/sxs' or '.config/sxs' directory in the user's home directory
+      3) The '.sxs' directory in the user's home directory
+
+    Whichever directory is chosen, this function will try to create the directory
+    if necessary, and then check that it can be accessed and written to.  If that
+    check fails, the function will create and return
+
+      4) A temporary directory that will be removed when python exits
 
     This is based on matplotlib's _get_config_or_cache_dir function.
 
@@ -39,9 +43,10 @@ def get_sxs_directory(directory_type):
     import tempfile
     from pathlib import Path
 
+    if directory_type not in ["cache", "config"]:
+        raise ValueError(f"Can only find 'cache' or 'config' directories, not '{directory_type}'")
+
     suffix = Path("cache") if directory_type == "cache" else Path()
-    if directory_type == "cache":
-        suffix = ""
 
     configdir = os.environ.get(f'SXS{directory_type.upper()}DIR')
     if configdir:
@@ -50,7 +55,7 @@ def get_sxs_directory(directory_type):
         xdg_base = os.environ.get(f'XDG_{directory_type.upper()}_HOME') or Path.home() / f".{directory_type}"
         configdir = Path(xdg_base).expanduser().resolve() / "sxs"
     else:
-        configdir = Path.home() / ".sxs"
+        configdir = Path.home() / ".sxs" / suffix
 
     try:
         configdir.mkdir(parents=True, exist_ok=True)
