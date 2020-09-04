@@ -1,6 +1,3 @@
-"""Interface to metadata"""
-
-
 import re
 import collections
 
@@ -89,6 +86,8 @@ class Metadata(collections.OrderedDict):
                     return cls.from_json_file(json_path)
             else:
                 raise ValueError(f"Could not find file named '{file_name}', '{json_path}', or '{txt_path}'")
+
+    load = from_file
 
     @classmethod
     def from_json_data(cls, json_data):
@@ -267,6 +266,8 @@ class Metadata(collections.OrderedDict):
         path.mkdir(parents=True, exist_ok=True)
         with path.open("w") as f:
             f.write(self.to_json(indent=indent, separators=separators))
+
+    save = to_json_file
 
     def to_txt(self):
         """Export to string like metadata.txt contents"""
