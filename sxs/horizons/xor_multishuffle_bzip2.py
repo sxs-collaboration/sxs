@@ -15,7 +15,7 @@ def save(file, horizons, truncate=lambda x:x, shuffle_widths=default_shuffle_wid
     file : file-like object, string, or pathlib.Path
         Path to the file on disk or a file-like object (such as an open file
         handle) to be written by h5py.File.
-    horizons : sxs.data.Horizons
+    horizons : sxs.Horizons
         Horizons object to be written to file.
     truncate : callable, optional
         Function that truncates the data to a desired accuracy.  This should set
@@ -28,7 +28,7 @@ def save(file, horizons, truncate=lambda x:x, shuffle_widths=default_shuffle_wid
 
     See Also
     --------
-    sxs.data.horizons.xor_multishuffle_bzip2.load : load the output file format
+    sxs.horizons.xor_multishuffle_bzip2.load : load the output file format
     sxs.utilities.xor_multishuffle_bzip2 : compresses data
 
     """
@@ -80,14 +80,14 @@ def load(file, ignore_format=False):
 
     Returns
     -------
-    horizons : sxs.data.Horizons
+    horizons : sxs.Horizons
         This is a container for the horizon objects.  See Notes below.
 
     See also
     --------
-    sxs.data.Horizons : Container object for all of the horizons
-    sxs.data.HorizonQuantities : Container objects for each of the horizons
-    sxs.data.horizons.xor_multishuffle_bzip2.save : save to this file format
+    sxs.Horizons : Container object for all of the horizons
+    sxs.HorizonQuantities : Container objects for each of the horizons
+    sxs.horizons.xor_multishuffle_bzip2.save : save to this file format
 
     Notes
     -----
@@ -109,7 +109,7 @@ def load(file, ignore_format=False):
     import numpy as np
     import h5py
     from .. import Horizons, HorizonQuantities
-    from ...utilities import xor, multishuffle
+    from ..utilities import xor, multishuffle
 
     hqs = {}
     with h5py.File(file, "r") as f:

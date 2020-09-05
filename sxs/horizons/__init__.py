@@ -46,13 +46,13 @@ def load(file, **kwargs):
 
     Returns
     -------
-    horizons : sxs.data.Horizons
+    horizons : sxs.Horizons
         This is a container for the horizon objects.  See Notes below.
 
     See also
     --------
-    sxs.data.Horizons : Container object for all of the horizons
-    sxs.data.HorizonQuantities : Container objects for each of the horizons
+    sxs.Horizons : Container object for all of the horizons
+    sxs.HorizonQuantities : Container objects for each of the horizons
 
     Notes
     -----

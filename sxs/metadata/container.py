@@ -102,8 +102,8 @@ class Metadata(collections.OrderedDict):
 
         See Also
         --------
-        sxs.data.Metadata.from_json_file : `.json` files
-        sxs.data.Metadata.from_file : reads `.txt` or `.json` files
+        sxs.Metadata.from_json_file : `.json` files
+        sxs.Metadata.from_file : reads `.txt` or `.json` files
 
         """
         import json
@@ -120,7 +120,7 @@ class Metadata(collections.OrderedDict):
 
         See Also
         --------
-        sxs.data.Metadata.from_file : reads `.txt` or `.json` files
+        sxs.Metadata.from_file : reads `.txt` or `.json` files
 
         """
         import json
@@ -147,7 +147,7 @@ class Metadata(collections.OrderedDict):
 
         See Also
         --------
-        sxs.data.Metadata.from_file : reads `.txt` or `.json` files
+        sxs.Metadata.from_file : reads `.txt` or `.json` files
 
         Notes
         -----

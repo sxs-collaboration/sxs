@@ -8,12 +8,12 @@ def save(file, horizons):
     file : file-like object, string, or pathlib.Path
         Path to the file on disk or a file-like object (such as an open file
         handle) to be written by h5py.File.
-    horizons : sxs.data.Horizons
+    horizons : sxs.Horizons
         Horizons object to be written to file.
 
     See Also
     --------
-    sxs.data.horizons.spec_horizons_h5.load : load the output file format
+    sxs.horizons.spec_horizons_h5.load : load the output file format
 
     """
     import h5py
@@ -44,14 +44,14 @@ def load(file):
 
     Returns
     -------
-    horizons : sxs.data.Horizons
+    horizons : sxs.Horizons
         This is a container for the horizon objects.  See Notes below.
 
     See also
     --------
-    sxs.data.Horizons : Container object for all of the horizons
-    sxs.data.HorizonQuantities : Container objects for each of the horizons
-    sxs.data.horizons.spec_horizons_h5.save : save to this file format
+    sxs.Horizons : Container object for all of the horizons
+    sxs.HorizonQuantities : Container objects for each of the horizons
+    sxs.horizons.spec_horizons_h5.save : save to this file format
 
     Notes
     -----
