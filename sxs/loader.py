@@ -3,8 +3,7 @@
 # choose_file_from_catalog [Catalog.__call__]
 # locate_file
 # download_file
-# format_peek
-# load
+
 
 def file_format(file):
     """Return format stored in file
@@ -39,20 +38,34 @@ def file_format(file):
                     f_json = json.load(f)
                     return f_json.get("sxs_format", f_json.get("format", None))
             except Exception as e:
-                raise ValueError("Failed to interpret input `file` as HDF5 or JSON file") from e
+                raise ValueError(f"Failed to interpret '{path}' as HDF5 or JSON file") from e
     elif hasattr(file, "read"):
         try:
-            with h5py.File(file, "r") as f:
-                return f.attrs.get("sxs_format", f.attrs.get("format", None))
-        except Exception as e:
-            try:
-                f_json = json.load(f)
+            mode = "binary" if isinstance(file.read(0), bytes) else "text"
+            file.seek(0)
+            if mode == "binary":
+                # This file is open in binary mode, so it must be an HDF5 file
+                with h5py.File(file, "r") as f:
+                    return f.attrs.get("sxs_format", f.attrs.get("format", None))
+            else:
+                # This file is open in text mode, so it must be a JSON file
+                f_json = json.load(file)
                 return f_json.get("sxs_format", f_json.get("format", None))
-            except Exception as d:
-                raise ValueError("Failed to interpret input `file` as HDF5 or JSON file") from d
+        except Exception as e:
+            if mode == "binary":
+                raise ValueError(
+                    "\nInput `file` is open in binary mode, but is not an open HDF5 file."
+                    "\nIf this is a JSON file, open it in text mode: `open(file, 'r')`"
+                ) from e
+            else:
+                raise ValueError(
+                    "\nInput `file` is open in text mode, but is not an open JSON file."
+                    "\nIf this is an HDF5 file, open it in binary mode: `open(file, 'rb')`"
+                ) from e
+        finally:
+            file.seek(0)
     else:
-        raise ValueError(f"Input `file` has type {type(file)}; it should be str, pathlib.Path, or a file-like object")
-
+        raise TypeError(f"Input `file` has type {type(file)}; it should be str, pathlib.Path, or a file-like object")
 
 
 def load(location, /, download=None, cache=None, **kwargs):
