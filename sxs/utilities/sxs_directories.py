@@ -53,7 +53,7 @@ def write_config(**kwargs):
     import json
     config_path = sxs_directory("config") / "config.json"
     if config_path.exists():
-        config = json.load(config_path)
+        config = json.load(config_path.open("r"))
     else:
         config = {}
     config.update(**kwargs)

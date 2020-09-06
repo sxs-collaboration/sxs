@@ -51,6 +51,7 @@ def test_sxs_directory_cache_env(directory_type, persistent, tmp_path):
 )
 @pytest.mark.forked
 def test_sxs_directory_unwritable(directory_type, tmp_path):
+    import time
     import os
     import stat
     d = tmp_path / "unwritable"
@@ -66,6 +67,8 @@ def test_sxs_directory_unwritable(directory_type, tmp_path):
         assert ".sxs" not in str(sxs_dir), (str(sxs_dir), str(d))
         sxs_config_dir = sxs.utilities.sxs_directory("config", persistent=True)
         assert str(sxs_config_dir) in str(sxs_dir)
+    d.chmod(0o777)
+    time.sleep(0.1)
 
 
 def test_read_write_config(tmp_path):
@@ -78,6 +81,11 @@ def test_read_write_config(tmp_path):
         read = sxs.utilities.read_config()
         assert len(read) == 1
         assert read["NONSENSEGARBAGE"] == 123
+        assert sxs.utilities.read_config("NONSENSEGARBAGE", 345) == 123
+        assert sxs.utilities.read_config("NONSENSEGARBAGEJUNK", 345) == 345
+        sxs.utilities.write_config(NONSENSEGARBAGEJUNK=345)
+        assert sxs.utilities.read_config("NONSENSEGARBAGE", 345) == 123
+        assert sxs.utilities.read_config("NONSENSEGARBAGEJUNK", 567) == 345
 
     sxs.utilities.sxs_directory.cache_clear()
     final_config = sxs.utilities.read_config()
