@@ -66,3 +66,21 @@ def test_sxs_directory_unwritable(directory_type, tmp_path):
         assert ".sxs" not in str(sxs_dir), (str(sxs_dir), str(d))
         sxs_config_dir = sxs.utilities.sxs_directory("config", persistent=True)
         assert str(sxs_config_dir) in str(sxs_dir)
+
+
+def test_read_write_config(tmp_path):
+    original_config = sxs.utilities.read_config()
+
+    sxs.utilities.sxs_directory.cache_clear()
+    with environment_context(**{f"SXSCONFIGDIR": str(tmp_path)}):
+        assert not sxs.utilities.read_config()
+        sxs.utilities.write_config(NONSENSEGARBAGE=123)
+        read = sxs.utilities.read_config()
+        assert len(read) == 1
+        assert read["NONSENSEGARBAGE"] == 123
+
+    sxs.utilities.sxs_directory.cache_clear()
+    final_config = sxs.utilities.read_config()
+    assert sorted(set(original_config)) == sorted(set(final_config))
+    for k in original_config:
+        assert original_config[k] == final_config[k]

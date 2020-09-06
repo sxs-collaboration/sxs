@@ -27,7 +27,7 @@ def read_config(key=None, default=None):
     import json
     config_path = sxs_directory("config") / "config.json"
     if config_path.exists():
-        config = json.load(config_path)
+        config = json.load(config_path.open("r"))
     else:
         config = {}
     if key is None:
@@ -57,7 +57,7 @@ def write_config(**kwargs):
     else:
         config = {}
     config.update(**kwargs)
-    with config.open("w") as c:
+    with config_path.open("w") as c:
         json.dump(config, c, indent=4, separators=(',', ': '))
 
 
