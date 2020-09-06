@@ -21,8 +21,8 @@ def test_sxs_directory_bad_directory_name(persistent):
 def test_sxs_directory_cache_env(directory_type, persistent, tmp_path, monkeypatch):
     import pathlib
     import os
+
     sxs.utilities.sxs_directory.cache_clear()
-    # with environment_context(**{f"SXS{directory_type.upper()}DIR": str(tmp_path)}):
     with monkeypatch.context() as mp:
         mp.setattr(pathlib.Path, "home", lambda: tmp_path)
         mp.setenv(f"SXS{directory_type.upper()}DIR", str(tmp_path))
@@ -63,7 +63,6 @@ def test_sxs_directory_unwritable(directory_type, tmp_path, monkeypatch):
     assert stat.filemode(d.stat().st_mode) == "d---------"
     assert not os.access(str(d), os.W_OK)
 
-    # with environment_context(**{"HOME": str(d), f"SXS{directory_type.upper()}DIR": str(d)}):
     with monkeypatch.context() as mp:
         mp.setattr(Path, "home", lambda: d)
         mp.setenv(f"SXS{directory_type.upper()}DIR", str(d))
@@ -83,7 +82,6 @@ def test_read_write_config(tmp_path, monkeypatch):
     original_config = sxs.utilities.read_config()
 
     sxs.utilities.sxs_directory.cache_clear()
-    # with environment_context(**{f"SXSCONFIGDIR": str(tmp_path)}):
     with monkeypatch.context() as mp:
         mp.setattr(pathlib.Path, "home", lambda: tmp_path)
         mp.setenv(f"SXSCONFIGDIR", str(tmp_path))
