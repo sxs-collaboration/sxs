@@ -1,15 +1,36 @@
+# read_config(name, default=None)
+# write_config(**kwargs)
+
+# Catalog.select(location)
+# url_to_filename(url)
+# check_cache(/, sxs_name=None, url=url)
+# locate_file(file)
 
 
-# choose_file_from_catalog [Catalog.__call__]
+# choose_file_from_catalog [Catalog.select]
 # locate_file
-# download_file
+#   * explicit local file
+#   * cached local file
+#   * CaltechDATA
+#   * test.caltechdata
+#   * zenodo
+#   * zenodo.sandbox
+# load
+#   * check for local file
+#   * check for URL
+#   * choose from catalog
+#   * check cache
+#   * download to cache
+#   * read format
+#   * dispatch to appropriate sub-load
 
 
 def file_format(file):
     """Return format stored in file
 
     If a format is specified, we assume that it is a top-level attribute or member
-    named "sxs_format" or just "format".  If neither exists, return None, and the 
+    named "sxs_format" or just "format".  If neither exists, return None; the
+    calling function should check for this possibility.
 
     Parameters
     ----------
@@ -41,8 +62,8 @@ def file_format(file):
                 raise ValueError(f"Failed to interpret '{path}' as HDF5 or JSON file") from e
     elif hasattr(file, "read"):
         try:
-            mode = "binary" if isinstance(file.read(0), bytes) else "text"
             file.seek(0)
+            mode = "binary" if isinstance(file.read(0), bytes) else "text"
             if mode == "binary":
                 # This file is open in binary mode, so it must be an HDF5 file
                 with h5py.File(file, "r") as f:
@@ -128,8 +149,6 @@ def load(location, /, download=None, cache=None, **kwargs):
     to True), the cache is also switched on by default.
 
     """
-    raise NotImplementedError()
-
     import contextlib
     import warnings
     import re
@@ -138,13 +157,52 @@ def load(location, /, download=None, cache=None, **kwargs):
     import json
     import h5py
 
-    if download and cache is None:
-        cache = True
+    if download is None:
+        download = read_config("download")
 
-    warnings.warn('I promised to parse URLs here and switch download to True if needed')
+    if download is None:
+        download = False
+
+    if cache is None:
+        cache = read_config("cache")
+
+    if cache is None and download:
+        cache = True
+    else:
+        cache = False
+
     path = pathlib.Path(location).expanduser().resolve()
     h5_path = path.with_suffix('.h5')
     json_path = path.with_suffix('.json')
+
+    if not path.exists():
+        if h5_path.exists():
+            path = h5_path
+
+        elif json_path.exists():
+            path = json_path
+
+        elif valid_url(location):
+            raise NotImplementedError()
+            path = figure_it_out
+            download(location, file)
+
+        elif location == "catalog":
+            raise NotImplementedError()
+            return Catalog.load(**kwargs)
+
+        else:
+            # Try to find an appropriate SXS file
+            sxs_name, sxs_url = Catalog.select(location)
+            if sxs_name is None:
+                raise ValueError(
+                    f"Cannot find '{location}' as a local file, a valid URL, or an SXS dataset"
+                )
+            path = check_cache(sxs_name=sxs_name)
+            if path is None:
+                raise NotImplementedError()
+
+    warnings.warn('I promised to parse URLs here and switch download to True if needed')
 
     # See if `location` *starts with* something like SXS:BBH:1234
     sxs_matches = re.match(sxs.sxs_identifier_regex, location)
