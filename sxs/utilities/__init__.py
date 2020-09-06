@@ -12,4 +12,4 @@ default_shuffle_widths = (8, 8, 4, 4, 4, 2,) + (1,) * 34
 
 from . import url
 from .bitwise import xor, multishuffle
-from .sxs_directories import get_sxs_directory
+from .sxs_directories import sxs_directory, read_config, write_config
