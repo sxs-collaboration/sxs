@@ -1,6 +1,3 @@
-# read_config(name, default=None)
-# write_config(**kwargs)
-
 # Catalog.select(location)
 # url_to_filename(url)
 # check_cache(/, sxs_name=None, url=url)
