@@ -117,8 +117,10 @@ def sxs_directory(directory_type, persistent=True):
 
         if sxs_dir:
             sxs_dir = Path(sxs_dir).expanduser().resolve()
-        elif sys.platform.startswith(('linux', 'freebsd')):  # pragma: no cover
-            xdg_base = os.environ.get(f'XDG_{directory_type.upper()}_HOME') or Path.home() / f".{directory_type}"
+        elif sys.platform.startswith(('linux', 'freebsd')):
+            xdg_base = os.environ.get(f'XDG_{directory_type.upper()}_HOME')
+            if xdg_base is None:
+                xdg_base = Path.home() / f".{directory_type}"
             sxs_dir = Path(xdg_base).expanduser().resolve() / "sxs"
         else:
             sxs_dir = Path.home() / ".sxs" / suffix
@@ -140,10 +142,10 @@ def sxs_directory(directory_type, persistent=True):
         sxs_dir = sxs_directory("config", persistent=persistent) / "cache"
         try:
             sxs_dir.mkdir(exist_ok=True)
-        except OSError:  # pragma: no cover
+        except OSError:
             pass
         else:
-            if os.access(str(sxs_dir), os.W_OK) and sxs_dir.is_dir():  # pragma: no cover
+            if os.access(str(sxs_dir), os.W_OK) and sxs_dir.is_dir():
                 return sxs_dir
 
     # If the config or cache directory cannot be created or is not a writable
@@ -159,6 +161,6 @@ def sxs_directory(directory_type, persistent=True):
             f"variable to a writable directory to enable caching of downloaded waveforms."
         )
         warnings.warn(message)
-    if directory_type == "cache":  # pragma: no cover
+    if directory_type == "cache":
         sxs_dir.mkdir(exist_ok=True)
     return sxs_dir

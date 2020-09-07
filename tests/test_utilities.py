@@ -1,6 +1,6 @@
 import pytest
-
 import sxs
+
 
 @pytest.mark.parametrize("persistent", (True, False))
 def test_sxs_directory_bad_directory_name(persistent):
@@ -40,6 +40,41 @@ def test_sxs_directory_cache_env(directory_type, persistent, tmp_path, monkeypat
     p.write_text("hi there")
     assert p.exists()
     assert p.read_text() == "hi there"
+
+
+@pytest.mark.parametrize(
+    ("directory_type", "platform"),
+    (
+        pytest.param("config", "linux", id="config linux"),
+        pytest.param("cache", "linux", id="cache linux"),
+        pytest.param("config", "freebsd", id="config freebsd"),
+        pytest.param("cache", "freebsd", id="cache freebsd"),
+    ),
+)
+def test_sxs_directory_linux(directory_type, platform, tmp_path, monkeypatch):
+    import pathlib
+    import sys
+
+    d1 = tmp_path / "sub1"
+    d1.mkdir()
+    assert d1.exists()
+    d2 = tmp_path / "sub2"
+    d2.mkdir()
+    assert d2.exists()
+
+    with monkeypatch.context() as mp:
+        mp.setattr(sys, "platform", platform)
+        mp.setattr(pathlib.Path, "home", lambda: d1)
+
+        mp.setenv(f'XDG_{directory_type.upper()}_HOME', str(d2))
+        sxs.utilities.sxs_directory.cache_clear()
+        sxs_dir = sxs.utilities.sxs_directory(directory_type, persistent=True)
+        assert str(sxs_dir) == str(d2 / "sxs")
+
+        mp.delenv(f'XDG_{directory_type.upper()}_HOME')
+        sxs.utilities.sxs_directory.cache_clear()
+        sxs_dir = sxs.utilities.sxs_directory(directory_type, persistent=True)
+        assert str(sxs_dir) == str(d1 / f".{directory_type}" / "sxs")
 
 
 @pytest.mark.parametrize(
