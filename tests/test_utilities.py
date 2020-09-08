@@ -107,6 +107,7 @@ def test_sxs_directory_unwritable(directory_type, tmp_path, monkeypatch):
         assert ".sxs" not in str(sxs_dir), (str(sxs_dir), str(d))
         sxs_config_dir = sxs.utilities.sxs_directory("config", persistent=True)
         assert str(sxs_config_dir) in str(sxs_dir)
+
     d.chmod(0o777)
     time.sleep(0.1)
 
@@ -136,3 +137,16 @@ def test_read_write_config(tmp_path, monkeypatch):
     assert sorted(set(original_config)) == sorted(set(final_config))
     for k in original_config:
         assert original_config[k] == final_config[k]
+
+
+def test_sxs_directory_cache_from_config(tmp_path, monkeypatch):
+    import pathlib
+    import os
+
+    sxs.utilities.sxs_directory.cache_clear()
+    with monkeypatch.context() as mp:
+        mp.setattr(pathlib.Path, "home", lambda: tmp_path)
+        sxs.utilities.write_config(cache=str(tmp_path / "newcache"))
+        sxs_dir = sxs.utilities.sxs_directory("cache", persistent=True)
+    assert isinstance(sxs_dir, pathlib.Path)
+    assert str(sxs_dir) == str(tmp_path / "newcache")

@@ -82,19 +82,21 @@ def sxs_directory(directory_type, persistent=True):
 
     Notes
     -----
-    In order of priority, this function will choose one of these directories:
+    In order of priority, if `persistent` is True, this function will choose one of
+    these directories:
 
-      1) Environment variable 'SXSCACHEDIR' or 'SXSCONFIGDIR'
-      2) On 'linux' or 'freebsd' platforms
+      1) The value found by `read_config("cache")` if `directory_type` is "cache"
+      2) Environment variable 'SXSCACHEDIR' or 'SXSCONFIGDIR'
+      3) On 'linux' or 'freebsd' platforms
          a) Environment variable 'XDG_CACHE_HOME' or 'XDG_CONFIG_HOME'
          b) The '.cache/sxs' or '.config/sxs' directory in the user's home directory
-      3) The '.sxs' directory in the user's home directory
+      4) The '.sxs' directory in the user's home directory
 
     Whichever directory is chosen, this function will try to create the directory
     if necessary, and then check that it can be accessed and written to.  If that
-    check fails, the function will create and return
+    check fails, or if `persistent` is False, the function will create and return
 
-      4) A temporary directory that will be removed when python exits
+      5) A temporary directory that will be removed when python exits
 
     This is based on matplotlib's _get_config_or_cache_dir function.
 
@@ -113,18 +115,44 @@ def sxs_directory(directory_type, persistent=True):
     suffix = Path("cache") if directory_type == "cache" else Path()
 
     if persistent:
-        sxs_dir = os.getenv(f'SXS{directory_type.upper()}DIR', default=False)
 
+        # Try to read config file first
+        if directory_type == "cache":
+            sxs_dir = read_config("cache")
+            if sxs_dir is not None:
+                sxs_dir = Path(sxs_dir).expanduser().resolve()
+                try:
+                    sxs_dir.mkdir(parents=True, exist_ok=True)
+                except OSError:
+                    pass
+                else:
+                    if os.access(str(sxs_dir), os.W_OK) and sxs_dir.is_dir():
+                        return sxs_dir
+                message = (
+                    f"\nThe `sxs` module failed to find or create a writable directory at {sxs_dir},\n"
+                    f"even though {sxs_directory('config')} specified that directory for the cache."
+                )
+                warnings.warn(message)
+
+        # Use SXSCONFIGDIR or SXSCACHEDIR if they are set
+        sxs_dir = os.getenv(f'SXS{directory_type.upper()}DIR', default=False)
         if sxs_dir:
             sxs_dir = Path(sxs_dir).expanduser().resolve()
+
+        # On linux/freebsd
+        #     a) Use ${XDG_CONFIG_HOME}/sxs or ${XDG_CACHE_HOME}/sxs if they are set
+        #     b) Default to ~/.config/sxs or ~/.cache/sxs
         elif sys.platform.startswith(('linux', 'freebsd')):
             xdg_base = os.environ.get(f'XDG_{directory_type.upper()}_HOME')
             if xdg_base is None:
                 xdg_base = Path.home() / f".{directory_type}"
             sxs_dir = Path(xdg_base).expanduser().resolve() / "sxs"
+
+        # Elsewhere, default to ~/.sxs ~/.sxs/cache
         else:
             sxs_dir = Path.home() / ".sxs" / suffix
 
+        # Ensure that we have a writable directory
         try:
             sxs_dir.mkdir(parents=True, exist_ok=True)
         except OSError:
