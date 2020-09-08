@@ -90,18 +90,21 @@ def select_by_path_component(path_pattern, possible_matches, recursion_index=0):
     """
     import re
 
+    # Separate the pattern into components
     split_path_pattern = path_pattern.split("/")
+
+    # If we've searched all components of the pattern, return all possible matches
     if recursion_index > len(split_path_pattern):
         return possible_matches
 
+    # Split the pattern into the part we're currently working on, and the rest
     path_working = "/".join(split_path_pattern[:recursion_index+1])
     path_suffix = "/".join(split_path_pattern[recursion_index+1:])
     if path_suffix:
         path_suffix = "/" + path_suffix
 
-    matches = {}
-
     # First, look for exact matches to beginning of string
+    matches = {}
     for f in possible_matches:
         if f.startswith(path_working):
             next_slash = f.find("/", f.index(path_working) + len(path_working) - 1)
@@ -134,7 +137,7 @@ def select_by_path_component(path_pattern, possible_matches, recursion_index=0):
         path
         for best_component in best_matches
         for path in select_by_path_component(
-            best_component + path_suffix,  # Add the rest of the pattern to the search string
+            best_component + path_suffix,  # Search for found components place rest of pattern
             possible_matches=best_matches[best_component],
             recursion_index=recursion_index+1
         )
