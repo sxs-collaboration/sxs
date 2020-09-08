@@ -28,12 +28,13 @@ description = "Classes Without Boilerplate"
 name = "attrs"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
-version = "20.1.0"
+version = "20.2.0"
 
 [package.extras]
 dev = ["coverage (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "zope.interface", "sphinx", "sphinx-rtd-theme", "pre-commit"]
 docs = ["sphinx", "sphinx-rtd-theme", "zope.interface"]
 tests = ["coverage (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "zope.interface"]
+tests_no_zope = ["coverage (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six"]
 
 [[package]]
 category = "main"
@@ -523,7 +524,7 @@ description = "Interpret numpy arrays as quaternionic arrays with numba accelera
 name = "quaternionic"
 optional = false
 python-versions = ">=3.6,<4.0"
-version = "0.1.10"
+version = "0.1.13"
 
 [package.dependencies]
 numpy = ">=1.13,<2.0"
@@ -795,8 +796,8 @@ atomicwrites = [
     {file = "atomicwrites-1.4.0.tar.gz", hash = "sha256:ae70396ad1a434f9c7046fd2dd196fc04b12f9e91ffb859164193be8b6168a7a"},
 ]
 attrs = [
-    {file = "attrs-20.1.0-py2.py3-none-any.whl", hash = "sha256:2867b7b9f8326499ab5b0e2d12801fa5c98842d2cbd22b35112ae04bf85b4dff"},
-    {file = "attrs-20.1.0.tar.gz", hash = "sha256:0ef97238856430dcf9228e07f316aefc17e8939fc8507e18c6501b761ef1a42a"},
+    {file = "attrs-20.2.0-py2.py3-none-any.whl", hash = "sha256:fce7fc47dfc976152e82d53ff92fa0407700c21acd20886a13777a0d20e655dc"},
+    {file = "attrs-20.2.0.tar.gz", hash = "sha256:26b54ddbbb9ee1d34d5d3668dd37d6cf74990ab23c828c2888dccdceee395594"},
 ]
 babel = [
     {file = "Babel-2.8.0-py2.py3-none-any.whl", hash = "sha256:d670ea0b10f8b723672d3a6abeb87b565b244da220d76b4dba1b66269ec152d4"},
@@ -1118,8 +1119,8 @@ pyyaml = [
     {file = "PyYAML-5.3.1.tar.gz", hash = "sha256:b8eac752c5e14d3eca0e6dd9199cd627518cb5ec06add0de9d32baeee6fe645d"},
 ]
 quaternionic = [
-    {file = "quaternionic-0.1.10-py3-none-any.whl", hash = "sha256:3dc394af3f5a26691c6fd86da4452b0949b6254f29366afcfb529c1c7b470207"},
-    {file = "quaternionic-0.1.10.tar.gz", hash = "sha256:d567871e0d4566a8f2aa3259c46f524aaf86132c15e0545932b6d93858a64968"},
+    {file = "quaternionic-0.1.13-py3-none-any.whl", hash = "sha256:f64b4bffed270ffe4da1b659fba6b1d426a242c8b3186beeed937e04e8412edc"},
+    {file = "quaternionic-0.1.13.tar.gz", hash = "sha256:373911ed8a95b3f9e8f27d18ad6023431535f1daeed65cdea1ca192da7e3e1e9"},
 ]
 regex = [
     {file = "regex-2020.7.14-cp27-cp27m-win32.whl", hash = "sha256:e46d13f38cfcbb79bfdb2964b0fe12561fe633caf964a77a5f8d4e45fe5d2ef7"},
