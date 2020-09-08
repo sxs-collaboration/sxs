@@ -150,3 +150,20 @@ def test_sxs_directory_cache_from_config(tmp_path, monkeypatch):
         sxs_dir = sxs.utilities.sxs_directory("cache", persistent=True)
     assert isinstance(sxs_dir, pathlib.Path)
     assert str(sxs_dir) == str(tmp_path / "newcache")
+
+
+def test_select_by_path_component():
+    from sxs.utilities import select_by_path_component
+
+    # Examples given in the docstring
+    possible_matches = [
+        "abc/lm/xyz",
+        "abc/ln/xyz",
+        "abd/lm/xyz",
+        "abd/ln/xyz",
+    ]
+    assert select_by_path_component("ab/ln/xyz", possible_matches) == {"abd/ln/xyz"}
+    assert select_by_path_component("ab./ln/xyz", possible_matches) == {"abc/ln/xyz", "abd/ln/xyz"}
+    assert select_by_path_component("a./ln/xyz", possible_matches) == {"abd/ln/xyz"}
+    assert select_by_path_component("ab./l./x", possible_matches) == {"abc/lm/xyz", "abc/ln/xyz", "abd/lm/xyz", "abd/ln/xyz"}
+    assert select_by_path_component("ab./l/x", possible_matches) == {"abc/ln/xyz", "abd/ln/xyz"}
