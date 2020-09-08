@@ -167,3 +167,42 @@ def test_select_by_path_component():
     assert select_by_path_component("a./ln/xyz", possible_matches) == {"abd/ln/xyz"}
     assert select_by_path_component("ab./l./x", possible_matches) == {"abc/lm/xyz", "abc/ln/xyz", "abd/lm/xyz", "abd/ln/xyz"}
     assert select_by_path_component("ab./l/x", possible_matches) == {"abc/ln/xyz", "abd/ln/xyz"}
+
+    possible_matches += ["abe/lp/xyz"]
+    assert select_by_path_component("ab/ln/xyz", possible_matches) == set()
+    assert select_by_path_component("ab./ln/xyz", possible_matches) == {"abc/ln/xyz", "abd/ln/xyz"}
+    assert select_by_path_component("a./ln/xyz", possible_matches) == set()
+    assert select_by_path_component("ab./l./x", possible_matches) == set(possible_matches)
+    assert select_by_path_component("ab./l/x", possible_matches) == {"abc/ln/xyz", "abd/ln/xyz", "abe/lp/xyz"}
+
+    assert select_by_path_component("ab./l", possible_matches) == {"abc/ln/xyz", "abd/ln/xyz", "abe/lp/xyz"}
+
+    # Fake SXS catalog
+    fake_sxs = [
+        f"SXS:BBH:{sxs_id:04}v{version}/Lev{lev}/{type}_{extrapolation}.h5"
+        for sxs_id in range(1, 2023)
+        for version in [1, 3]
+        for lev in [2, 3, 4]
+        for type in ["h", "psi4"]
+        for extrapolation in ["extrapolated_n2", "extrapolated_n3", "extrapolated_n4"]
+    ]
+
+    assert select_by_path_component("SXS:BBH:012(3|4)/Lev/h.*n(2|3)", fake_sxs) == set(
+        f"SXS:BBH:{sxs_id:04}v{version}/Lev{lev}/{type}_{extrapolation}.h5"
+        for sxs_id in [123, 124]
+        for version in [3]
+        for lev in [4]
+        for type in ["h"]
+        for extrapolation in ["extrapolated_n2", "extrapolated_n3"]
+    )
+
+    assert select_by_path_component("SXS:B/Lev4/psi4", fake_sxs) == set(
+        f"SXS:BBH:{sxs_id:04}v{version}/Lev{lev}/{type}_{extrapolation}.h5"
+        for sxs_id in [2022]
+        for version in [3]
+        for lev in [4]
+        for type in ["psi4"]
+        for extrapolation in ["extrapolated_n4"]
+    )
+
+    assert select_by_path_component("SXS:BHWD/Lev4/psi4", fake_sxs) == set()

@@ -90,16 +90,18 @@ def select_by_path_component(path_pattern, possible_matches, recursion_index=0):
     """
     import re
 
-    if len(possible_matches) == 1:
+    split_path_pattern = path_pattern.split("/")
+    if recursion_index > len(split_path_pattern):
         return possible_matches
 
-    path_working = "/".join(path_pattern.split("/")[:recursion_index+1])
-    path_suffix = "/".join(path_pattern.split("/")[recursion_index+1:])
+    path_working = "/".join(split_path_pattern[:recursion_index+1])
+    path_suffix = "/".join(split_path_pattern[recursion_index+1:])
     if path_suffix:
         path_suffix = "/" + path_suffix
 
-    best_matches = {}
     matches = {}
+
+    # First, look for exact matches to beginning of string
     for f in possible_matches:
         if f.startswith(path_working):
             next_slash = f.find("/", f.index(path_working) + len(path_working) - 1)
@@ -107,6 +109,8 @@ def select_by_path_component(path_pattern, possible_matches, recursion_index=0):
             matched_component = f[:next_slash]
             matches.setdefault(path_working, [])
             matches[path_working].append((matched_component, f))
+
+    # If that didn't give us anything, compile to a regex
     if not matches:
         path_regex = re.compile(path_working)
         component_regex = re.compile(path_working + r"[^/]*")
@@ -117,17 +121,23 @@ def select_by_path_component(path_pattern, possible_matches, recursion_index=0):
                 matched_component = component_regex.match(f).group()
                 matches.setdefault(match, [])
                 matches[match].append((matched_component, f))
+
+    # Go through, finding the `max` for any group of partial matches
+    best_matches = {}
     for match in matches:
         best_component = max(set(m[0] for m in matches[match]))
         best_possible_matches = [m[1] for m in matches[match] if m[0] == best_component]
         best_matches[best_component] = best_possible_matches
 
-    return {
+    # Recurse, if necessary
+    selected = {
         path
         for best_component in best_matches
         for path in select_by_path_component(
-            best_component + path_suffix,
+            best_component + path_suffix,  # Add the rest of the pattern to the search string
             possible_matches=best_matches[best_component],
             recursion_index=recursion_index+1
         )
     }
+
+    return selected
