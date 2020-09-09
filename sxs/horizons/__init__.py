@@ -31,51 +31,6 @@ formats = {
 }
 
 
-def load(file, **kwargs):
-    """Load horizon data from an SXS-format file
-
-    This is the highest-level loader for horizon data, and should generally be
-    preferred over more specific loaders like those in `spec_horizons_h5` or
-    `xor_multishuffle_bzip2`; this function automatically detects the format
-    and dispatches as needed.
-
-    Parameters
-    ----------
-    file : file-like object, string, or pathlib.Path
-        Path to the file on disk or a file-like object (such as an open file
-        handle) to be opened by h5py.File.
-
-    Returns
-    -------
-    horizons : sxs.Horizons
-        This is a container for the horizon objects.  See Notes below.
-
-    See also
-    --------
-    sxs.Horizons : Container object for all of the horizons
-    sxs.HorizonQuantities : Container objects for each of the horizons
-
-    Notes
-    -----
-    The returned object can be indexed just like the original SpEC-format
-    Horizons.h5 file:
-
-        horizons["AhA.dir/CoordCenterInertial.dat"]
-
-    However, the `horizons` object also has a more natural and general interface
-    that should be preferred for compatibility with other formats, in which the
-    same vector-valued function of time can be accessed as
-
-        horizons.A.coord_center_inertial
-
-    See the documentation of `Horizons` and `HorizonQuantities` for more details.
-
-    """
-    raise NotImplementedError()
-    horizons.full_path = full_path
-    return horizons
-
-
 class HorizonQuantities(object):
     """Container object for various TimeSeries related to an individual horizon
 
