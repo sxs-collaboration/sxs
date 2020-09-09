@@ -40,4 +40,13 @@ or
 python -m pip install sxs
 ```
 
-These will download and install the package.
+These will download and install the package.  You may also want to set some
+sensible defaults to automatically download and cache data:
+
+```bash
+python -c "import sxs; sxs.write_config(download=True, cache=True)"
+```
+
+This will write the configuration file in the directory returned by
+`sxs.sxs_directory("config")`, and data will be cached in the directory
+returned by `sxs.sxs_directory("cache")`.
