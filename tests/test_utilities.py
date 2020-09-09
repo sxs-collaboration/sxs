@@ -115,6 +115,7 @@ def test_sxs_directory_unwritable(directory_type, tmp_path, monkeypatch):
 def test_read_write_config(tmp_path, monkeypatch):
     import pathlib
 
+    sxs.utilities.sxs_directory.cache_clear()
     original_config = sxs.utilities.read_config()
 
     sxs.utilities.sxs_directory.cache_clear()
