@@ -23,6 +23,7 @@ xmb = xor_multishuffle_bzip2
 
 formats = {
     None: spec_horizons_h5,
+    "": spec_horizons_h5,
     "nrar": spec_horizons_h5,
     "spec_horizons_h5": spec_horizons_h5,
     "xmb": xmb,

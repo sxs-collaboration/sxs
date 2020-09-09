@@ -4,5 +4,6 @@ from .container import Metadata
 
 formats = {
     None: Metadata,
+    "": Metadata,
     "metadata": Metadata,
 }

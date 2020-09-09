@@ -13,7 +13,8 @@ from . import nrar, corotating_paired_xor, rotating_paired_xor_multishuffle_bzip
 
 formats = {
     None: nrar,
-    'nrar': nrar,
-    'corotating_paired_xor': corotating_paired_xor,
-    'rotating_paired_xor': rotating_paired_xor_multishuffle_bzip2,
+    "": nrar,
+    "nrar": nrar,
+    "corotating_paired_xor": corotating_paired_xor,
+    "rotating_paired_xor": rotating_paired_xor_multishuffle_bzip2,
 }
