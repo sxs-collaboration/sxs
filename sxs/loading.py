@@ -104,7 +104,7 @@ def sxs_loader(file):
     return handler.load
 
 
-def load(location, /, download=None, cache=None, **kwargs):
+def load(location, download=None, cache=None, **kwargs):
     """Load an SXS-format dataset, optionally downloading and caching
 
     The dataset can be the full catalog of all SXS simulations, or metadata,
