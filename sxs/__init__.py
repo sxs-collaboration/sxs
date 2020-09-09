@@ -12,11 +12,11 @@ except ModuleNotFoundError:  # pragma: no cover
 __version__ = importlib_metadata.version(__name__)
 
 from . import utilities
-from .utilities import sxs_directory, read_config, write_config
+from .utilities import file_format, sxs_directory, read_config, write_config
 from .time_series import TimeSeries
 from .catalog import Catalog
 from .metadata import Metadata
 from .horizons import Horizons, HorizonQuantities
 from .waveforms import WaveformModes, WaveformGrid, WaveformSignal
-from .loader import file_format, load
+from .loader import load
 from . import catalog, metadata, horizons, waveforms

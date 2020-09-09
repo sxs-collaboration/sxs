@@ -1,4 +1,4 @@
-"""Collection of utilities for the sxs package"""
+"""Various utilities used the sxs package"""
 
 import functools
 import numba
@@ -15,3 +15,4 @@ from .bitwise import xor, multishuffle
 from .sxs_directories import sxs_directory, read_config, write_config
 from .sxs_identifiers import sxs_identifier_regex, lev_regex, sxs_id, lev_number, simulation_title
 from .select import select_by_path_component
+from .formats import file_format
