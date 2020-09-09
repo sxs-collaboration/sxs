@@ -177,6 +177,8 @@ def test_select_by_path_component():
 
     assert select_by_path_component("ab./l", possible_matches) == {"abc/ln/xyz", "abd/ln/xyz", "abe/lp/xyz"}
 
+    assert select_by_path_component("abe/lp/xyz", ["abe/lp/xyz"]) == {"abe/lp/xyz"}
+
     # Fake SXS catalog
     fake_sxs = [
         f"SXS:BBH:{sxs_id:04}v{version}/Lev{lev}/{type}_{extrapolation}.h5"
@@ -206,3 +208,21 @@ def test_select_by_path_component():
     )
 
     assert select_by_path_component("SXS:BHWD/Lev4/psi4", fake_sxs) == set()
+
+    assert select_by_path_component("SXS:BBH:1001v3/Lev3/h_extrapolated_n3.h5", fake_sxs) == set(
+        f"SXS:BBH:{sxs_id:04}v{version}/Lev{lev}/{type}_{extrapolation}.h5"
+        for sxs_id in [1001]
+        for version in [3]
+        for lev in [3]
+        for type in ["h"]
+        for extrapolation in ["extrapolated_n3"]
+    )
+
+    assert select_by_path_component("SXS:BBH:1001v3/Lev3/h", fake_sxs) == set(
+        f"SXS:BBH:{sxs_id:04}v{version}/Lev{lev}/{type}_{extrapolation}.h5"
+        for sxs_id in [1001]
+        for version in [3]
+        for lev in [3]
+        for type in ["h"]
+        for extrapolation in ["extrapolated_n2", "extrapolated_n3", "extrapolated_n4"]
+    )

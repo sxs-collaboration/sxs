@@ -7,9 +7,14 @@ def select_by_path_component(path_pattern, possible_matches, recursion_index=0):
     Parameters
     ----------
     path_pattern : str
-        A series of patterns to match to path components, separated by "/".  Note
-        that each pattern will be interpreted first as a literal match, then — if
-        no match is found — as a regex, compiled by python's `re` module.
+        A pattern to search for in the sequence of possible matches.  If
+        `recursion_index` is 0, this is first searched as an exact partial match,
+        meaning paths that start with exactly this string are chosen.  If that does
+        not produce any matches, the pattern is split into components, separated by
+        "/".  This is then treated as a series of patterns to match corresponding
+        path components in the `possible_matches`.  Each component pattern will be
+        interpreted first as a literal match, then — if no match is found — as a
+        regex, compiled by python's `re` module.
     possible_matches : Iterable[str]
         A sequence of paths to select matches from.
     recursion_index : int, optional
@@ -89,6 +94,12 @@ def select_by_path_component(path_pattern, possible_matches, recursion_index=0):
 
     """
     import re
+
+    # Look for exact matches
+    if recursion_index == 0:
+        matches = {p for p in possible_matches if p.startswith(path_pattern)}
+        if matches:
+            return matches
 
     # Separate the pattern into components
     split_path_pattern = path_pattern.split("/")
