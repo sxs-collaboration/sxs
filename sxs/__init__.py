@@ -18,5 +18,5 @@ from .catalog import Catalog
 from .metadata import Metadata
 from .horizons import Horizons, HorizonQuantities
 from .waveforms import WaveformModes, WaveformGrid, WaveformSignal
-from .loader import load
 from . import catalog, metadata, horizons, waveforms
+from .loading import load
