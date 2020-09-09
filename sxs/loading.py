@@ -28,16 +28,16 @@ def sxs_handler(format_string):
     if not format_string:
         raise ValueError("Empty string cannot be associated with a handler")
     elif format_string.lower().startswith("catalog"):
-        format_string = re.sub("^catalog\.?", "", format_string, count=1, flags=re.IGNORECASE)
+        format_string = re.sub(r"^catalog\.?", "", format_string, count=1, flags=re.IGNORECASE)
         return catalog.formats.get(format_string, catalog.formats[None])
     elif format_string.lower().startswith("metadata"):
-        format_string = re.sub("^metadata\.?", "", format_string, count=1, flags=re.IGNORECASE)
+        format_string = re.sub(r"^metadata\.?", "", format_string, count=1, flags=re.IGNORECASE)
         return metadata.formats.get(format_string, metadata.formats[None])
     elif format_string.lower().startswith("horizons"):
-        format_string = re.sub("^horizons\.?", "", format_string, count=1, flags=re.IGNORECASE)
+        format_string = re.sub(r"^horizons\.?", "", format_string, count=1, flags=re.IGNORECASE)
         return horizons.formats.get(format_string, horizons.formats[None])
     elif format_string.lower().startswith("waveforms"):
-        format_string = re.sub("^waveforms\.?", "", format_string, count=1, flags=re.IGNORECASE)
+        format_string = re.sub(r"^waveforms\.?", "", format_string, count=1, flags=re.IGNORECASE)
         return waveforms.formats.get(format_string, waveforms.formats[None])
     else:
         format_list = [
