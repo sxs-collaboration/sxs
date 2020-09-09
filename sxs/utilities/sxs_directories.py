@@ -49,6 +49,13 @@ def write_config(**kwargs):
     which are then inserted as `key:value` pairs into the config dictionary and
     written into the `config.json` file.
 
+    Useful settings include
+
+      * `write_config(download=True)`, to download data whenever necessary
+      * `write_config(cache=True)`, to ensure that caching is used for downloads
+      * `write_config(cache_directory="/some/path/you/choose")`, to manually choose
+        the directory to use for caching
+
     """
     import json
     config_path = sxs_directory("config") / "config.json"
