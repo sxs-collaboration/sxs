@@ -82,10 +82,14 @@ def sxs_directory(directory_type, persistent=True):
 
     Notes
     -----
+    This function's return value is cached after the first call in a given python
+    session.  To clear that cache, execute `sxs_directory.cache_clear()`.
+
     In order of priority, if `persistent` is True, this function will choose one of
     these directories:
 
-      1) The value found by `read_config("cache")` if `directory_type` is "cache"
+      1) The value found by `read_config("cache_directory")` if `directory_type` is
+         "cache"
       2) Environment variable 'SXSCACHEDIR' or 'SXSCONFIGDIR'
       3) On 'linux' or 'freebsd' platforms
          a) Environment variable 'XDG_CACHE_HOME' or 'XDG_CONFIG_HOME'
@@ -118,7 +122,7 @@ def sxs_directory(directory_type, persistent=True):
 
         # Try to read config file first
         if directory_type == "cache":
-            sxs_dir = read_config("cache")
+            sxs_dir = read_config("cache_directory")
             if sxs_dir is not None:
                 sxs_dir = Path(sxs_dir).expanduser().resolve()
                 try:

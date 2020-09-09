@@ -146,7 +146,7 @@ def test_sxs_directory_cache_from_config(tmp_path, monkeypatch):
     sxs.utilities.sxs_directory.cache_clear()
     with monkeypatch.context() as mp:
         mp.setattr(pathlib.Path, "home", lambda: tmp_path)
-        sxs.utilities.write_config(cache=str(tmp_path / "newcache"))
+        sxs.utilities.write_config(cache_directory=str(tmp_path / "newcache"))
         sxs_dir = sxs.utilities.sxs_directory("cache", persistent=True)
     assert isinstance(sxs_dir, pathlib.Path)
     assert str(sxs_dir) == str(tmp_path / "newcache")
