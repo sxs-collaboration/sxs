@@ -16,7 +16,7 @@ catalog_file_description = """
         'catalog_file_description': '<this description>',
         'modified': '<YYYY-MM-DDThh:mm:ss.ssssss>',  # UTC time of last-modified record in this file
         'records': {  # Includes *all* records published on Zenodo in the 'sxs' community, not just simulations
-            '<id>': {  # This Zenodo ID key is a *string* containing the 'id' value inside this object (JSON requires keys to be strings)
+            '<doi_url>': {  # This is precisely the value of the 'doi_url' key below
                 # More details about this 'representation' object at http://developers.zenodo.org/#depositions
                 'conceptdoi': '10.5281/zenodo.<conceptrecid>',  # Permanent DOI for all versions of this record
                 'conceptrecid': '<conceptrecid>',  # ~7-digit integer (as string) collectively identifying all versions of this record
@@ -283,7 +283,7 @@ def create(login=None):
     catalog = {
         'catalog_file_description': dedent(catalog_file_description).split('\n')[1:-1],
         'modified': modified,
-        'records': {r['links']['conceptdoi']: r for r in records},
+        'records': {r['doi_url']: r for r in records},
         'simulations': simulations
     }
     return catalog
