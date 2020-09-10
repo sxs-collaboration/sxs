@@ -11,6 +11,7 @@ guvectorize = functools.partial(numba.guvectorize, nopython=True, cache=True)
 default_shuffle_widths = (8, 8, 4, 4, 4, 2,) + (1,) * 34
 
 from . import url
+from .downloads import download_file
 from .bitwise import xor, multishuffle
 from .sxs_directories import sxs_directory, read_config, write_config
 from .sxs_identifiers import sxs_identifier_regex, lev_regex, sxs_id, lev_number, simulation_title

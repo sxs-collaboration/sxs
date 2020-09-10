@@ -1,4 +1,4 @@
-def download(url, path, verbosity=0):
+def download_file(url, path, verbosity=0):
     """Download large file efficiently from url into path
 
     Parameters
