@@ -126,7 +126,7 @@ def load(location, download=None, cache=None, **kwargs):
         configuration will be ignored, and no files will be downloaded.  Note that
         if this is True but `cache` is None, `cache` will automatically be switched
         to True.
-    cache: {None, bool}, optional
+    cache : {None, bool}, optional
         The cache directory is determined by `sxs.sxs_directory`, and any downloads
         will be stored in that directory.  If this is None (the default) and
         `download` is True it will be set to True.  If this is False, any
