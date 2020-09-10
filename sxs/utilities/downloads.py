@@ -1,4 +1,4 @@
-def download_file(url, path, progress=False):
+def download_file(url, path, progress=False, if_newer=True):
     """Download large file efficiently from url into path
 
     Parameters
@@ -13,6 +13,15 @@ def download_file(url, path, progress=False):
     progress : bool, optional
         If True, and a nonzero Content-Length header is returned, a progress bar
         will be shown during the download.
+    if_newer : bool, optional
+        If True (the default), the file will only be downloaded if the version on
+        the server is newer than the "mtime" of the local version.  If this flag is
+        False, or there is no local version, or the server does not reply with a
+        'Last-Modified' header, the file is downloaded as usual.
+
+    Returns
+    -------
+    local_filename : pathlib.Path
 
     """
     import functools
@@ -22,6 +31,7 @@ def download_file(url, path, progress=False):
     import urllib.parse
     import requests
     import tqdm
+    from datetime import datetime, timezone
 
     url_path = urllib.parse.urlparse(url).path
     path = pathlib.Path(path).expanduser().resolve()
@@ -43,6 +53,17 @@ def download_file(url, path, progress=False):
             pass
         r.raise_for_status()
         raise RuntimeError()  # Will only happen if the response was not strictly an error
+
+    if if_newer and local_filename.exists() and "Last-Modified" in r.headers:
+        remote_timestamp = datetime.strptime(
+            r.headers["Last-Modified"],
+            "%a, %d %b %Y %H:%M:%S GMT"
+        ).replace(tzinfo=timezone.utc)
+        local_timestamp = datetime.utcfromtimestamp(
+            local_filename.stat().st_mtime
+        ).replace(tzinfo=timezone.utc)
+        if local_timestamp > remote_timestamp:
+            return local_filename
 
     file_size = int(r.headers.get('Content-Length', 0))
     r.raw.read = functools.partial(r.raw.read, decode_content=True)
