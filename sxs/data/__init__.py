@@ -1,4 +1,4 @@
-import .api
+from . import api
 
 
 # def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC.out'],
