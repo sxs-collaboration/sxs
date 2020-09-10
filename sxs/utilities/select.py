@@ -93,6 +93,7 @@ def select_by_path_component(path_pattern, possible_matches, recursion_index=0):
     "ln" is the max matching component.
 
     """
+    import collections
     import re
 
     # Look for exact matches
@@ -115,13 +116,12 @@ def select_by_path_component(path_pattern, possible_matches, recursion_index=0):
         path_suffix = "/" + path_suffix
 
     # First, look for exact matches to beginning of string
-    matches = {}
+    matches = collections.defaultdict(list)
     for f in possible_matches:
         if f.startswith(path_working):
             next_slash = f.find("/", f.index(path_working) + len(path_working) - 1)
             if next_slash < 0: next_slash = len(f)
             matched_component = f[:next_slash]
-            matches.setdefault(path_working, [])
             matches[path_working].append((matched_component, f))
 
     # If that didn't give us anything, compile to a regex
@@ -133,7 +133,6 @@ def select_by_path_component(path_pattern, possible_matches, recursion_index=0):
             if m:
                 match = m.group()
                 matched_component = component_regex.match(f).group()
-                matches.setdefault(match, [])
                 matches[match].append((matched_component, f))
 
     # Go through, finding the `max` for any group of partial matches
