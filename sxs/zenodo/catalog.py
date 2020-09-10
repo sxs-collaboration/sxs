@@ -464,7 +464,10 @@ def update(login=None, path='~/.sxs/catalog/private_catalog.json',
     l = login or Login()
 
     # Get the list of all SXS records from Zenodo
-    zenodo_records = {r['links']['conceptdoi']: r for r in l.search(q='communities:sxs') if 'conceptdoi' in r['links']}
+    zenodo_records = {
+        r['doi_url']: r
+        for r in l.search(q='communities:sxs', all_versions=True, status='published', size=9000)
+    }
 
     # Loop through the zenodo records, ensuring that they are all present and current in the old records
     catalog_changed = False
