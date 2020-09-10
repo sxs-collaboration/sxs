@@ -19,4 +19,4 @@ from .metadata import Metadata
 from .horizons import Horizons, HorizonQuantities
 from .waveforms import WaveformModes, WaveformGrid, WaveformSignal
 from . import catalog, metadata, horizons, waveforms
-from .loading import load
+from .handlers import load
