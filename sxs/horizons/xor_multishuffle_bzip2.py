@@ -3,7 +3,7 @@
 from ..utilities import default_shuffle_widths
 
 
-def save(file, horizons, truncate=lambda x:x, shuffle_widths=default_shuffle_widths):
+def save(horizons, file, truncate=lambda x:x, shuffle_widths=default_shuffle_widths):
     """Save `Horizons` object as XMB-format horizons.h5 file
 
     This function saves the input horizons object in a more compact form than the
@@ -12,11 +12,11 @@ def save(file, horizons, truncate=lambda x:x, shuffle_widths=default_shuffle_wid
 
     Parameters
     ----------
+    horizons : sxs.Horizons
+        Horizons object to be written to file.
     file : file-like object, string, or pathlib.Path
         Path to the file on disk or a file-like object (such as an open file
         handle) to be written by h5py.File.
-    horizons : sxs.Horizons
-        Horizons object to be written to file.
     truncate : callable, optional
         Function that truncates the data to a desired accuracy.  This should set
         bits beyond a desired precision to 0 so that they will compress
@@ -51,12 +51,12 @@ def save(file, horizons, truncate=lambda x:x, shuffle_widths=default_shuffle_wid
                 # 1-d data sets
                 for dat in ["areal_mass", "christodoulou_mass"]:
                     data = data + compressor.compress(
-                        shuffle(xor(horizon[dat].ndarray.view(np.uint64))).tobytes()
+                        shuffle(xor(truncate(horizon[dat].ndarray).view(np.uint64))).tobytes()
                     )
                 # 2-d data sets
                 for dat in ["coord_center_inertial", "dimensionful_inertial_spin", "chi_inertial"]:
                     data = data + compressor.compress(
-                        shuffle(xor(horizon[dat].ndarray.view(np.uint64).flatten("F"))).tobytes()
+                        shuffle(xor(truncate(horizon[dat].ndarray).view(np.uint64).flatten("F"))).tobytes()
                     )
                 data = data + compressor.flush()
                 d = f.create_dataset(horizon_name, data=np.void(data))

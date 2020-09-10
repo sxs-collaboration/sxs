@@ -1,15 +1,15 @@
 """File I/O for SpEC-format Horizons.h5 files"""
 
-def save(file, horizons):
+def save(horizons, file):
     """Save `Horizons` object as SpEC Horizons.h5 file
 
     Parameters
     ----------
+    horizons : sxs.Horizons
+        Horizons object to be written to file.
     file : file-like object, string, or pathlib.Path
         Path to the file on disk or a file-like object (such as an open file
         handle) to be written by h5py.File.
-    horizons : sxs.Horizons
-        Horizons object to be written to file.
 
     See Also
     --------

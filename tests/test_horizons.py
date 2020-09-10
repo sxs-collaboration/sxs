@@ -34,7 +34,7 @@ def test_xmb_format():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         file = pathlib.Path(temp_dir) / 'horizons.h5'
-        sxs.horizons.xor_multishuffle_bzip2.save(file, horizons_spec)
+        sxs.horizons.xor_multishuffle_bzip2.save(horizons_spec, file)
         with pytest.raises(ValueError):
             horizons_error = sxs.horizons.spec_horizons_h5.load(file)
         horizons_xmb = sxs.horizons.xor_multishuffle_bzip2.load(file)
