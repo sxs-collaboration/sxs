@@ -4,7 +4,17 @@ class Catalog(object):
     url = "https://data.black-holes.org/catalog.json"
 
     def __init__(self, catalog=None, **kwargs):
+        import collections
+
         self._dict = catalog or type(self).load(**kwargs)
+
+        # # Add version numbers to all records
+        # concept_to_versions = collections.defaultdict(list)
+        # for doi_url, record in self.records.items():
+        #     concept_to_versions[record["conceptrecid"]].append(record["doi_url"])
+        # for conceptrecid, doi_urls in concept_to_versions.items():
+        #     for v, doi_url in enumerate(doi_urls, start=1):
+        #         self.records[doi_url]["version"] = v
 
     @classmethod
     @functools.lru_cache()
@@ -244,8 +254,7 @@ class Catalog(object):
         sxs_id_regex = re.compile(sxs_identifier_regex + r"/?")
 
         file_infos = {}
-        for r in self.records:
-            record = records[r]
+        for record in self.records.values():
             sxs_sim_id = sxs_id(record.get("title", ""))
             if not sxs_sim_id:
                 continue
