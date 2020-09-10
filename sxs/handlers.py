@@ -54,7 +54,7 @@ def sxs_handler(format_string):
                     raise ValueError(f"Format string '{format_string}' found in multiple sxs format groups")
                 return format_dict[format_string]
             next(format_cycler)
-    raise ValueError(f"Format string '{format_string}' is unknown to the `sxs` package")
+    raise ValueError(f"Format '{format_string}' is unknown to the `sxs` package; maybe you need to update `sxs`")
 
 
 def sxs_loader(file):
@@ -104,7 +104,7 @@ def sxs_loader(file):
     return handler.load
 
 
-def load(location, download=None, cache=None, **kwargs):
+def load(location, download=None, cache=None, progress=False, **kwargs):
     """Load an SXS-format dataset, optionally downloading and caching
 
     The dataset can be the full catalog of all SXS simulations, or metadata,
@@ -112,12 +112,8 @@ def load(location, download=None, cache=None, **kwargs):
 
     Parameters
     ----------
-    location : local file path, URL, SXS path, or SXS path pattern
-        This can be a relative or absolute path to a local file or an SXS ID
-        followed by a path supplied with that SXS data -- for example,
-        'SXS:BBH:1234/Lev5/h_Extrapolated_N2.h5'.  In the former case, all
-        following parameters are ignored.  In the latter case, this file is first
-        sought in the cache directory, or optionally downloaded from CaltechDATA.
+    location : {str, pathlib.Path}
+        A local file path, URL, SXS path, or SXS path pattern.  See Notes below.
     download : {None, bool}, optional
         If this is True and the data is recognized as starting with an SXS ID but
         cannot be found in the cache, the data will be downloaded automatically.
@@ -132,6 +128,10 @@ def load(location, download=None, cache=None, **kwargs):
         `download` is True it will be set to True.  If this is False, any
         configuration will be ignored and any files will be downloaded to a
         temporary directory that will be deleted when python exits.
+    progress : {None, bool}, optional
+        If True, and a nonzero Content-Length header is returned, a progress bar
+        will be shown during any downloads.  Default is False unless
+        `read_config("download_progress")` is True.
 
     Keyword Parameters
     ------------------
@@ -183,6 +183,8 @@ def load(location, download=None, cache=None, **kwargs):
         download = read_config("download")
     if cache is None:
         cache = read_config("cache")
+    if progress is None:
+        progress = read_config("download_progress")
 
     # We set the cache path to be persistent if `cache` is `True` or `None`.  Thus,
     # we test for whether or not `cache` literally *is* `False`, rather than just
@@ -202,12 +204,15 @@ def load(location, download=None, cache=None, **kwargs):
 
         elif "scheme" in url.parse(location):
             m = url.parse(location)
-            path = cache_path / urllib.request.url2pathname(f"{m['host']}/{m['port']}/{m['resource']}")
+            path_name = urllib.request.url2pathname(f"{m['host']}/{m['port']}/{m['resource']}")
+            path = cache_path / path_name
             if not path.exists():
-                download_file(location, path)
+                if download is False:  # Again, we want literal False, not casting to False
+                    raise ValueError(f"File '{path_name}' not found in cache, but downloading turned off")
+                download_file(location, path, progress=progress)
 
         elif location == "catalog":
-            return Catalog.load(**kwargs)
+            return Catalog.load(download=download, cache=cache, progress=progress, **kwargs)
 
         else:
             # Try to find an appropriate SXS file
@@ -221,63 +226,10 @@ def load(location, download=None, cache=None, **kwargs):
                 path = cache_path / file_info.get("true_path", sxs_path)
                 if not path.exists():
                     download_url = file_info["links"]["download"]
-                    download(download_url, path)
+                    download_file(download_url, path, progress=progress)
                 paths.append(path)
-            return [load(path, download=False, **kwargs) for path in paths]
+            return [load(path, download=False, progress=progress, **kwargs) for path in paths]
 
     load = sxs_loader(path)
 
     return load(path, **kwargs)
-
-    # # See if `location` *starts with* something like SXS:BBH:1234
-    # sxs_matches = re.match(sxs.sxs_identifier_regex, location)
-
-    # with contextlib.ExitStack() as exit_stack:
-    #     if not cache:
-    #         temporary_directory = exit_stack.enter_context(tempfile.TemporaryDirectory())
-    #         cache_path = pathlib.Path(temporary_directory)
-    #     else:
-    #         if cache is True:  # We want it to literally *be* True, not just equal True
-    #             warnings.warn('Logic is missing here!!!')
-    #             cache_path = pathlib.Path('~/shouldntbehere/../dir/name').expanduser().resolve()
-    #         else:  # It's apparently a non-empty string
-    #             cache_path = pathlib.Path(cache).expanduser().resolve()
-    #         if not cache_path.exists():
-    #             warnings.warn(f'Creating directory "{path}" to serve as cache for SXS files')
-    #             cache_path.mkdir(parents=True, exist_ok=True)
-    #             cached_path = cache_path / location
-
-    #     if not h5_path.exists():
-    #         if not sxs_matches:
-    #             raise ValueError(f'File "{h5_path}" does not exist and is not recognized as an SXS dataset')
-    #         h5_cached_path = cached_path.with_suffix('.h5')
-    #         if not h5_cached_path.exists():
-    #             if not cache:
-    #                 warnings.warn('\nDownloading "{h5_path}" but not caching it; set `cache=True` if possible.')
-    #             download(doi_prefix + h5_path, h5_cached_path)
-    #         h5_file = exit_stack.enter_context(h5py.File(h5_cached_path, 'r'))
-    #     else:
-    #         h5_file = exit_stack.enter_context(h5py.File(h5_path, 'r'))
-
-    #     sxs_format = h5_file.get('sxs_format', h5_file.get('format', None))
-    #     if sxs_format is None:
-    #         raise ValueError(f'No format information found in "{h5_path}"')
-    #     load_function, requires_json = sxs_formats[sxs_format]
-
-    #     if requires_json:
-    #         if not json_path.exists():
-    #             if not sxs_matches:
-    #                 raise ValueError(f'File "{json_path}" does not exist and is not recognized as an SXS dataset')
-    #             json_cached_path = cached_path.with_suffix('.json')
-    #             if not json_cached_path.exists():
-    #                 if not cache:
-    #                     warnings.warn('\nDownloading "{json_path}" but not caching it; set `cache=True` if possible.')
-    #                 download(doi_prefix + json_path, json_cached_path)
-    #             with open(json_cached_path, 'r') as f:
-    #                 json_file = json.load(f)
-    #         else:
-    #             with open(json_path, 'r') as f:
-    #                 json_file = json.load(f)
-    #         return load_function(h5_file, json_file)
-    #     else:
-    #         return load_function(h5_file)
