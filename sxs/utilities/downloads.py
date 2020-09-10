@@ -47,7 +47,7 @@ def download_file(url, path, progress=False):
     file_size = int(r.headers.get('Content-Length', 0))
     r.raw.read = functools.partial(r.raw.read, decode_content=True)
     with local_filename.open("wb") as f:
-        if progress:
+        if progress and file_size:
             desc = "(Unknown total file size)" if file_size == 0 else ""
             print(f"Downloading to {path}:", flush=True)
             with tqdm.tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc, ncols=79) as r_raw:
