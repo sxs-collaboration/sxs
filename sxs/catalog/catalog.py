@@ -64,7 +64,7 @@ class Catalog(object):
         cache_path = sxs_directory("cache") / "catalog.zip"
 
         if cache_path.exists():
-            if_newer = cache_path  # datetime.fromtimestamp(cache_path.stat().st_mtime, timezone.utc)
+            if_newer = cache_path
         else:
             if_newer = False
 
@@ -75,17 +75,10 @@ class Catalog(object):
                 try:
                     downloaded_path = download_file(cls.url, temp_path, progress=progress, if_newer=if_newer)
                 except Exception as e:
-                    print("EXCEPTION!!!")
-                    print(f"Downloaded path: {downloaded_path}", downloaded_path.exists())
-                    print(f"Temp path: {temp_path}", temp_path.exists())
-                    print(f"Zip path: {zip_path}", zip_path.exists())
                     if download:
                         raise RuntimeError(f"Failed to download '{cls.url}'") from e
                     download_failed = e  # We'll try the cache
                 else:
-                    print(f"Downloaded path: {downloaded_path}", downloaded_path.exists())
-                    print(f"Temp path: {temp_path}", temp_path.exists())
-                    print(f"Zip path: {zip_path}", zip_path.exists())
                     download_failed = False
                     if downloaded_path == temp_path:
                         with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_BZIP2) as catalog_zip:

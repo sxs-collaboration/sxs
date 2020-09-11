@@ -31,6 +31,7 @@ def download_file(url, path, progress=False, if_newer=True):
     import pathlib
     import os
     import shutil
+    import tempfile
     import urllib.parse
     import requests
     import tqdm
@@ -71,23 +72,31 @@ def download_file(url, path, progress=False, if_newer=True):
             local_timestamp = remote_timestamp  # Just to make the next condition evaluate to False
         if local_timestamp > remote_timestamp:
             if progress:
-                print(f"Skipping download to '{local_filename}' because server file is older")
+                print(f"Skipping download from '{url}' because server file is older")
             if isinstance(if_newer, pathlib.Path) and if_newer.exists():
-                print(f"Returning pathlib {if_newer}")
                 return if_newer
-            print(f"Returning something else: {local_filename}")
             return local_filename
 
     file_size = int(r.headers.get('Content-Length', 0))
     r.raw.read = functools.partial(r.raw.read, decode_content=True)
-    with local_filename.open("wb") as f:
-        if progress and file_size:
-            desc = "(Unknown total file size)" if file_size == 0 else ""
-            print(f"Downloading to {path}:", flush=True)
-            with tqdm.tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc, ncols=79) as r_raw:
-                shutil.copyfileobj(r_raw, f)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        if local_filename.exists():
+            output_path = pathlib.Path(temp_dir) / "temp_data"
         else:
-            shutil.copyfileobj(r.raw, f)
+            output_path = local_filename
+        try:
+            with output_path.open("wb") as f:
+                if progress and file_size:
+                    desc = "(Unknown total file size)" if file_size == 0 else ""
+                    print(f"Downloading to {path}:", flush=True)
+                    with tqdm.tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc, ncols=79) as r_raw:
+                        shutil.copyfileobj(r_raw, f)
+                else:
+                    shutil.copyfileobj(r.raw, f)
+        except Exception as e:
+            raise RuntimeError(f"Failed to download {url} to {local_filename}; original file remains") from e
+        else:
+            if local_filename.exists():
+                output_path.replace(local_filename)
 
-    print(f"Returning downloaded file {local_filename}")
     return local_filename
