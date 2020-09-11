@@ -10,10 +10,12 @@ def translate(sxs_identifier, url=False):
     Parameters
     ----------
     sxs_identifier: string
-        The SXS identifier of the simulation (something like SXS:BBH:1234, or SXS:BHNS:0001).
+        The SXS identifier of the simulation (something like SXS:BBH:1234, or
+        SXS:BHNS:0001).
     url: bool [defaults to False]
-        If True, return the complete URL to the Zenodo record.  Otherwise, only the Zenodo
-        identifier of the record (the last part of the URL and DOI) will be returned.
+        If True, return the complete URL to the Zenodo record.  Otherwise, only the
+        Zenodo identifier of the record (the last part of the URL and DOI) will be
+        returned.
 
     """
     import requests
@@ -27,37 +29,43 @@ def translate(sxs_identifier, url=False):
 def records(*args, **kwargs):
     """List all published records
 
-    By default, this function lists all deposits by the current user, logging in by default as with
-    the sxs.zenodo.Login class.  Optional parameters allow for different searches.
+    By default, this function lists all deposits by the current user, logging in by
+    default as with the sxs.zenodo.Login class.  Optional parameters allow for
+    different searches.
 
-    A list of dicts is returned, each of which contains the "representation" of the record, as
-    described in the API documentation: http://developers.zenodo.org/#depositions.
+    A list of dicts is returned, each of which contains the "representation" of the
+    record, as described in the API documentation:
+    http://developers.zenodo.org/#depositions.
 
     Parameters
     ----------
     json_output: bool [defaults to False]
-        If True, this function returns a JSON string; otherwise, it returns a python dict.
+        If True, this function returns a JSON string; otherwise, it returns a
+        python dict.
     sxs: bool [defaults to False]
-        If True, this function looks for all records in the 'sxs' community on Zenodo.
+        If True, this function looks for all records in the 'sxs' community on
+        Zenodo.
     all_versions: bool [defaults to False]
-        If True, return all versions, not just the most recent version of each record.
+        If True, return all versions, not just the most recent version of each
+        record.
 
     Parameters for .api.Login.search
     --------------------------------
     q: string
         Search query, using Elasticsearch query string syntax.  See
-        https://help.zenodo.org/guides/search/ for details.  If the above argument `sxs` is True,
-        the string ' communities: "sxs" ' is added to the query.
+        https://help.zenodo.org/guides/search/ for details.  If the above argument
+        `sxs` is True, the string ' communities: "sxs" ' is added to the query.
     status: string
         Filter result based on deposit status (either 'draft' or 'published')
     sort: string
-        Sort order ('bestmatch' or 'mostrecent').  Prefix with minus to change form ascending to
-        descending (e.g., '-mostrecent').
+        Sort order ('bestmatch' or 'mostrecent').  Prefix with minus to change form
+        ascending to descending (e.g., '-mostrecent').
     page: int
         Page number for pagination
     size: int
-        Number of results to return per page.  Note that Zenodo (as of this writing) seems to
-        place a hard limit of 9999 responses.  Anything more will result in an error.
+        Number of results to return per page.  Note that Zenodo (as of this
+        writing) seems to place a hard limit of 9999 responses.  Anything more will
+        result in an error.
 
     All remaining parameters are passed to .api.Login.
 
@@ -85,9 +93,10 @@ def records(*args, **kwargs):
 def related_identifier_formatter(identifier, relation='isSupplementTo', scheme='url'):
     """Convert an identifier to a representation acceptable to Zenodo (INCOMPLETE)
 
-    NOTE: Because of missing documentation, this function is likely incomplete.  In particular, the
-    scheme is assumed to be 'url' for everything except simple DOI URLs and arXiv links, which are
-    converted.  It is unclear what Zenodo else actually converts, and how.
+    NOTE: Because of missing documentation, this function is likely incomplete.  In
+    particular, the scheme is assumed to be 'url' for everything except simple DOI
+    URLs and arXiv links, which are converted.  It is unclear what Zenodo else
+    actually converts, and how.
 
     """
     if 'https://dx.doi.org/' in identifier:
@@ -117,51 +126,59 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
            error_on_existing=True, publish=True):
     """Publish or edit a Zenodo entry for an SXS simulation
 
-    This is essentially a wrapper around many of the Zenodo API's functions, specialized for SXS
-    systems and intended to account for various possible errors or special conditions
+    This is essentially a wrapper around many of the Zenodo API's functions,
+    specialized for SXS systems and intended to account for various possible errors
+    or special conditions
 
     This function should be able to safely handle
       1) new deposits that Zenodo has not seen previously;
-      2) drafts that were started previously but failed for some reason, like a spurious Zenodo
-         server failure, or some problem in the data that has now been fixed; or
-      3) systems that have been published on Zenodo previously but have changed in some way, so you
-         want to ensure that the local copy and the version on Zenodo are in sync.
-      4) systems that have been published on Zenodo previously and have not changed at all, but you
-         want to verify that the local copy and the version on Zenodo are in sync.
+      2) drafts that were started previously but failed for some reason, like a
+         spurious Zenodo server failure, or some problem in the data that has now
+         been fixed; or
+      3) systems that have been published on Zenodo previously but have changed in
+         some way, so you want to ensure that the local copy and the version on
+         Zenodo are in sync.
+      4) systems that have been published on Zenodo previously and have not changed
+         at all, but you want to verify that the local copy and the version on
+         Zenodo are in sync.
 
-    Most of the parameters to this function are simply passed to other functions.  For more
-    explanation of these parameters, see the relevant function's documentation.  Most commonly, the
-    only parameter you really need to pass is the first.  You may also wish to pass the last
-    parameter if you want the deposit to be published automatically.
+    Most of the parameters to this function are simply passed to other functions.
+    For more explanation of these parameters, see the relevant function's
+    documentation.  Most commonly, the only parameter you really need to pass is
+    the first.  You may also wish to pass the last parameter if you want the
+    deposit to be published automatically.
 
-    This function returns a Deposit object, which may be used to examine the deposit, change it, or
-    publish it if the final parameter is not given as True.
+    This function returns a Deposit object, which may be used to examine the
+    deposit, change it, or publish it if the final parameter is not given as True.
 
     Parameters only used in this function
     -------------------------------------
     skip_checksums: bool or 'if_file_is_older' [defaults to 'if_file_is_older']
-        If False, an MD5 checksum is run for any file that exists on zenodo and locally (unless the
-        file sizes are different).  If 'if_file_is_older', the files are assumed to match if the
-        local modification time is earlier than the creation date of the deposit on zenodo;
-        otherwise, the checksum is run (unless the file sizes are different).  If the file sizes or
-        checksums are different, the local file is uploaded to zenodo.
+        If False, an MD5 checksum is run for any file that exists on zenodo and
+        locally (unless the file sizes are different).  If 'if_file_is_older', the
+        files are assumed to match if the local modification time is earlier than
+        the creation date of the deposit on zenodo; otherwise, the checksum is run
+        (unless the file sizes are different).  If the file sizes or checksums are
+        different, the local file is uploaded to zenodo.
     skip_existing: bool [defaults to True]
         If a record with this name exists already, skip this upload.
     error_on_existing: bool [defaults to False]
         If True, and a record already exists for this system, raise an error.
     publish: bool or 'if_pending' [defaults to True]
-        If True and the current version on zenodo is not published, publish it.  If the input value
-        is the string 'if_pending', it will be changed to True if no other changes are made during
-        this run of the function, or to False if other changes are made.  This allows for a delay,
-        to ensure that the files have stopped changing before the system is actually published.
+        If True and the current version on zenodo is not published, publish it.  If
+        the input value is the string 'if_pending', it will be changed to True if
+        no other changes are made during this run of the function, or to False if
+        other changes are made.  This allows for a delay, to ensure that the files
+        have stopped changing before the system is actually published.
 
 
     Parameters to `.utilities.find_files`
     -------------------------------------
     directory: string
-        Absolute or relative path to a directory containing 'common-metadata.txt' listing an SXS
-        identifier starting with 'SXS:BBH:', 'SXS:BHNS:', or 'SXS:NSNS:' and containing at least one
-        'metadata.txt' file somewhere in its file hierarchy.
+        Absolute or relative path to a directory containing 'common-metadata.txt'
+        listing an SXS identifier starting with 'SXS:BBH:', 'SXS:BHNS:', or
+        'SXS:NSNS:' and containing at least one 'metadata.txt' file somewhere in
+        its file hierarchy.
     exclude: list of strings [defaults to an empty list]
 
     Parameters to `.api.login.Login`
@@ -171,22 +188,23 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
 
     Parameters to `.api.deposit.Deposit`
     ------------------------------------
-    deposition_id: string, int, or None [defaults to None]
-    ignore_deletion: bool [defaults to False]
-        If True and this function call does not succeed in publishing the record, the returned
-        Deposit object will issue a warning that it has not been published when it is deleted (which
-        may happen after the function returns).
+    deposition_id : string, int, or None [defaults to None]
+    ignore_deletion : bool [defaults to False]
+        If True and this function call does not succeed in publishing the record,
+        the returned Deposit object will issue a warning that it has not been
+        published when it is deleted (which may happen after the function returns).
    
     Parameters to `.api.deposit.Deposit.update_metadata`
     ----------------------------------------------------
-    access_right: string [defaults to 'open']
-    license: string [defaults to 'cc-by']
-    creators: string [defaults to empty list]
-    description: string [defaults to '']
-    keywords: string [defaults to empty list]
-        Note that the last three parameters, if not passed to this function, will be derived
-        automatically from the 'metadata.txt' files found in the SXS system directory; they will be
-        the union of the parameters found in each file if there are multiple such files.
+    access_right : string [defaults to 'open']
+    license : string [defaults to 'cc-by']
+    creators : string [defaults to empty list]
+    description : string [defaults to '']
+    keywords : string [defaults to empty list]
+        Note that the last three parameters, if not passed to this function, will
+        be derived automatically from the 'metadata.txt' files found in the SXS
+        system directory; they will be the union of the parameters found in each
+        file if there are multiple such files.
 
     """
     import re
@@ -194,10 +212,9 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     import datetime
     import pytz
     from .. import sxs_identifier_regex
-    from ..utilities import md5checksum, find_files, fit_to_console
+    from ..utilities import inspire, md5checksum, find_files, fit_to_console
     from ..metadata import Metadata
     from .creators import known_creators, creators_emails, default_creators
-    from ..references import inspire
     default_creators = [{'name': 'SXS Collaboration'}]
 
     directory = os.path.normpath(directory)
