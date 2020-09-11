@@ -489,6 +489,7 @@ class Metadata(collections.OrderedDict):
         import re
         if order is None:
             order = [
+                "url",
                 "simulation_name",
                 "alternative_names",
                 "initial_data_type",
@@ -587,7 +588,7 @@ class Metadata(collections.OrderedDict):
 
     def __dir__(self):
         """Ensure that the keys are included in tab completion"""
-        return list(sorted(set(super(Metadata, self).__dir__()) + list(self.keys())))
+        return list(sorted(set(super(Metadata, self).__dir__()))) + list(self.keys())
 
     def __getitem__(self, key):
         return super(Metadata, self).__getitem__(_valid_identifier(key))
