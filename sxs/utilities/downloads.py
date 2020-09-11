@@ -65,8 +65,10 @@ def download_file(url, path, progress=False, if_newer=True):
             local_timestamp = if_newer
         elif isinstance(if_newer, pathlib.Path) and if_newer.exists():
             local_timestamp = datetime.fromtimestamp(if_newer.stat().st_mtime, timezone.utc)
-        else:
+        elif local_filename.exists():
             local_timestamp = datetime.fromtimestamp(local_filename.stat().st_mtime, timezone.utc)
+        else:
+            local_timestamp = remote_timestamp  # Just to make the next condition evaluate to False
         if local_timestamp > remote_timestamp:
             if progress:
                 print(f"Skipping download to '{local_filename}' because server file is older")
