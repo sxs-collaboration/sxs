@@ -86,7 +86,7 @@ class Catalog(object):
                     print(temp_path, temp_path.exists())
                     print(zip_path, zip_path.exists())
                     print(cache_path, cache_path.exists())
-                    if downloaded_path == temp_path:
+                    if downloaded_path.samefile(temp_path):
                         with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_BZIP2) as catalog_zip:
                             catalog_zip.write(temp_path, arcname="catalog.json")
                         zip_path.replace(cache_path)
