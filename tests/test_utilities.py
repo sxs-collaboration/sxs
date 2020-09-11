@@ -3,13 +3,18 @@ import pytest
 import sxs
 
 
+if sys.platform.startswith("win"):
+    forked = lambda f: f
+else:
+    forked = pytest.mark.forked
+
+
 @pytest.mark.parametrize("persistent", (True, False))
 def test_sxs_directory_bad_directory_name(persistent):
     with pytest.raises(ValueError):
         sxs.utilities.sxs_directory("cacheconfig", persistent=persistent)
 
 
-@pytest.mark.skipif(sys.platform.startswith("win"), reason="does not run on windows")
 @pytest.mark.parametrize(
     ("directory_type", "persistent"),
     (
@@ -19,7 +24,7 @@ def test_sxs_directory_bad_directory_name(persistent):
         pytest.param("cache", False, id="cache temporary"),
     ),
 )
-@pytest.mark.forked
+@forked
 def test_sxs_directory_cache_env(directory_type, persistent, tmp_path, monkeypatch):
     import pathlib
     import os
@@ -79,7 +84,6 @@ def test_sxs_directory_linux(directory_type, platform, tmp_path, monkeypatch):
         assert str(sxs_dir) == str(d1 / f".{directory_type}" / "sxs")
 
 
-@pytest.mark.skipif(sys.platform.startswith("win"), reason="does not run on windows")
 @pytest.mark.parametrize(
     ("directory_type",),
     (
@@ -87,7 +91,7 @@ def test_sxs_directory_linux(directory_type, platform, tmp_path, monkeypatch):
         pytest.param("cache", id="cache"),
     ),
 )
-@pytest.mark.forked
+@forked
 def test_sxs_directory_unwritable(directory_type, tmp_path, monkeypatch):
     import time
     import os
