@@ -64,22 +64,22 @@ known_creators = {
 }
 
 creators_emails = {
-    'mgiesler@tapir.caltech.edu': { 'name': 'Matt Giesler' },
-    # 'glovelace@fullerton.edu': { 'name': 'Geoffrey Lovelace' },  # Geoffrey is in the default list, so don't worry about it
-    'kevinbarkett@yahoo.com': { 'name': 'Kevin Barkett' },
-    'jonathan.blackman.0@gmail.com': { 'name': 'Jonathan Blackman' },
-    'ian.hinder@aei.mpg.de': { 'name': 'Ian Hinder' },
-    # 'pfeiffer@cita.utoronto.ca': { 'name': 'Harald Pfeiffer' },  # Harald is in the default list, so don't worry about it
-    'tonyc@cita.utoronto.ca': { 'name': 'Tony Chu' },
-    'kbarkett@caltech.edu': { 'name': 'Kevin Barkett' },
-    'serguei.ossokine@aei.mpg.de': { 'name': 'Serguei Ossokine' },
-    'ossokine@aei.mpg.de': { 'name': 'Serguei Ossokine' },
+    'mgiesler@tapir.caltech.edu': {'name': 'Matt Giesler'},
+    # 'glovelace@fullerton.edu': { 'name': 'Geoffrey Lovelace' },  # in the default list, so don't worry about it
+    'kevinbarkett@yahoo.com': {'name': 'Kevin Barkett'},
+    'jonathan.blackman.0@gmail.com': {'name': 'Jonathan Blackman'},
+    'ian.hinder@aei.mpg.de': {'name': 'Ian Hinder'},
+    # 'pfeiffer@cita.utoronto.ca': { 'name': 'Harald Pfeiffer' },  # in the default list, so don't worry about it
+    'tonyc@cita.utoronto.ca': {'name': 'Tony Chu'},
+    'kbarkett@caltech.edu': {'name': 'Kevin Barkett'},
+    'serguei.ossokine@aei.mpg.de': {'name': 'Serguei Ossokine'},
+    'ossokine@aei.mpg.de': {'name': 'Serguei Ossokine'},
 }
 
 default_creators = [
     known_creators[person]
     for person in [
-            'Larry Kidder', 'Harald Pfeiffer', 'Mark Scheel',
-            'Michael Boyle', 'Dan Hemberger', 'Geoffrey Lovelace', 'Bela Szilagyi'
+        'Larry Kidder', 'Harald Pfeiffer', 'Mark Scheel',
+        'Michael Boyle', 'Dan Hemberger', 'Geoffrey Lovelace', 'Bela Szilagyi'
     ]
 ]

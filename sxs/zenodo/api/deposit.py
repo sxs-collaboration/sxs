@@ -732,8 +732,6 @@ class Deposit(object):
         function.
 
         """
-        import os
-        import re
         from ...utilities import find_files
         paths_and_names = find_files(top_directory, exclude=exclude)
         for path, name in paths_and_names:

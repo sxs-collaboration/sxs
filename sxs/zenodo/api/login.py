@@ -19,7 +19,7 @@ class Login(object):
         tokens.  The access token may either be passed as a string to this function (though that
         means it will probably be found in some script file somewhere, which is probably not a good
         idea for security), or can be read from a file.  By default the file from which the token is
-        read is '~/.credentials/zenodo/access_token' or the same name with '_sandbox' appended.
+        read is '~/.credentials/zenodo/zenodo_access_token' or the same name with '_sandbox' appended.
         Thus, it is probably easiest to simply place your access tokens in those files, so that no
         arguments need to be passed to this function.  As a basic security measure, please ensure
         that those files are not readable by anyone but the user.
@@ -35,9 +35,9 @@ class Login(object):
             If present, this is used as the Zenodo API access token.
 
         access_token_path: string or None [default: None]
-            If `access_token` is not given, this file is read and the first line is used as the
+            If `zenodo_access_token` is not given, this file is read and the first line is used as the
             access token.  If this argument is None, it defaults to either
-            '~/.credentials/zenodo/access_token' for the regular website or
+            '~/.credentials/zenodo/zenodo_access_token' for the regular website or
             '~/.credentials/zenodo/access_token_sandbox' for the sandbox website.
 
         total_retry_count: int [default: 50]
@@ -70,7 +70,7 @@ class Login(object):
         import os
         import requests
         from requests.adapters import HTTPAdapter
-        from requests.packages.urllib3.util.retry import Retry
+        from urllib3.util.retry import Retry
         from . import url_sandbox, url_standard
 
         self.sandbox = sandbox
@@ -110,14 +110,14 @@ class Login(object):
 
             # Ensure that this session sends the Authorization header with every request to the base_url
             class ZenodoAuth(requests.auth.AuthBase):
-                def __init__(self, base_url, access_token):
+                def __init__(self, base_url, zenodo_access_token):
                     self.base_url = base_url
-                    self.access_token = access_token
+                    self.access_token = zenodo_access_token
                     super(ZenodoAuth, self).__init__()
-                def __call__(self, r):
-                    if r.url.startswith(self.base_url):
-                        r.headers.update({"Authorization": "Bearer {0}".format(self.access_token)})
-                    return r
+                def __call__(self, zenodo_r):
+                    if zenodo_r.url.startswith(self.base_url):
+                        zenodo_r.headers.update({"Authorization": "Bearer {0}".format(self.access_token)})
+                    return zenodo_r
             self.session.auth = ZenodoAuth(self.base_url, self.access_token)
 
         # Note that some requests require different choices for 'Accept' and 'Content-Type'; these
@@ -171,10 +171,7 @@ class Login(object):
         from os import makedirs
         from os.path import split, exists, join, isdir
         from functools import partial
-        try:
-            from urllib.parse import urlparse
-        except ImportError:
-            from urlparse import urlparse
+        from urllib.parse import urlparse
         url_path = urlparse(url).path
         if isdir(path):
             path = join(path, url_path[1:])
@@ -293,7 +290,7 @@ class Login(object):
         for d in deposits:
             try:
                 if d['title'] == '':
-                    d = l.deposit(d['id'], ignore_deletion=True)
+                    d = self.deposit(d['id'], ignore_deletion=True)
                     if not d.files:
                         d.delete_deposit(confirmed=True)
                         deleted_deposits += 1
@@ -307,7 +304,7 @@ class Login(object):
         for d in deposits:
             try:
                 if d['state'] == 'inprogress':
-                    d = l.deposit(d['id'], ignore_deletion=True)
+                    d = self.deposit(d['id'], ignore_deletion=True)
                     d.discard()
                     discarded_drafts += 1
             except:
@@ -330,8 +327,6 @@ class Login(object):
 
     def community_curate_accept(self, community_id, record_id):
         """Accept a record into the community"""
-        import json
-        import requests
         url = "{0}/communities/{1}/curaterecord/".format(self.base_url, community_id)
         data = {"recid": int(record_id), "action": "accept"}
         r = self.session.post(url, json=data)

@@ -144,6 +144,7 @@ def sync(annex_dir='./', exclude=None, publish='if_pending',
             d.upload_file(path, name=name, skip_checksum=True, refresh_information=False)
 
     # Before returning or checking for published state, make sure our copy of the deposit is up to date with zenodo
+    # noinspection PyStatementEffect
     d.refresh_information
 
     # Publish this version
