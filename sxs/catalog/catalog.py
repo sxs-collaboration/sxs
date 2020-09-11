@@ -251,11 +251,13 @@ class Catalog(object):
         """
         from ..utilities import select_by_path_component
         files = files or self.files
-        selections = select_by_path_component(location, set(files))
+        selections = select_by_path_component(path_pattern, set(files))
+        return sorted(selections)
 
     @property
     @functools.lru_cache()
     def files(self):
+        import collections
         import re
         import pathlib
         from ..utilities import sxs_identifier_regex, sxs_id
