@@ -10,10 +10,12 @@ guvectorize = functools.partial(numba.guvectorize, nopython=True, cache=True)
 # This is a generically reliable set of widths to feed to multishuffle when using 64-bit floats
 default_shuffle_widths = (8, 8, 4, 4, 4, 2,) + (1,) * 34
 
-from . import url
+from . import url, inspire
 from .downloads import download_file
 from .bitwise import xor, multishuffle
 from .sxs_directories import sxs_directory, read_config, write_config
 from .sxs_identifiers import sxs_identifier_regex, lev_regex, sxs_id, lev_number, simulation_title
 from .select import select_by_path_component
 from .formats import file_format
+from .pretty_print import fit_to_console
+from .files import md5checksum, lock_file_manager, find_simulation_directories, find_files
