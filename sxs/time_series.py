@@ -322,7 +322,7 @@ class TimeSeries(np.ndarray):
                     f"Output array should have same dtype as this array {self.dtype}; it has dtype {out.dtype}"
                 )
         result = out or np.empty(new_shape, dtype=self.dtype)
-        spline = CubicSpline(self.time, self.ndarray_float, axis=self.time_axis)
+        spline = CubicSpline(self.time, self.ndarray, axis=self.time_axis)
         if derivative_order < 0:
             spline = spline.antiderivative(-derivative_order)
         elif 0 < derivative_order <= 3:
