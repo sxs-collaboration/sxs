@@ -13,11 +13,14 @@ def download_file(url, path, progress=False, if_newer=True):
     progress : bool, optional
         If True, and a nonzero Content-Length header is returned, a progress bar
         will be shown during the download.
-    if_newer : bool, optional
+    if_newer : {bool, datetime, pathlib.Path}, optional
         If True (the default), the file will only be downloaded if the version on
         the server is newer than the "mtime" of the local version.  If this flag is
         False, or there is no local version, or the server does not reply with a
-        'Last-Modified' header, the file is downloaded as usual.
+        'Last-Modified' header, the file is downloaded as usual.  If a datetime
+        object is passed, it is used instead of the local file's mtime.  If a Path
+        object is passed, its mtime is used instead of the output path's, and this
+        path is returned if it is newer than the server's file.
 
     Returns
     -------
@@ -54,15 +57,25 @@ def download_file(url, path, progress=False, if_newer=True):
         r.raise_for_status()
         raise RuntimeError()  # Will only happen if the response was not strictly an error
 
-    if if_newer and local_filename.exists() and "Last-Modified" in r.headers:
+    if if_newer and "Last-Modified" in r.headers:
         remote_timestamp = datetime.strptime(
-            r.headers["Last-Modified"],
-            "%a, %d %b %Y %H:%M:%S GMT"
+            r.headers["Last-Modified"], "%a, %d %b %Y %H:%M:%S GMT"
         ).replace(tzinfo=timezone.utc)
-        local_timestamp = datetime.utcfromtimestamp(
-            local_filename.stat().st_mtime
-        ).replace(tzinfo=timezone.utc)
+        if isinstance(if_newer, datetime):
+            local_timestamp = if_newer
+        elif isinstance(if_newer, pathlib.Path) and if_newer.exists():
+            local_timestamp = datetime.utcfromtimestamp(
+                if_newer.stat().st_mtime
+            ).replace(tzinfo=timezone.utc)
+        else:
+            local_timestamp = datetime.utcfromtimestamp(
+                local_filename.stat().st_mtime
+            ).replace(tzinfo=timezone.utc)
         if local_timestamp > remote_timestamp:
+            if progress:
+                print(f"Skipping download to '{local_filename}' because server file is older")
+            if isinstance(if_newer, pathlib.Path) and if_newer.exists():
+                return if_newer
             return local_filename
 
     file_size = int(r.headers.get('Content-Length', 0))
