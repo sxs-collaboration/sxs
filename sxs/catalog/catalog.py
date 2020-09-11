@@ -64,7 +64,7 @@ class Catalog(object):
         cache_path = sxs_directory("cache") / "catalog.zip"
 
         if cache_path.exists():
-            if_newer = datetime.fromtimestamp(cache_path.stat().st_mtime, timezone.utc)
+            if_newer = cache_path  # datetime.fromtimestamp(cache_path.stat().st_mtime, timezone.utc)
         else:
             if_newer = False
 
