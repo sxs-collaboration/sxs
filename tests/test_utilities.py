@@ -4,7 +4,7 @@ import sxs
 
 
 if sys.platform.startswith("win"):
-    forked = lambda f: f
+    forked = pytest.mark.skip(reason="Windows has no way of forking")
 else:
     forked = pytest.mark.forked
 
