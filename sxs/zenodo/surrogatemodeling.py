@@ -1,4 +1,4 @@
-def sync(annex_dir='./', exclude=[], publish='if_pending',
+def sync(annex_dir='./', exclude=None, publish='if_pending',
          sandbox=False, access_token_path=None, skip_checksums='if_file_is_older'):
     """Sync the SurrogateModeling annex to Zenodo
 
@@ -24,6 +24,9 @@ def sync(annex_dir='./', exclude=[], publish='if_pending',
     from ..utilities import md5checksum, find_files, fit_to_console
     from .api import Login
 
+    if exclude is None:
+        exclude = []
+
     l = Login(sandbox=sandbox, access_token_path=access_token_path)
     surrogate_record = l.search(q="title:'Binary black-hole surrogate waveform catalog'", size=1, max_pages=1)[0]
     surrogate_id = surrogate_record['id']
@@ -40,7 +43,7 @@ def sync(annex_dir='./', exclude=[], publish='if_pending',
     unchanged_metadata = True
     for key in stored_keys:
         if d.metadata.get(key, '') != local_metadata.get(key, ''):
-             unchanged_metadata = False
+            unchanged_metadata = False
             metadata[key] = local_metadata.get(key, '')
 
     # Read the description from the top-level file 'zenodo_description.html'
