@@ -205,11 +205,11 @@ def load(location, download=None, cache=None, progress=False, **kwargs):
                 download_file(location, path, progress=progress)
 
         elif location == "catalog":
-            return Catalog.load(download=download, progress=progress)
+            return Catalog.load(download=download)
 
         else:
             # Try to find an appropriate SXS file
-            catalog = Catalog.load(progress=progress)
+            catalog = Catalog.load(download=download)
             selections = catalog.select_files(location)
             if not selections:
                 raise ValueError(f"Nothing found matching '{location}'")
@@ -218,7 +218,7 @@ def load(location, download=None, cache=None, progress=False, **kwargs):
                 print("    " + "\n    ".join(selections))
             paths = []
             for sxs_path, file_info in selections.items():
-                path = cache_path / file_info.get("true_path", sxs_path)
+                path = cache_path / file_info.get("truepath", sxs_path)
                 if not path.exists():
                     download_url = file_info["download"]
                     download_file(download_url, path, progress=progress)
