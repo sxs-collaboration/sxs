@@ -8,13 +8,13 @@ class Catalog(object):
 
         self._dict = catalog or type(self).load(**kwargs)
 
-        # # Add version numbers to all records
-        # concept_to_versions = collections.defaultdict(list)
-        # for doi_url, record in self.records.items():
-        #     concept_to_versions[record["conceptrecid"]].append(record["doi_url"])
-        # for conceptrecid, doi_urls in concept_to_versions.items():
-        #     for v, doi_url in enumerate(doi_urls, start=1):
-        #         self.records[doi_url]["version"] = v
+        # Add version numbers to all records
+        concept_to_versions = collections.defaultdict(list)
+        for doi_url, record in self.records.items():
+            concept_to_versions[record["conceptrecid"]].append(doi_url)
+        for conceptrecid, doi_urls in concept_to_versions.items():
+            for v, doi_url in enumerate(sorted(doi_urls), start=1):
+                self.records[doi_url]["version"] = v
 
     @classmethod
     @functools.lru_cache()
@@ -52,6 +52,7 @@ class Catalog(object):
         import pathlib
         import tempfile
         import zipfile
+        from datetime import datetime, timezone
         from .. import sxs_directory
         from ..utilities import download_file
 
@@ -60,21 +61,29 @@ class Catalog(object):
 
         cache_path = sxs_directory("cache") / "catalog.zip"
 
+        if cache_path.exists():
+            if_newer = datetime.utcfromtimestamp(
+                cache_path.stat().st_mtime
+            ).replace(tzinfo=timezone.utc)
+        else:
+            if_newer = False
+
         if download or download is None:
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_path = pathlib.Path(temp_dir) / "catalog.json"
                 zip_path = pathlib.Path(temp_dir) / "catalog.zip"
                 try:
-                    download_file(cls.url, temp_path, progress=progress)
+                    downloaded_path = download_file(cls.url, temp_path, progress=progress, if_newer=if_newer)
                 except Exception as e:
                     if download:
                         raise RuntimeError(f"Failed to download '{cls.url}'") from e
                     download_failed = e  # We'll try the cache
                 else:
                     download_failed = False
-                    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_BZIP2) as catalog_zip:
-                        catalog_zip.write(temp_path, arcname="catalog.json")
-                    zip_path.replace(cache_path)
+                    if downloaded_path == temp_path:
+                        with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_BZIP2) as catalog_zip:
+                            catalog_zip.write(temp_path, arcname="catalog.json")
+                        zip_path.replace(cache_path)
 
         if not cache_path.exists():
             if download_failed:
