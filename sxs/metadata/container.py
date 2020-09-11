@@ -62,24 +62,25 @@ class Metadata(collections.OrderedDict):
 
         """
         from pathlib import Path
+
         path = Path(file_name).expanduser().resolve()
         json_path = path.with_suffix(".json")
         txt_path = path.with_suffix(".txt")
 
-        if file_name.endswith(".json"):
+        if path.suffix == ".json":
             return cls.from_json_file(json_path)
-        elif file_name.endswith(".txt"):
+        elif path.suffix == ".txt":
             return cls.from_txt_file(txt_path, ignore_invalid_lines=ignore_invalid_lines, cache_json=cache_json)
         else:
-            json_present = json_path.exists()
-            txt_present = txt_path.exists()
-            if json_present and not txt_present:
+            json_exists = json_path.exists()
+            txt_exists = txt_path.exists()
+            if json_exists and not txt_exists:
                 return cls.from_json_file(json_path)
-            elif txt_present and not json_present:
+            elif txt_exists and not json_exists:
                 return cls.from_txt_file(txt_path, ignore_invalid_lines=ignore_invalid_lines, cache_json=cache_json)
-            elif json_present and txt_present:
-                json_time = os.path.getmtime(json_path)
-                txt_time = os.path.getmtime(txt_path)
+            elif json_exists and txt_exists:
+                json_time = json_path.stat().st_mtime
+                txt_time = txt_path.stat().st_mtime
                 if txt_time > json_time:
                     return cls.from_txt_file(txt_path, ignore_invalid_lines=ignore_invalid_lines, cache_json=cache_json)
                 else:
@@ -371,9 +372,10 @@ class Metadata(collections.OrderedDict):
     def add_standard_parameters(self, raise_on_errors=False):
         """Add standard parameters that aren't included in the default metadata fields
 
-        New parameters include 'object_types', 'initial_mass_ratio', and 'reference_mass_ratio'.  If
-        'reference_dimensionless_spin*' are not present, but the parameters necessary to compute them
-        are, they are also added.  Finally, we also add 'reference_chi_eff', 'reference_chi1_perp', and
+        New parameters include 'object_types', 'initial_mass_ratio', and
+        'reference_mass_ratio'.  If 'reference_dimensionless_spin*' are not present,
+        but the parameters necessary to compute them are, they are also added.
+        Finally, we also add 'reference_chi_eff', 'reference_chi1_perp', and
         'reference_chi2_perp'.
 
         """
@@ -512,6 +514,7 @@ class Metadata(collections.OrderedDict):
     @property
     def resolution(self):
         """Try to determine the resolution from the "simulation-name" field"""
+        import os
         simulation_name = self["simulation_name"]
         last_slash_index = simulation_name.rindex(os.sep)
         return simulation_name[last_slash_index+1:]
@@ -525,6 +528,7 @@ class Metadata(collections.OrderedDict):
     @property
     def simulation_group(self):
         """Remove any trailing "/LevN" part of the simulation-name"""
+        import os
         simulation_name = self["simulation_name"]
         last_slash_index = simulation_name.rindex(os.sep + "Lev")
         if last_slash_index < 1:
