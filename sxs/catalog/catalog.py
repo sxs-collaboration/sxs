@@ -1,5 +1,7 @@
 import functools
 
+
+# noinspection SpellCheckingInspection
 class Catalog(object):
     url = "https://data.black-holes.org/catalog.json"
 
@@ -18,7 +20,7 @@ class Catalog(object):
 
     @classmethod
     @functools.lru_cache()
-    def load(cls, download=None, progress=None, **kwargs):
+    def load(cls, download=None, progress=None):
         """Load the SXS catalog
 
         Note that — unlike most SXS data files — the catalog file is updated
@@ -53,7 +55,7 @@ class Catalog(object):
         import tempfile
         import zipfile
         from datetime import datetime, timezone
-        from .. import sxs_directory
+        from .. import sxs_directory, read_config
         from ..utilities import download_file
 
         if progress is None:
@@ -62,9 +64,7 @@ class Catalog(object):
         cache_path = sxs_directory("cache") / "catalog.zip"
 
         if cache_path.exists():
-            if_newer = datetime.utcfromtimestamp(
-                cache_path.stat().st_mtime
-            ).replace(tzinfo=timezone.utc)
+            if_newer = datetime.fromtimestamp(cache_path.stat().st_mtime, timezone.utc)
         else:
             if_newer = False
 
@@ -100,7 +100,7 @@ class Catalog(object):
                         try:
                             catalog = json.load(catalog_json)
                         except Exception as e:
-                            raise ValueError(f"Failed to parse 'catalog.json' in '{cach_path}'") from e
+                            raise ValueError(f"Failed to parse 'catalog.json' in '{cache_path}'") from e
                 except Exception as e:
                     raise ValueError(f"Failed to open 'catalog.json' in '{cache_path}'") from e
         except Exception as e:

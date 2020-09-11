@@ -171,7 +171,7 @@ def _create_simulations_skeleton(record_list):
         sxs_id(r.get('title', '')): {
             'url': r['links']['conceptdoi'],
             'metadata_file_info': max([f for f in r.get('files', []) if '/metadata.json' in f['filename']],
-                                      default={}, key=lambda f:f['filename'])
+                                      default={}, key=lambda f: f['filename'])
         }
         for r in record_list if sxs_id(r.get('title', ''))
     }
@@ -311,7 +311,7 @@ def write_split_catalogs(catalog, public_dir='~/.sxs/catalog/', private_dir='~/.
 
     """
     import os
-    from os.path import expanduser, normpath, join, exists, dirname
+    from os.path import expanduser, normpath, join
     from datetime import datetime
     import json
 
@@ -427,7 +427,7 @@ def update(login=None, path='~/.sxs/catalog/private_catalog.json',
     for r in zenodo_records:
         if r not in records or zenodo_records[r].get('modified', 0) != records[r].get('modified', 1):
             records[r] = _include_file_data(l, zenodo_records[r])
-            new_simulation = _create_simulations_skeleton([records[r],])
+            new_simulation = _create_simulations_skeleton([records[r], ])
             simulations.update(new_simulation)
             catalog_changed = True
 
@@ -440,7 +440,7 @@ def update(login=None, path='~/.sxs/catalog/private_catalog.json',
 
         # Write the various catalog files
         write_split_catalogs(catalog, public_dir=public_out_dir, private_dir=private_out_dir,
-                             public_prefix='public_', private_prefix = 'private_')
+                             public_prefix='public_', private_prefix='private_')
 
         # Update the SXS-to-zenodo map
         sxs_id_to_conceptrecid = {sxsid: doi.replace('https://doi.org/10.5281/zenodo.', '')
@@ -458,7 +458,7 @@ def sxs_metadata_file_description(representation):
     """Find metadata file from highest Lev for this simulation"""
     from os.path import basename
     files = representation.get('files', [])
-    metadata_files = [f for f in files if basename(f.get('filename', ''))=='metadata.json']
+    metadata_files = [f for f in files if basename(f.get('filename', '')) == 'metadata.json']
     metadata_files = sorted(metadata_files, key=lambda f: f['filename'])
     if not metadata_files:
         return None
@@ -474,7 +474,7 @@ def fetch_metadata(url, login=None, *args, **kwargs):
         return {}
     try:
         return r.json()
-    except:
+    except Exception:
         return {}
 
 
@@ -500,9 +500,9 @@ def nginx_map(sxs_id_to_conceptrecid, map_file_path=None):
         write to the same file in the current working directory.
 
     """
-    from os.path import expanduser, exists, join, dirname
-    import json
+    from os.path import expanduser
     import math
+
     def touch(fname, times=None):
         from os import utime
         try:
@@ -524,7 +524,6 @@ def nginx_map(sxs_id_to_conceptrecid, map_file_path=None):
         map_file_path = expanduser(map_file_path)
     # Figure out how to construct the output
     size = 64 * 2**math.ceil(math.log2(len(sxs_id_to_conceptrecid)+1))  # nginx needs this to know the hash size
-    record_string = "  {0} {1};\n"
     # Construct the output
     with open(map_file_path, 'w') as f:
         f.write("map_hash_max_size {0};\n".format(size))

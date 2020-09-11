@@ -3,7 +3,7 @@
 from ..utilities import default_shuffle_widths
 
 
-def save(horizons, file, truncate=lambda x:x, shuffle_widths=default_shuffle_widths):
+def save(horizons, file, truncate=lambda x: x, shuffle_widths=default_shuffle_widths):
     """Save `Horizons` object as XMB-format horizons.h5 file
 
     This function saves the input horizons object in a more compact form than the
@@ -140,14 +140,14 @@ def load(file, ignore_format=False):
                 # scalar data sets
                 for dat in ["time", "areal_mass", "christodoulou_mass"]:
                     hqkwargs[dat] = xor(unshuffle(
-                        np.frombuffer(uncompressed_data[i : i + bytes_per_series], dtype=np.uint64)
+                        np.frombuffer(uncompressed_data[i: i + bytes_per_series], dtype=np.uint64)
                     ), reverse=True).view(np.float64)
                     i += bytes_per_series
 
                 # 3-vector data sets
                 for dat in ["coord_center_inertial", "dimensionful_inertial_spin", "chi_inertial"]:
                     hqkwargs[dat] = np.asarray(xor(unshuffle(
-                        np.frombuffer(uncompressed_data[i : i + 3 * bytes_per_series], dtype=np.uint64)
+                        np.frombuffer(uncompressed_data[i: i + 3 * bytes_per_series], dtype=np.uint64)
                     ), reverse=True, preserve_dtype=True).reshape((3, -1)).T.view(np.float64), order="C")
                     i += 3 * bytes_per_series
 

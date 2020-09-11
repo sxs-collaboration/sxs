@@ -2,7 +2,6 @@
 
 """
 
-import functools
 from .catalog import Catalog
 
 

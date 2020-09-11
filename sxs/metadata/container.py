@@ -2,7 +2,7 @@ import re
 import collections
 
 
-_valid_identifier_pattern = re.compile('\W|^(?=\d)')
+_valid_identifier_pattern = re.compile(r'\W|^(?=\d)')
 def _valid_identifier(key):
     return _valid_identifier_pattern.sub('_', key)
 
@@ -180,6 +180,7 @@ class Metadata(collections.OrderedDict):
         # will use it to parse the right-hand side expressions from the metadata.txt
         # file, once we've appropriately modified them, so that python will get to
         # decide what should be a string, float, int, list, etc.
+        import warnings
         from ast import literal_eval
 
         from pathlib import Path

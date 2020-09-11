@@ -1,5 +1,6 @@
 """File I/O for SpEC-format Horizons.h5 files"""
 
+
 def save(horizons, file):
     """Save `Horizons` object as SpEC Horizons.h5 file
 
