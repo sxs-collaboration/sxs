@@ -1,3 +1,4 @@
+import sys
 import pytest
 import sxs
 
@@ -8,6 +9,7 @@ def test_sxs_directory_bad_directory_name(persistent):
         sxs.utilities.sxs_directory("cacheconfig", persistent=persistent)
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="does not run on windows")
 @pytest.mark.parametrize(
     ("directory_type", "persistent"),
     (
@@ -77,6 +79,7 @@ def test_sxs_directory_linux(directory_type, platform, tmp_path, monkeypatch):
         assert str(sxs_dir) == str(d1 / f".{directory_type}" / "sxs")
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="does not run on windows")
 @pytest.mark.parametrize(
     ("directory_type",),
     (
