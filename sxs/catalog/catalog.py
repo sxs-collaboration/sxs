@@ -76,15 +76,15 @@ class Catalog(object):
                     downloaded_path = download_file(cls.url, temp_path, progress=progress, if_newer=if_newer)
                 except Exception as e:
                     print("EXCEPTION!!!")
-                    print(f"Downloaded path: {downloaded_path}")
-                    print(f"Temp path: {temp_path}")
-                    print(f"Zip path: {zip_path}")
+                    print(f"Downloaded path: {downloaded_path}", downloaded_path.exists())
+                    print(f"Temp path: {temp_path}", temp_path.exists())
+                    print(f"Zip path: {zip_path}", zip_path.exists())
                     if download:
                         raise RuntimeError(f"Failed to download '{cls.url}'") from e
                     download_failed = e  # We'll try the cache
                 else:
-                    print(f"Downloaded path: {downloaded_path}")
-                    print(f"Temp path: {temp_path}")
+                    print(f"Downloaded path: {downloaded_path}", downloaded_path.exists())
+                    print(f"Temp path: {temp_path}", temp_path.exists())
                     print(f"Zip path: {zip_path}", zip_path.exists())
                     download_failed = False
                     if downloaded_path == temp_path:
