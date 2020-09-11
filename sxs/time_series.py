@@ -363,5 +363,5 @@ class TimeSeries(np.ndarray):
 
     @property
     def xor(self):
-        from ..utilities import xor
+        from .utilities import xor
         return xor(self.ndarray, axis=self.time_axis)
