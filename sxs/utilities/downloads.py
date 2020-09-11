@@ -73,7 +73,9 @@ def download_file(url, path, progress=False, if_newer=True):
             if progress:
                 print(f"Skipping download to '{local_filename}' because server file is older")
             if isinstance(if_newer, pathlib.Path) and if_newer.exists():
+                print(f"Returning pathlib {if_newer}")
                 return if_newer
+            print(f"Returning something else: {local_filename}")
             return local_filename
 
     file_size = int(r.headers.get('Content-Length', 0))
@@ -87,4 +89,5 @@ def download_file(url, path, progress=False, if_newer=True):
         else:
             shutil.copyfileobj(r.raw, f)
 
+    print(f"Returning downloaded file {local_filename}")
     return local_filename
