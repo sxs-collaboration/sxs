@@ -1,5 +1,5 @@
 from .api import Login, Deposit, Records
-from . import catalog, download, simannex, surrogatemodeling
+from . import catalog, simannex, surrogatemodeling
 
 # See https://github.com/moble/nb-marine-science for other examples using the Zenodo API
 # The other python API interface I found is here: https://github.com/moble/zenodo-python
@@ -70,7 +70,6 @@ def records(*args, **kwargs):
     All remaining parameters are passed to .api.Login.
 
     """
-    import sys
     import json
     json_output = kwargs.pop('json_output', kwargs.pop('json_output', False))
     sxs = kwargs.pop('sxs', False)
@@ -211,8 +210,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
     import os
     import datetime
     import pytz
-    from .. import sxs_identifier_regex
-    from ..utilities import inspire, md5checksum, find_files, fit_to_console
+    from ..utilities import sxs_identifier_regex, inspire, md5checksum, find_files, fit_to_console
     from ..metadata import Metadata
     from .creators import known_creators, creators_emails, default_creators
     default_creators = [{'name': 'SXS Collaboration'}]
