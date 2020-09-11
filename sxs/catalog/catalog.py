@@ -20,7 +20,7 @@ class Catalog(object):
 
     @classmethod
     @functools.lru_cache()
-    def load(cls, download=None, progress=None):
+    def load(cls, download=None):
         """Load the SXS catalog
 
         Note that — unlike most SXS data files — the catalog file is updated
@@ -39,10 +39,6 @@ class Catalog(object):
             default), it will try to download the file, warn but fall back to the cache
             if that fails, and only raise an error if the catalog is not found in the
             cache.  Note that this ignores the sxs configuration file entirely.
-        progress : {None, bool}, optional
-            If True, and a nonzero Content-Length header is returned, a progress bar
-            will be shown during any downloads.  Default is False unless
-            `read_config("download_progress")` is True.
 
         See Also
         --------
@@ -58,8 +54,7 @@ class Catalog(object):
         from .. import sxs_directory, read_config
         from ..utilities import download_file
 
-        if progress is None:
-            progress = read_config("download_progress")
+        progress = read_config("download_progress") or False
 
         cache_path = sxs_directory("cache") / "catalog.zip"
 
@@ -109,7 +104,7 @@ class Catalog(object):
         return cls(catalog)
 
     @classmethod
-    def reload(cls, download=True, progress=None):
+    def reload(cls, download=True):
         """Reload the SXS catalog, without caching
 
         Clears the cache of `Catalog.load` and returns the result of calling it again.
@@ -126,10 +121,6 @@ class Catalog(object):
             the cache if that fails, and only raise an error if the catalog is not
             found in the cache.  Note that this ignores the sxs configuration file
             entirely.
-        progress : {None, bool}, optional
-            If True, and a nonzero Content-Length header is returned, a progress bar
-            will be shown during any downloads.  Default is False unless
-            `read_config("download_progress")` is True.
 
         See Also
         --------
@@ -138,7 +129,7 @@ class Catalog(object):
 
         """
         cls.load.cache_clear()
-        return cls.load(download=download, progress=progress)
+        return cls.load(download=download)
 
     def save(self, **kwargs):
         raise NotImplementedError()
@@ -302,7 +293,7 @@ class Catalog(object):
 
     @property
     def description(self):
-        return self._dict['description']
+        return self._dict['catalog_file_description']
 
     @property
     def modified(self):
@@ -315,3 +306,33 @@ class Catalog(object):
     @property
     def simulations(self):
         return self._dict['simulations']
+
+    @property
+    def open_access(self):
+        """Return a catalog containing only open-access information
+
+        """
+        from .. import sxs_id
+
+        open_records = {
+            k: v for k, v in self.records.items()
+            if v.get("metadata", {}).get("access_right", "closed") == "open"
+        }
+
+        open_sxs_ids = set(sxs_id(r["title"]) for r in open_records.values())
+
+        open_simulations = {
+            k: v for k, v in self.simulations.items()
+            if k in open_sxs_ids
+        }
+
+        open_modified = max(r.get("modified", "") for r in open_records.values())
+
+        open_catalog = type(self)({
+            "catalog_file_description": zen.catalog.catalog_file_description,
+            "modified": open_modified,
+            "records": open_records,
+            "simulations": open_simulations,
+        })
+
+        return open_catalog
