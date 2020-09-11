@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import sxs
 
-file_name = "/Users/boyle/Research/Data/SimAnnex/CatalogLinks/SXS:BBH:0004/Lev6/Horizons.h5"
+file_name = "SXS:BBH:0004/Lev6/Horizons.h5"
 
 
 def test_spec_format():
@@ -16,9 +16,13 @@ def test_spec_format():
         "DimensionfulInertialSpinMag", "chiInertial", "chiMagInertial"
     ]
 
-    horizons = sxs.horizons.spec_horizons_h5.load(file_name)
+    catalog = sxs.load("catalog")
+    selected = catalog.select(file_name)[0]
 
-    with h5py.File(file_name, "r") as f:
+    horizons = sxs.load(file_name)
+    cached_path = sxs.sxs_directory("cache") / selected
+
+    with h5py.File(cached_path, "r") as f:
         for horizon in "ABC":
             for quantity in quantities:
                 name = f"Ah{horizon}.dir/{quantity}.dat"
@@ -30,7 +34,8 @@ def test_spec_format():
 
 
 def test_xmb_format():
-    horizons_spec = sxs.horizons.spec_horizons_h5.load(file_name)
+    # horizons_spec = sxs.horizons.spec_horizons_h5.load(file_name)
+    horizons_spec = sxs.load(file_name)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         file = pathlib.Path(temp_dir) / 'horizons.h5'
