@@ -95,6 +95,12 @@ class Catalog(object):
                         print(zip_path, zip_path.exists())
                         print(cache_path, cache_path.exists())
 
+        print("Before checking existence:")
+        print(downloaded_path, downloaded_path.exists())
+        print(temp_path, temp_path.exists())
+        print(zip_path, zip_path.exists())
+        print(cache_path, cache_path.exists())
+
         if not cache_path.exists():
             if download_failed:
                 raise ValueError(f"Catalog not found in '{cache_path}' and download failed") from download_failed
