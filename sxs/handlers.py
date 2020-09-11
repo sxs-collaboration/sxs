@@ -41,10 +41,10 @@ def sxs_handler(format_string):
         return waveforms.formats.get(format_string, waveforms.formats[None])
     else:
         format_list = [
-            sxs.catalog.formats,
-            sxs.metadata.formats,
-            sxs.horizons.formats,
-            sxs.waveforms.formats,
+            catalog.formats,
+            metadata.formats,
+            horizons.formats,
+            waveforms.formats,
         ]
         format_cycler = itertools.cycle(format_list)
         for _ in range(len(format_list)):
@@ -86,7 +86,6 @@ def sxs_loader(file):
 
     """
     import re
-    from . import catalog, metadata, horizons, waveforms
     from .utilities import file_format
     format_string = file_format(file)
     if format_string is None:
@@ -167,14 +166,8 @@ def load(location, download=None, cache=None, progress=False, **kwargs):
     to True), the cache is also switched on by default.
 
     """
-    import contextlib
-    import warnings
-    import re
     import pathlib
-    import tempfile
-    import json
     import urllib.request
-    import h5py
     from . import Catalog, read_config, sxs_directory
     from .utilities import url, download_file
 
@@ -212,7 +205,7 @@ def load(location, download=None, cache=None, progress=False, **kwargs):
                 download_file(location, path, progress=progress)
 
         elif location == "catalog":
-            return Catalog.load(download=download, cache=cache, progress=progress, **kwargs)
+            return Catalog.load(download=download, progress=progress)
 
         else:
             # Try to find an appropriate SXS file
