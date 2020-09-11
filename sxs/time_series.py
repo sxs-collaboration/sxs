@@ -2,31 +2,32 @@ import numpy as np
 
 
 class TimeSeries(np.ndarray):
+    # noinspection PyUnresolvedReferences
     """Array-like object representing time-series data
 
-    This object wraps the basic numpy array object, but stores (at least a
-    reference to) a corresponding array of time values, and provides several member
-    functions for interpolating, differentiating, and integrating.
+        This object wraps the basic numpy array object, but stores (at least a
+        reference to) a corresponding array of time values, and provides several member
+        functions for interpolating, differentiating, and integrating.
 
-    Parameters
-    ----------
-    input_array : (..., N, ...) array_like
-        Input data representing the dependent variable, in any form that can be
-        converted to a numpy array.  This includes scalars, lists, lists of tuples,
-        tuples, tuples of tuples, tuples of lists, and numpy ndarrays.  It can have
-        an arbitrary number of dimensions, but the length along `time_axis` (see
-        below) must match the length of `time`.  Values must be finite.
-    time : (N,) array_like
-        1-D array containing values of the independent variable.  Values must be
-        real, finite, and in strictly increasing order.
-    time_axis : int, optional
-        Axis along which `input_array` is assumed to be varying in time, meaning
-        that for `time[i]` the corresponding values are `np.take(input_array, i,
-        axis=time_axis)`.  If this is not given, the first axis of `input_array`
-        that has the same length as `time` is chosen as the time axis — which may
-        be prone to errors.
+        Parameters
+        ----------
+        input_array : (..., N, ...) array_like
+            Input data representing the dependent variable, in any form that can be
+            converted to a numpy array.  This includes scalars, lists, lists of tuples,
+            tuples, tuples of tuples, tuples of lists, and numpy ndarrays.  It can have
+            an arbitrary number of dimensions, but the length along `time_axis` (see
+            below) must match the length of `time`.  Values must be finite.
+        time : (N,) array_like
+            1-D array containing values of the independent variable.  Values must be
+            real, finite, and in strictly increasing order.
+        time_axis : int, optional
+            Axis along which `input_array` is assumed to be varying in time, meaning
+            that for `time[i]` the corresponding values are `np.take(input_array, i,
+            axis=time_axis)`.  If this is not given, the first axis of `input_array`
+            that has the same length as `time` is chosen as the time axis — which may
+            be prone to errors.
 
-    """
+        """
 
     def __new__(cls, input_array, *args, **kwargs):
         import copy
@@ -134,7 +135,6 @@ class TimeSeries(np.ndarray):
 
         """
         from numbers import Integral
-        from collections.abc import Iterable, Sized
 
         if isinstance(key, tuple) and len(key) == 0:
             raise ValueError(f"Empty index to {type(self).__name__} does not make sense")
@@ -142,8 +142,8 @@ class TimeSeries(np.ndarray):
         def newaxis_type(e):
             return isinstance(e, (type(np.newaxis), type(None)))
 
-        def basic_slicing(key):
-            """Test if basic slicing occurs given this key
+        def basic_slicing(key_basic):
+            """Test if basic slicing occurs given this key_basic
 
             Numpy's indexing documentation says "Basic slicing occurs when `obj` is
             a `slice` object (constructed by `start:stop:step` notation inside of
@@ -154,36 +154,40 @@ class TimeSeries(np.ndarray):
             <https://numpy.org/doc/stable/reference/arrays.indexing.html#basic-slicing-and-indexing>
 
             """
-            if isinstance(key, (Integral, slice, type(Ellipsis))):
+            if isinstance(key_basic, (Integral, slice, type(Ellipsis))):
                 return True
-            if not isinstance(key, tuple):
+            if not isinstance(key_basic, tuple):
                 return False
-            for e in key:
+            for e in key_basic:
                 if not isinstance(e, (Integral, slice, type(Ellipsis), type(np.newaxis), type(None))):
                     return False
             return True
 
-        def normalize_basic_slicing_key(key, ndim):
-            """Translate key into full-size tuples, without Ellipsis
+        def normalize_basic_slicing_key(key_normalize, ndim):
+            """Translate key_basic into full-size tuples, without Ellipsis
 
             Returns a pair of keys, one appropriate for the original array (with
             `newaxis` removed), and one for the new array (with `newaxis` replaced
             by `slice(None)`).
 
             """
-            if not isinstance(key, tuple):
-                key = (key,)
-            n_missing = ndim - len(tuple(e for e in key if not newaxis_type(e)))
-            count = key.count(Ellipsis)
+            if not isinstance(key_normalize, tuple):
+                key_normalize = (key_normalize,)
+            n_missing = ndim - len(tuple(e for e in key_normalize if not newaxis_type(e)))
+            count = key_normalize.count(Ellipsis)
             if count == 0:
-                full_key = key + (slice(None),) * n_missing
+                full_key_normalize = key_normalize + (slice(None),) * n_missing
             elif count == 1:
-                i_ellipsis = key.index(Ellipsis)
-                full_key = key[:i_ellipsis] + (slice(None),) * (n_missing+1) + key[i_ellipsis+1:]
+                i_ellipsis = key_normalize.index(Ellipsis)
+                full_key_normalize = (
+                        key_normalize[:i_ellipsis]
+                        + (slice(None),) * (n_missing + 1)
+                        + key_normalize[i_ellipsis + 1:]
+                )
             else:
-                raise ValueError(f"Cannot use more than one Ellipsis in key; found {count}.")
-            old_key = tuple(e for e in full_key if not newaxis_type(e))
-            return old_key, full_key
+                raise ValueError(f"Cannot use more than one Ellipsis in key_basic; found {count}.")
+            old_key_normalize = tuple(e for e in full_key_normalize if not newaxis_type(e))
+            return old_key_normalize, full_key_normalize
 
         if key is np.newaxis:
             new_time = self.time
@@ -194,8 +198,10 @@ class TimeSeries(np.ndarray):
             old_key, full_key = normalize_basic_slicing_key(key, self.ndim)
             # Find the new time_axis
             i_old, integral_key_correction = 0, 0
-            for full_time_axis in range(len(full_key)):
-                key_i = full_key[full_time_axis]
+            full_time_axis = 0
+            for i in range(len(full_key)):
+                full_time_axis = i
+                key_i = full_key[i]
                 if not newaxis_type(key_i):
                     i_old += 1
                 if i_old > self.time_axis:
@@ -225,7 +231,7 @@ class TimeSeries(np.ndarray):
             new_data = super().__getitem__(key)
             if new_data.ndim != self.ndim:
                 raise ValueError(
-                    f"\nAdvanced indexing of this {type(self).__name__} object with the key\n\n"
+                    f"\nAdvanced indexing of this {type(self).__name__} object with the key_basic\n\n"
                     + "    " + "\n    ".join(str(key).split("\n")) + "\n\n" +
                     f"changes the shape of the data from {self.shape} to {new_data.shape}.  It is not clear how this\n"
                     f"should affect the time data.  If you still want to index the data like this, extract the\n"
@@ -239,7 +245,7 @@ class TimeSeries(np.ndarray):
             except Exception as e:
                 raise ValueError(
                     f"\nAdvanced indexing fails when trying to slice time information from this {type(self).__name__}\n"
-                    f"object with the key\n\n"
+                    f"object with the key_basic\n\n"
                     + "    " + "\n    ".join(str(key).split("\n")) + "\n\n" +
                     f"The shape of the {type(self).__name__} is {self.shape} and the time axis is {self.time_axis}."
                 ) from e
@@ -284,6 +290,7 @@ class TimeSeries(np.ndarray):
         # This method is from the comment in np.broadcast_arrays, used so that
         # we don't have to disturb the data array (e.g., copying because of
         # weird ordering).
+        # noinspection SpellCheckingInspection
         nditer = np.nditer(
             self.time[new_shape],
             flags=['multi_index', 'zerosize_ok'],

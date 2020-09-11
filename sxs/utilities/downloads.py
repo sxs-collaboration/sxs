@@ -52,7 +52,7 @@ def download_file(url, path, progress=False, if_newer=True):
         print(f"An error occurred when trying to access <{url}>.")
         try:
             print(r.json())
-        except:
+        except Exception:
             pass
         r.raise_for_status()
         raise RuntimeError()  # Will only happen if the response was not strictly an error

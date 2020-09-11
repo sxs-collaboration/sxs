@@ -125,7 +125,7 @@ def load(file, ignore_format=False):
                 )
 
         shuffle_widths = tuple(f.attrs["shuffle_widths"])
-        unshuffle = multishuffle(shuffle_widths, forward=False)
+        shuffle = multishuffle(shuffle_widths, forward=False)
 
         for horizon_name in "ABC":
             if horizon_name in f:
@@ -134,24 +134,24 @@ def load(file, ignore_format=False):
                 n_times = d.attrs["n_times"]
                 sizeof_float = 8  # in bytes
                 bytes_per_series = n_times * sizeof_float
-                hqkwargs = {}
+                hq_kwargs = {}
                 i = 0
 
                 # scalar data sets
                 for dat in ["time", "areal_mass", "christodoulou_mass"]:
-                    hqkwargs[dat] = xor(unshuffle(
+                    hq_kwargs[dat] = xor(shuffle(
                         np.frombuffer(uncompressed_data[i: i + bytes_per_series], dtype=np.uint64)
                     ), reverse=True).view(np.float64)
                     i += bytes_per_series
 
                 # 3-vector data sets
                 for dat in ["coord_center_inertial", "dimensionful_inertial_spin", "chi_inertial"]:
-                    hqkwargs[dat] = np.asarray(xor(unshuffle(
+                    hq_kwargs[dat] = np.asarray(xor(shuffle(
                         np.frombuffer(uncompressed_data[i: i + 3 * bytes_per_series], dtype=np.uint64)
                     ), reverse=True, preserve_dtype=True).reshape((3, -1)).T.view(np.float64), order="C")
                     i += 3 * bytes_per_series
 
-                horizon = HorizonQuantities(**hqkwargs)
+                horizon = HorizonQuantities(**hq_kwargs)
 
                 hqs[horizon_name] = horizon
 

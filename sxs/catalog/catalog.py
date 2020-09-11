@@ -116,7 +116,7 @@ class Catalog(object):
         return cls(catalog)
 
     @classmethod
-    def reload(cls, download=True, progress=None, **kwargs):
+    def reload(cls, download=True, progress=None):
         """Reload the SXS catalog, without caching
 
         Clears the cache of `Catalog.load` and returns the result of calling it again.
@@ -145,7 +145,7 @@ class Catalog(object):
 
         """
         cls.load.cache_clear()
-        return cls.load(download=download, progress=progress, **kwargs)
+        return cls.load(download=download, progress=progress)
 
     def save(self, **kwargs):
         raise NotImplementedError()
@@ -227,6 +227,7 @@ class Catalog(object):
         First, we can choose the `h` waveform with `n=2` extrapolation in the
         highest-resolution (Lev) run from the simulation SXS:BBH:0002 with
 
+            >>> catalog = Catalog.load()
             >>> catalog.select("SXS:BBH:0002/Lev/h_ex.*_n2")
             {"SXS:BBH:0002v7/Lev6/h_extrapolated_n2.h5"}
 

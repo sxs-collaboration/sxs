@@ -3,6 +3,8 @@ import collections
 
 
 _valid_identifier_pattern = re.compile(r'\W|^(?=\d)')
+
+
 def _valid_identifier(key):
     return _valid_identifier_pattern.sub('_', key)
 
@@ -13,6 +15,8 @@ _metadata_key_map = {
     # but unnecessary pair:
     #   'simulation_name': 'simulation-name',
 }
+
+
 def _valid_identifier_to_metadata_key(key):
     return _metadata_key_map.get(key, key.replace('_', '-'))
 
@@ -108,6 +112,7 @@ class Metadata(collections.OrderedDict):
 
         """
         import json
+        # noinspection PyTypeChecker
         return json.load(json_data, object_pairs_hook=cls)
 
     @classmethod
@@ -128,6 +133,7 @@ class Metadata(collections.OrderedDict):
         from pathlib import Path
         path = Path(json_file).expanduser().resolve().with_suffix(".json")
         with path.open(mode="r") as metadata_file:
+            # noinspection PyTypeChecker
             metadata = json.load(metadata_file, object_pairs_hook=cls)
         metadata["metadata_path"] = json_file
         return metadata
@@ -161,7 +167,7 @@ class Metadata(collections.OrderedDict):
           3) lists are not enclosed in brackets
 
         It is easy to correct these problems.  In particular, (1) is resolved by
-        changing dashes to underscores in the identifiers.  A bug in SpEC's
+        changing dashes to underscores in the identifiers.  A bug in SpEC
         metadata.txt files -- whereby some comment lines are missing the initial `#` --
         is also fixed.  There are also occasional other problems, like commas missing
         from lists.  All syntax errors as of this writing are fixed in this function.
@@ -188,7 +194,7 @@ class Metadata(collections.OrderedDict):
 
         assignment_pattern = re.compile(r"""([-A-Za-z0-9]+)\s*=\s*(.*)""")
         string_pattern = re.compile(r"""[A-DF-Za-df-z<>@]""")  # Ignore "e" and "E" because they may appear in numbers
-        multispace_pattern = re.compile(r"""\s+""")
+        multi_space_pattern = re.compile(r"""\s+""")
         metadata = cls()
 
         with path.open("r") as metadata_file:
@@ -213,8 +219,7 @@ class Metadata(collections.OrderedDict):
                         if "[unknown]" in q.lower():
                             metadata[variable] = "NaN"
                             continue
-                        elif ((q.startswith('"') and q.endswith('"'))
-                            or (q.startswith("'") and q.endswith("'"))):
+                        elif (q.startswith('"') and q.endswith('"')) or (q.startswith("'") and q.endswith("'")):
                             # If the whole thing is quoted, just leave it as is
                             quantity = q
                         elif string_pattern.search(quantity):
@@ -231,7 +236,7 @@ class Metadata(collections.OrderedDict):
                             if "," in quantity:
                                 quantity = "[" + quantity + "]"
                             elif " " in quantity:
-                                quantity = "[" + multispace_pattern.sub(',', quantity) + "]"
+                                quantity = "[" + multi_space_pattern.sub(',', quantity) + "]"
 
                     # Add this line to the metadata, whether or not it's been modified
                     try:
@@ -278,8 +283,8 @@ class Metadata(collections.OrderedDict):
             if isinstance(value, list):
                 return ",".join(["{0}".format(item) for item in value])
             else:
-                return "{0}".format(value)
-        return "\n".join(["{0} = {1}".format(_valid_identifier_to_metadata_key(key), deformat(self[key])) for key in self])
+                return f"{value}"
+        return "\n".join([f"{_valid_identifier_to_metadata_key(key)} = {deformat(self[key])}" for key in self])
 
     def to_txt_file(self, txt_file):
         """Write to file in metadata.txt format"""
@@ -304,7 +309,7 @@ class Metadata(collections.OrderedDict):
             args = list(args)
             if isinstance(args[0], collections.Mapping):
                 mapping = args[0]
-                args[0] = OrderedDict([(_valid_identifier(key), mapping[key]) for key in mapping])
+                args[0] = collections.OrderedDict([(_valid_identifier(key), mapping[key]) for key in mapping])
             else:
                 iterable = args[0]
                 args[0] = [(_valid_identifier(k), v) for k, v in iterable]
@@ -345,9 +350,9 @@ class Metadata(collections.OrderedDict):
                     for g in f:
                         g_parameters = {}
                         if hasattr(f[g], "attrs") and "space_translation" in f[g].attrs:
-                                g_parameters["space_translation"] = list(f[g].attrs["space_translation"])
+                            g_parameters["space_translation"] = list(f[g].attrs["space_translation"])
                         if hasattr(f[g], "attrs") and "boost_velocity" in f[g].attrs:
-                                g_parameters["boost_velocity"] = list(f[g].attrs["boost_velocity"])
+                            g_parameters["boost_velocity"] = list(f[g].attrs["boost_velocity"])
                         if "History.txt" in f[g]:
                             history = f[g]["History.txt"][()]
                             if hasattr(history, "decode"):
@@ -363,7 +368,7 @@ class Metadata(collections.OrderedDict):
                             return self
                         if g_parameters:
                             com_parameters["{0}/{1}".format(os.path.basename(file_name), g)] = g_parameters
-            except:
+            except Exception:
                 if raise_on_errors:
                     raise
         if com_parameters:
@@ -382,76 +387,87 @@ class Metadata(collections.OrderedDict):
         """
         import math
         import numpy as np
+
         def stringify_nan(number):
             if math.isnan(number):
                 return "NaN"
             else:
                 return number
+
         def stringify_nans(array):
             return [stringify_nan(number) for number in array]
+
         if "object1" in self and "object2" in self:
             self["object_types"] = "".join(sorted([self["object1"].upper(), self["object2"].upper()]))
         if "initial_mass1" in self and "initial_mass2" in self:
             try:
                 mass_ratio = float(self["initial_mass1"]) / float(self["initial_mass2"])
                 self["initial_mass_ratio"] = stringify_nan(mass_ratio)
-            except:
+            except Exception:
                 if raise_on_errors:
                     raise
         if "reference_mass1" in self and "reference_mass2" in self:
             try:
                 mass_ratio = float(self["reference_mass1"]) / float(self["reference_mass2"])
                 self["reference_mass_ratio"] = stringify_nan(mass_ratio)
-            except:
+            except Exception:
                 if raise_on_errors:
                     raise
         if "reference_dimensionless_spin1" not in self:
             if "reference_spin1" in self and "reference_mass1" in self:
                 try:
-                    self["reference_dimensionless_spin1"] = stringify_nans(np.array(self["reference_spin1"]) / self["reference_mass1"]**2)
-                except:
+                    self["reference_dimensionless_spin1"] = stringify_nans(
+                        np.array(self["reference_spin1"]) / self["reference_mass1"]**2
+                    )
+                except Exception:
                     if raise_on_errors:
                         raise
         if "reference_dimensionless_spin2" not in self:
             if "reference_spin2" in self and "reference_mass2" in self:
                 try:
-                    self["reference_dimensionless_spin2"] = stringify_nans(np.array(self["reference_spin2"]) / self["reference_mass2"]**2)
-                except:
+                    self["reference_dimensionless_spin2"] = stringify_nans(
+                        np.array(self["reference_spin2"]) / self["reference_mass2"]**2
+                    )
+                except Exception:
                     if raise_on_errors:
                         raise
         if "initial_dimensionless_spin1" not in self:
             if "initial_spin1" in self and "initial_mass1" in self:
                 try:
-                    self["initial_dimensionless_spin1"] = stringify_nans(np.array(self["initial_spin1"]) / self["initial_mass1"]**2)
-                except:
+                    self["initial_dimensionless_spin1"] = stringify_nans(
+                        np.array(self["initial_spin1"]) / self["initial_mass1"]**2
+                    )
+                except Exception:
                     if raise_on_errors:
                         raise
         if "initial_dimensionless_spin2" not in self:
             if "initial_spin2" in self and "initial_mass2" in self:
                 try:
-                    self["initial_dimensionless_spin2"] = stringify_nans(np.array(self["initial_spin2"]) / self["initial_mass2"]**2)
-                except:
+                    self["initial_dimensionless_spin2"] = stringify_nans(
+                        np.array(self["initial_spin2"]) / self["initial_mass2"]**2
+                    )
+                except Exception:
                     if raise_on_errors:
                         raise
         if ("reference_mass1" in self and "reference_mass2" in self and "reference_orbital_frequency" in self
-            and "reference_dimensionless_spin1" in self and "reference_dimensionless_spin2" in self):
-                try:
-                    m1 = float(self["reference_mass1"])
-                    m2 = float(self["reference_mass2"])
-                    chi1 = np.array(self["reference_dimensionless_spin1"], dtype=float)
-                    chi2 = np.array(self["reference_dimensionless_spin2"], dtype=float)
-                    L = np.array(self["reference_orbital_frequency"], dtype=float)
-                    L /= np.linalg.norm(L)
-                    chi1L = np.dot(chi1, L)
-                    chi2L = np.dot(chi2, L)
-                    chi1perp = np.cross(chi1, L)
-                    chi2perp = np.cross(chi2, L)
-                    self["reference_chi_eff"] = stringify_nan((m1*chi1L+m2*chi2L)/(m1+m2))
-                    self["reference_chi1_perp"] = stringify_nan(np.linalg.norm(chi1perp))
-                    self["reference_chi2_perp"] = stringify_nan(np.linalg.norm(chi2perp))
-                except:
-                    if raise_on_errors:
-                        raise
+                and "reference_dimensionless_spin1" in self and "reference_dimensionless_spin2" in self):
+            try:
+                m1 = float(self["reference_mass1"])
+                m2 = float(self["reference_mass2"])
+                chi1 = np.array(self["reference_dimensionless_spin1"], dtype=float)
+                chi2 = np.array(self["reference_dimensionless_spin2"], dtype=float)
+                L = np.array(self["reference_orbital_frequency"], dtype=float)
+                L /= np.linalg.norm(L)
+                chi1L = np.dot(chi1, L)
+                chi2L = np.dot(chi2, L)
+                chi1perp = np.cross(chi1, L)
+                chi2perp = np.cross(chi2, L)
+                self["reference_chi_eff"] = stringify_nan((m1*chi1L+m2*chi2L)/(m1+m2))
+                self["reference_chi1_perp"] = stringify_nan(np.linalg.norm(chi1perp))
+                self["reference_chi2_perp"] = stringify_nan(np.linalg.norm(chi2perp))
+            except Exception:
+                if raise_on_errors:
+                    raise
         return self
 
     def add_extras(self, raise_on_errors=False):
@@ -510,7 +526,7 @@ class Metadata(collections.OrderedDict):
     @classmethod
     def fromkeys(cls, iterable):
         iterable = [(_valid_identifier(k), v) for k, v in iterable]
-        return super(Metadata, self).fromkeys(iterable)
+        return super(Metadata, cls).fromkeys(iterable)
 
     @property
     def resolution(self):
@@ -571,7 +587,7 @@ class Metadata(collections.OrderedDict):
 
     def __dir__(self):
         """Ensure that the keys are included in tab completion"""
-        return sorted(set(super(Metadata, self).__dir__() + list(self.keys())))
+        return list(sorted(set(super(Metadata, self).__dir__()) + list(self.keys())))
 
     def __getitem__(self, key):
         return super(Metadata, self).__getitem__(_valid_identifier(key))
@@ -592,9 +608,11 @@ class Metadata(collections.OrderedDict):
     def setdefault(self, key, default=None):
         return super(Metadata, self).setdefault(_valid_identifier(key), default)
 
-    def update(self, mapping_or_iterable=None):
+    def update(self, mapping_or_iterable=None, **kwargs):
         if isinstance(mapping_or_iterable, collections.Mapping):
-            mapping_or_iterable = collections.OrderedDict([(_valid_identifier(key), mapping_or_iterable[key]) for key in mapping_or_iterable])
+            mapping_or_iterable = collections.OrderedDict(
+                [(_valid_identifier(key), mapping_or_iterable[key]) for key in mapping_or_iterable]
+            )
         elif isinstance(mapping_or_iterable, collections.Iterable):
             mapping_or_iterable = [(_valid_identifier(k), v) for k, v in mapping_or_iterable]
         return super(Metadata, self).update(mapping_or_iterable)

@@ -120,7 +120,8 @@ def select_by_path_component(path_pattern, possible_matches, recursion_index=0):
     for f in possible_matches:
         if f.startswith(path_working):
             next_slash = f.find("/", f.index(path_working) + len(path_working) - 1)
-            if next_slash < 0: next_slash = len(f)
+            if next_slash < 0:
+                next_slash = len(f)
             matched_component = f[:next_slash]
             matches[path_working].append((matched_component, f))
 

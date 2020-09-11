@@ -226,7 +226,7 @@ class Horizons(object):
         if shorter_key.upper() in "ABC":
             return getattr(self, shorter_key.upper())
         elif len(shorter_key.split("/", maxsplit=1)) == 2:
-            horizon, subkey = shorter_key.split("/", maxsplit=1)
-            return getattr(self, horizon)[subkey]
+            horizon, sub_key = shorter_key.split("/", maxsplit=1)
+            return getattr(self, horizon)[sub_key]
         else:
             raise ValueError(f"Cannot find key '{key}' in this {type(self).__name__} object")
