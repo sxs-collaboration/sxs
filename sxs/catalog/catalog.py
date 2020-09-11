@@ -143,7 +143,7 @@ class Catalog(object):
     def save(self, **kwargs):
         raise NotImplementedError()
 
-    def select_files(path_pattern):
+    def select_files(self, path_pattern):
         """Return paths and file information from all files available in the catalog
 
         This function is essentially the same as the `select` function, except that
