@@ -506,7 +506,7 @@ pytest = ">=3.10"
 category = "main"
 description = "World timezone definitions, modern and historical"
 name = "pytz"
-optional = true
+optional = false
 python-versions = "*"
 version = "2020.1"
 
@@ -767,7 +767,7 @@ mktheapidocs = ["mktheapidocs"]
 pymdown-extensions = ["pymdown-extensions"]
 
 [metadata]
-content-hash = "93c799a70578da2a4910ced0c8671ef8d309de76db7c0783a835af8abdba3163"
+content-hash = "9e735c4859da164ab4c21b1eeb33ff9f565dcaf295c0ab4a00049bf4649b99ac"
 lock-version = "1.1"
 python-versions = "^3.6"
 
