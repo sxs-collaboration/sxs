@@ -64,6 +64,7 @@ class Catalog(object):
         cache_path = sxs_directory("cache") / "catalog.zip"
 
         if cache_path.exists():
+            print("cache_path exists before attempting download")
             if_newer = cache_path
         else:
             if_newer = False
@@ -80,14 +81,14 @@ class Catalog(object):
                     download_failed = e  # We'll try the cache
                 else:
                     download_failed = False
+                    print("Before checking equality:")
+                    print(downloaded_path, downloaded_path.exists())
+                    print(temp_path, temp_path.exists())
+                    print(zip_path, zip_path.exists())
+                    print(cache_path, cache_path.exists())
                     if downloaded_path == temp_path:
                         with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_BZIP2) as catalog_zip:
                             catalog_zip.write(temp_path, arcname="catalog.json")
-                        print("Before replace:")
-                        print(downloaded_path, downloaded_path.exists())
-                        print(temp_path, temp_path.exists())
-                        print(zip_path, zip_path.exists())
-                        print(cache_path, cache_path.exists())
                         zip_path.replace(cache_path)
                         print("After replace:")
                         print(downloaded_path, downloaded_path.exists())
