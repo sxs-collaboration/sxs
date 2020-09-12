@@ -311,8 +311,13 @@ class Catalog(object):
     def open_access(self):
         """Return a catalog containing only open-access information
 
+        Note that the returned object contains references to the original; meaning that
+        changing the returned object could change the original.  Use `copy.deepcopy` to
+        construct a copy with separate data.
+
         """
         from .. import sxs_id
+        from . import catalog_file_description
 
         open_records = {
             k: v for k, v in self.records.items()
@@ -329,10 +334,69 @@ class Catalog(object):
         open_modified = max(r.get("modified", "") for r in open_records.values())
 
         open_catalog = type(self)({
-            "catalog_file_description": zen.catalog.catalog_file_description,
+            "catalog_file_description": catalog_file_description,
             "modified": open_modified,
             "records": open_records,
             "simulations": open_simulations,
         })
 
         return open_catalog
+
+    def split_and_write(self, directory, set_atime_and_mtime=True):
+        """Write public and private JSON files
+
+        This function writes four JSON files to the given directory: complete and
+        open-access-only versions of the full catalog (including records) and
+        simulations-only files.
+
+        Parameters
+        ----------
+        directory : {str, pathlib.Path}
+            Directory in which to place all four files.  If it doesn't exist it will be
+            created.
+        set_atime_and_mtime : bool, optional
+            If True, we try to set the access and modification times of the output
+            files to match the last modification time of the data itself.  If this
+            fails, an exception will be raised.
+
+        """
+        import json
+        import pathlib
+        import os
+        from datetime import datetime
+
+        dir_path = pathlib.Path(directory).expanduser().resolve()
+        public_catalog_path = dir_path / "public_catalog.json"
+        public_simulations_path = dir_path / "public_simulations.json"
+        private_catalog_path = dir_path / "private_catalog.json"
+        private_simulations_path = dir_path / "private_simulations.json"
+
+        dir_path.mkdir(parents=True, exist_ok=True)
+        if not os.access(str(dir_path), os.W_OK) or not dir_path.is_dir():
+            raise OSError(f"Could not create writable directory '{dir_path}'")
+
+        public_catalog = self.open_access
+        private_catalog = self
+
+        with public_catalog_path.open("w") as f:
+            json.dump(public_catalog, f, indent=2, separators=(",", ": "), ensure_ascii=True)
+        with public_simulations_path.open("w") as f:
+            json.dump(public_catalog["simulations"], f, indent=None, separators=(",", ":"), ensure_ascii=True)
+        with private_catalog_path.open("w") as f:
+            json.dump(private_catalog, f, indent=2, separators=(",", ": "), ensure_ascii=True)
+        with private_simulations_path.open("w") as f:
+            json.dump(private_catalog["simulations"], f, indent=None, separators=(",", ":"), ensure_ascii=True)
+
+        if set_atime_and_mtime:
+            public_modified = public_catalog.modified
+            private_modified = private_catalog.modified
+            if public_modified:
+                public_modified = int(datetime.timestamp(datetime.strptime(public_modified, "%Y-%m-%dT%H:%M:%S.%f")))
+                times = (public_modified, public_modified)
+                os.utime(str(public_catalog_path), times)
+                os.utime(str(public_simulations_path), times)
+            if private_modified:
+                private_modified = int(datetime.timestamp(datetime.strptime(private_modified, "%Y-%m-%dT%H:%M:%S.%f")))
+                times = (private_modified, private_modified)
+                os.utime(str(private_catalog_path), times)
+                os.utime(str(private_simulations_path), times)
