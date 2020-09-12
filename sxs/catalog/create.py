@@ -72,7 +72,7 @@ def _create(login=None):
     # have to run these queries separately because there are more than 10,000 if combined, which
     # exceeds zenodo's limit.  Currently, this hack works to get them all — though it will fail if
     # more drafts are published.
-    print("Searching for all published records...", flush=True)
+    print("Searching for all versions of all records...", flush=True)
     published = l.search(q="communities:sxs", all_versions=True, status="published", size=9000)
     unpublished = l.search(q="communities:sxs", all_versions=True, status="draft", size=9000)
     all_versions = published + unpublished
