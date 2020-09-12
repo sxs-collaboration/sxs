@@ -5,29 +5,29 @@ class TimeSeries(np.ndarray):
     # noinspection PyUnresolvedReferences
     """Array-like object representing time-series data
 
-        This object wraps the basic numpy array object, but stores (at least a
-        reference to) a corresponding array of time values, and provides several member
-        functions for interpolating, differentiating, and integrating.
+    This object wraps the basic numpy array object, but stores (at least a
+    reference to) a corresponding array of time values, and provides several member
+    functions for interpolating, differentiating, and integrating.
 
-        Parameters
-        ----------
-        input_array : (..., N, ...) array_like
-            Input data representing the dependent variable, in any form that can be
-            converted to a numpy array.  This includes scalars, lists, lists of tuples,
-            tuples, tuples of tuples, tuples of lists, and numpy ndarrays.  It can have
-            an arbitrary number of dimensions, but the length along `time_axis` (see
-            below) must match the length of `time`.  Values must be finite.
-        time : (N,) array_like
-            1-D array containing values of the independent variable.  Values must be
-            real, finite, and in strictly increasing order.
-        time_axis : int, optional
-            Axis along which `input_array` is assumed to be varying in time, meaning
-            that for `time[i]` the corresponding values are `np.take(input_array, i,
-            axis=time_axis)`.  If this is not given, the first axis of `input_array`
-            that has the same length as `time` is chosen as the time axis — which may
-            be prone to errors.
+    Parameters
+    ----------
+    input_array : (..., N, ...) array_like
+        Input data representing the dependent variable, in any form that can be
+        converted to a numpy array.  This includes scalars, lists, lists of tuples,
+        tuples, tuples of tuples, tuples of lists, and numpy ndarrays.  It can have
+        an arbitrary number of dimensions, but the length along `time_axis` (see
+        below) must match the length of `time`.  Values must be finite.
+    time : (N,) array_like
+        1-D array containing values of the independent variable.  Values must be
+        real, finite, and in strictly increasing order.
+    time_axis : int, optional
+        Axis along which `input_array` is assumed to be varying in time, meaning
+        that for `time[i]` the corresponding values are `np.take(input_array, i,
+        axis=time_axis)`.  If this is not given, the first axis of `input_array`
+        that has the same length as `time` is chosen as the time axis — which may
+        be prone to errors.
 
-        """
+    """
 
     def __new__(cls, input_array, *args, **kwargs):
         import copy
