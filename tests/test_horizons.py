@@ -17,10 +17,11 @@ def test_spec_format():
     ]
 
     catalog = sxs.load("catalog")
-    selected = catalog.select(file_name)[0]
+    selected = catalog.select_files(file_name)
+    selected_path = list(selected.values())[0]["truepath"]
 
     horizons = sxs.load(file_name)
-    cached_path = sxs.sxs_directory("cache") / selected
+    cached_path = sxs.sxs_directory("cache") / selected_path
 
     with h5py.File(cached_path, "r") as f:
         for horizon in "ABC":
