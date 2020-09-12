@@ -57,7 +57,7 @@ def create(login=None):
     # If login is None, this creates a Login object to use
     l = login or Login()
 
-    print("Searching for all published records", flush=True)
+    print("Searching for all published records...", flush=True)
     all_versions = l.search(q="communities:sxs", all_versions=True, status="published", size=9999)
 
     modified = max(r.get("modified", "") for r in all_versions)
@@ -67,6 +67,7 @@ def create(login=None):
         for r in sorted(all_versions, key=lambda rec: rec["title"])
     }
 
+    print("Downloading metadata files:", flush=True)
     simulations = create_simulations(records, l)
 
     return Catalog({
