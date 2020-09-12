@@ -6,17 +6,7 @@ class Catalog(object):
     url = "https://data.black-holes.org/catalog.json"
 
     def __init__(self, catalog=None, **kwargs):
-        import collections
-
         self._dict = catalog or type(self).load(**kwargs)
-
-        # Add version numbers to all records
-        concept_to_versions = collections.defaultdict(list)
-        for doi_url, record in self.records.items():
-            concept_to_versions[record["conceptrecid"]].append(doi_url)
-        for conceptrecid, doi_urls in concept_to_versions.items():
-            for v, doi_url in enumerate(sorted(doi_urls), start=1):
-                self.records[doi_url]["version"] = v
 
     @classmethod
     @functools.lru_cache()
@@ -263,7 +253,7 @@ class Catalog(object):
                 continue
             version = record["version"]
             prefix = pathlib.Path(f"{sxs_sim_id}v{version}")
-            files = record["files"]
+            files = sorted(record["files"], key=lambda f: f["filename"])
             for file in files:
                 path_str = str(prefix / sxs_id_regex.sub("", file["filename"], count=1))
                 file_info = {
@@ -379,13 +369,13 @@ class Catalog(object):
         private_catalog = self
 
         with public_catalog_path.open("w") as f:
-            json.dump(public_catalog, f, indent=2, separators=(",", ": "), ensure_ascii=True)
+            json.dump(public_catalog._dict, f, indent=2, separators=(",", ": "), ensure_ascii=True)
         with public_simulations_path.open("w") as f:
-            json.dump(public_catalog["simulations"], f, indent=None, separators=(",", ":"), ensure_ascii=True)
+            json.dump(public_catalog._dict["simulations"], f, indent=None, separators=(",", ":"), ensure_ascii=True)
         with private_catalog_path.open("w") as f:
-            json.dump(private_catalog, f, indent=2, separators=(",", ": "), ensure_ascii=True)
+            json.dump(private_catalog._dict, f, indent=2, separators=(",", ": "), ensure_ascii=True)
         with private_simulations_path.open("w") as f:
-            json.dump(private_catalog["simulations"], f, indent=None, separators=(",", ":"), ensure_ascii=True)
+            json.dump(private_catalog._dict["simulations"], f, indent=None, separators=(",", ":"), ensure_ascii=True)
 
         if set_atime_and_mtime:
             public_modified = public_catalog.modified
