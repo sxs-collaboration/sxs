@@ -135,7 +135,7 @@ class Metadata(collections.OrderedDict):
         with path.open(mode="r") as metadata_file:
             # noinspection PyTypeChecker
             metadata = json.load(metadata_file, object_pairs_hook=cls)
-        metadata["metadata_path"] = json_file
+        metadata["metadata_path"] = str(json_file)
         return metadata
 
     @classmethod
@@ -258,7 +258,7 @@ class Metadata(collections.OrderedDict):
             # Skip the text processing next time, and just go straight to json
             metadata.to_json_file(path.with_suffix(".json"))
 
-        metadata["metadata_path"] = txt_file
+        metadata["metadata_path"] = str(txt_file)
         return metadata
 
     def to_json(self, indent=4, separators=(",", ": ")):
