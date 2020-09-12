@@ -12,9 +12,10 @@ def create(login=None):
 
     Parameters
     ----------
-    login : sxs.zenodo.Login
+    login : sxs.zenodo.Login, optional
 
     """
+    import collections
     from ..zenodo import Login
     from .description import catalog_file_description
     from .catalog import Catalog
@@ -57,15 +58,35 @@ def create(login=None):
     # If login is None, this creates a Login object to use
     l = login or Login()
 
+    # Search for *all* version — even unpublished ones, to get the versions right.  Note that we
+    # have to run these queries separately because there are more than 10,000 if combined, which
+    # exceeds zenodo's limit.  Currently, this hack works to get them all — though it will fail if
+    # more drafts are published.
     print("Searching for all published records...", flush=True)
-    all_versions = l.search(q="communities:sxs", all_versions=True, status="published", size=9999)
+    published = l.search(q="communities:sxs", all_versions=True, status="published", size=9000)
+    unpublished = l.search(q="communities:sxs", all_versions=True, status="draft", size=9000)
+    all_versions = published + unpublished
 
-    modified = max(r.get("modified", "") for r in all_versions)
+    # Figure out the version numbers
+    concept_to_versions = collections.defaultdict(list)
+    for record in all_versions:
+        concept_to_versions[record["conceptrecid"]].append(record["doi_url"])
+    doi_url_to_version = {}
+    for conceptrecid, doi_urls in concept_to_versions.items():
+        for version, doi_url in enumerate(sorted(doi_urls), start=1):
+            doi_url_to_version[doi_url] = version
+    for record in all_versions:
+        record["version"] = doi_url_to_version[record["doi_url"]]
 
+    # Make it into a dictionary sorted by title and version, dropping unpublished
     records = {
         r["doi_url"]: r
-        for r in sorted(all_versions, key=lambda rec: rec["title"])
+        for r in sorted(all_versions, key=lambda rec: (rec["title"], rec["version"]))
+        if r.get("state", "error") == "done" and bool(r.get("submitted", False)) == True
     }
+
+    # Get the latest modification time of
+    modified = max(r.get("modified", "") for r in records.values())
 
     print("Downloading metadata files:", flush=True)
     simulations = create_simulations(records, l)
