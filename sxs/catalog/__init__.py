@@ -3,7 +3,7 @@
 """
 
 from .catalog import Catalog
-from .create import create
+from .create import _create
 from .description import catalog_file_description
 
 

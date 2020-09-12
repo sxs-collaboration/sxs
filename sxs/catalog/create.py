@@ -1,18 +1,28 @@
 """Create a new catalog of SXS data"""
 
 
-def create(login=None):
+def _create(login=None):
     """Create a new catalog of SXS data
 
-    Note that this completely reconstructs the catalog from scratch, which can take
-    a long time, and requires a Zenodo login key.  Unless you are sure you really
-    want to reconstruct the catalog, you probably just want to use the existing
-    version, which can be downloaded and loaded automatically using
-    `sxs.load("catalog")`.
+    WARNING: This function is private; you almost certainly don't want to use it.
+    It completely reconstructs the catalog from scratch, which can take a long
+    time, and requires a Zenodo login key.  And unless your login key gives you
+    access to records restricted to SXS members, the resulting catalog will
+    probably have incorrect version numbers.
+
+    Unless you are sure you really want to reconstruct the catalog, you probably
+    just want to use the existing version of the catalog, which can be downloaded
+    and loaded automatically using `sxs.load("catalog")`.
 
     Parameters
     ----------
-    login : sxs.zenodo.Login, optional
+    login : {None, sxs.zenodo.Login}, optional
+        If not present, this uses the default constructor of sxs.zenodo.Login.
+
+    See Also
+    --------
+    sxs.load : Call this with "catalog" to load the existing version.
+    sxs.zenodo.Login
 
     """
     import collections
