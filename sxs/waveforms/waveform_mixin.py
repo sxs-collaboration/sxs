@@ -1,11 +1,7 @@
 import abc
-from .. import TimeSeries
 
 
 class WaveformMixin(abc.ABC):
-    def __init__(self, *args, **kwargs):
-        raise NotImplementedError()
-
     @property
     @abc.abstractmethod
     def data(self):

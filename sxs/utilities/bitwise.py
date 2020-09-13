@@ -21,7 +21,7 @@ def xor_forward(a_in, a_out):
     for i in range(a_in.shape[0] - 1, 0, -1):
         a_out[i] = np.bitwise_xor(a_in[i - 1], a_in[i])
 
-        
+
 @guvectorize(_uint_ftylists, '(n)->(n)')
 def xor_reverse(a_in, a_out):
     """Progressively reverse XOR data along an axis
