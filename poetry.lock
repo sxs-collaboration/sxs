@@ -524,7 +524,7 @@ description = "Interpret numpy arrays as quaternionic arrays with numba accelera
 name = "quaternionic"
 optional = false
 python-versions = ">=3.6,<4.0"
-version = "0.1.13"
+version = "0.1.15"
 
 [package.dependencies]
 numpy = ">=1.13,<2.0"
@@ -590,6 +590,27 @@ name = "snowballstemmer"
 optional = true
 python-versions = "*"
 version = "2.0.0"
+
+[[package]]
+category = "main"
+description = "Evaluate and transform D matrices, 3-j symbols, and (scalar or spin-weighted) spherical harmonics"
+name = "spherical"
+optional = false
+python-versions = ">=3.6,<4.0"
+version = "0.0.1"
+
+[package.dependencies]
+numpy = ">=1.13,<2.0"
+quaternionic = ">=0.1.15,<0.2.0"
+scipy = ">=1.0,<2.0"
+black = {version = ">=20.8b1", markers = "implementation_name == \"cpython\""}
+importlib-metadata = {version = ">=1.0,<2.0", markers = "python_version < \"3.8\""}
+numba = {version = ">=0.50", markers = "implementation_name == \"cpython\""}
+
+[package.extras]
+mkdocs = ["mkdocs (>=1.1.2)"]
+mktheapidocs = ["mktheapidocs (>=0.2)"]
+pymdown-extensions = ["pymdown-extensions (>=8,<9)"]
 
 [[package]]
 category = "main"
@@ -767,7 +788,7 @@ mktheapidocs = ["mktheapidocs"]
 pymdown-extensions = ["pymdown-extensions"]
 
 [metadata]
-content-hash = "d5301f3df07a7620994ade6d4a06150fb3dfd41cb4a6ffd9742d2ad0b850cc6a"
+content-hash = "e6601169de65445e46d2b8c3ea6e7776a41682761310730fa7efe861745ffd7d"
 lock-version = "1.1"
 python-versions = "^3.6"
 
@@ -1108,8 +1129,8 @@ pyyaml = [
     {file = "PyYAML-5.3.1.tar.gz", hash = "sha256:b8eac752c5e14d3eca0e6dd9199cd627518cb5ec06add0de9d32baeee6fe645d"},
 ]
 quaternionic = [
-    {file = "quaternionic-0.1.13-py3-none-any.whl", hash = "sha256:f64b4bffed270ffe4da1b659fba6b1d426a242c8b3186beeed937e04e8412edc"},
-    {file = "quaternionic-0.1.13.tar.gz", hash = "sha256:373911ed8a95b3f9e8f27d18ad6023431535f1daeed65cdea1ca192da7e3e1e9"},
+    {file = "quaternionic-0.1.15-py3-none-any.whl", hash = "sha256:9e0e9acc92b7bf7a6bebe21474d068e24453b5a7e4d319b01c424795b1ab0c10"},
+    {file = "quaternionic-0.1.15.tar.gz", hash = "sha256:4cc8a318818b5fdd9982307b9178b872e414036f7102c2824be8204cf28ab449"},
 ]
 regex = [
     {file = "regex-2020.7.14-cp27-cp27m-win32.whl", hash = "sha256:e46d13f38cfcbb79bfdb2964b0fe12561fe633caf964a77a5f8d4e45fe5d2ef7"},
@@ -1163,6 +1184,10 @@ six = [
 snowballstemmer = [
     {file = "snowballstemmer-2.0.0-py2.py3-none-any.whl", hash = "sha256:209f257d7533fdb3cb73bdbd24f436239ca3b2fa67d56f6ff88e86be08cc5ef0"},
     {file = "snowballstemmer-2.0.0.tar.gz", hash = "sha256:df3bac3df4c2c01363f3dd2cfa78cce2840a79b9f1c2d2de9ce8d31683992f52"},
+]
+spherical = [
+    {file = "spherical-0.0.1-py3-none-any.whl", hash = "sha256:3024ff9de3e4205408ffa0a6d1cbc1924838c037e87e7fe7f654299191156975"},
+    {file = "spherical-0.0.1.tar.gz", hash = "sha256:b2e44f1e18796d0928d4bec66253b37650aaba661ac9e66787779cca71dfbc11"},
 ]
 sphinx = [
     {file = "Sphinx-3.2.1-py3-none-any.whl", hash = "sha256:ce6fd7ff5b215af39e2fcd44d4a321f6694b4530b6f2b2109b64d120773faea0"},

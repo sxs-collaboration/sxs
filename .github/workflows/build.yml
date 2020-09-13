@@ -110,25 +110,25 @@ jobs:
           git status
           git push --follow-tags  # Will not trigger new workflow because it uses GITHUB_TOKEN
 
-      # - name: Create release
-      #   if: "!contains(github.event.head_commit.message, '[no release]')"
-      #   id: create_release
-      #   uses: actions/create-release@latest
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     tag_name: ${{ env.new_version_tag }}
-      #     release_name: Release ${{ env.new_version_tag }}
-      #     draft: false
-      #     prerelease: false
+      - name: Create release
+        if: "!contains(github.event.head_commit.message, '[no release]')"
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.new_version_tag }}
+          release_name: Release ${{ env.new_version_tag }}
+          draft: false
+          prerelease: false
 
-      # - name: Publish to PyPI
-      #   if: "!contains(github.event.head_commit.message, '[no pypi]')"
-      #   env:
-      #     # 1) Get key from https://pypi.org/manage/account/token/
-      #     # 2) Copy it to Github > repo > Settings > Secrets
-      #     POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
-      #   run: |
-      #     python -m poetry build
-      #     python -m poetry install --no-dev
-      #     python -m poetry publish
+      - name: Publish to PyPI
+        if: "!contains(github.event.head_commit.message, '[no pypi]')"
+        env:
+          # 1) Get key from https://pypi.org/manage/account/token/
+          # 2) Copy it to Github > repo > Settings > Secrets
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          python -m poetry build
+          python -m poetry install --no-dev
+          python -m poetry publish
