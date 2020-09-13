@@ -34,7 +34,7 @@ def download_file(url, path, progress=False, if_newer=True):
     import tempfile
     import urllib.parse
     import requests
-    import tqdm
+    from tqdm.auto import tqdm
     from datetime import datetime, timezone
 
     url_path = urllib.parse.urlparse(url).path
@@ -89,7 +89,7 @@ def download_file(url, path, progress=False, if_newer=True):
                 if progress and file_size:
                     desc = "(Unknown total file size)" if file_size == 0 else ""
                     print(f"Downloading to {path}:", flush=True)
-                    with tqdm.tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc, ncols=79) as r_raw:
+                    with tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc, ncols=79) as r_raw:
                         shutil.copyfileobj(r_raw, f)
                 else:
                     shutil.copyfileobj(r.raw, f)
