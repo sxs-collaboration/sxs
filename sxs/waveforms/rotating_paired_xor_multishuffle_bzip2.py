@@ -247,28 +247,33 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
         i2 = i1 + n_times * sizeof_complex * n_modes
         uncompressed_data = bz2.decompress(f["data"][...])
         t = np.frombuffer(uncompressed_data[:i1], dtype=np.uint64)
-        data = np.frombuffer(uncompressed_data[i1:i2], dtype=np.uint64)
+        data_tmp = np.frombuffer(uncompressed_data[i1:i2], dtype=np.uint64)
         log_frame = np.frombuffer(uncompressed_data[i2:], dtype=np.uint64)
 
     # Unshuffle the raw data
     t = unshuffle(t)
-    data = unshuffle(data)
+    data_tmp = unshuffle(data_tmp)
     log_frame = unshuffle(log_frame)
 
     # Reshape and re-interpret the data
     t = t.view(np.float64)
-    data = data.reshape((-1, n_times)).T.copy().view(np.complex128)
+    data_tmp = data_tmp.reshape((-1, n_times)).T
     log_frame = log_frame.reshape((-1, n_times)).T.copy().view(np.float64)
 
+    # Because of the weirdness of complex types, reshaping, and C/F order, we
+    # need to create this with the layout we will eventually want, and then
+    # read data into it.
+    data = np.empty((n_times, n_modes), dtype=complex).view(np.uint64)
+
     # Un-XOR the data
-    t = xor(t, reverse=True, preserve_dtype=True)
-    data = xor(data.view(np.float64), reverse=True, preserve_dtype=True, axis=0)
-    log_frame = xor(log_frame, reverse=True, preserve_dtype=True, axis=0)
+    xor(t, reverse=True, preserve_dtype=True, out=t)
+    xor(data_tmp, reverse=True, axis=0, out=data)
+    xor(log_frame, reverse=True, preserve_dtype=True, axis=0, out=log_frame)
 
     frame = np.exp(quaternionic.array(np.insert(log_frame, 0, 0.0, axis=1)))
 
     w = WaveformModes(
-        data,
+        data.view(np.complex128),
         time=t,
         time_axis=0,
         modes_axis=1,
