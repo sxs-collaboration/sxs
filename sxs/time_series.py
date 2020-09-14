@@ -273,6 +273,8 @@ class TimeSeries(np.ndarray):
         """Array of the time steps corresponding to the data"""
         return self._metadata["time"]
 
+    t = time
+
     @property
     def n_times(self):
         return self.time.size
