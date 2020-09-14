@@ -370,7 +370,59 @@ class TimeSeries(np.ndarray):
         """Integrate modes twice with respect to time"""
         return self.antiderivative(2)
 
-    @property
-    def xor(self):
+    def xor(self, reverse=False, preserve_dtype=False, **kwargs):
+        """Progressively XOR data along the time axis
+
+        This function steps through an array, starting with the second element, and
+        evaluates bitwise XOR on that element and the preceding one.  This is a useful
+        step in compressing reasonably continuous data.
+
+        See the documentation of `sxs.utilities.xor` for a full description of this
+        function.  Note that this version sets the `axis` argument automatically to be
+        the `time_axis`.
+
+        """
         from .utilities import xor
-        return xor(self.ndarray, axis=self.time_axis)
+        return xor(self.ndarray, reverse=reverse, preserve_dtype=preserve_dtype, axis=self.time_axis, **kwargs)
+
+    def truncate(self, abs_tolerance):
+        """Truncate the precision of this object's `data` in place
+
+        This function sets bits in the array data to 0 when they have lower
+        significance than the number given as or returned by `abs_tolerance`.  This is
+        a useful step in compressing data — though it is obviously lossy.
+
+        Parameters
+        ----------
+        abs_tolerance : {callable, float, array-like}
+            If callable, it is called with this object as the parameter, and the
+            returned value is treated as a float or array-like would be.  Floats are
+            simply treated as a uniform absolute tolerance to be applied at all times.
+            Array-like objects must broadcast against this array, and each element is
+            treated as the absolute tolerance for all the elements it broadcasts to.
+
+        Returns
+        -------
+        None
+            This is to serve as a reminder that this function operates in place.
+
+        Notes
+        -----
+        The effect is achieved by multiplying the array's data by the same power of 2
+        that would be required to bring the `abs_tolerance` to between 1 and 2.  Thus,
+        all digits less significant than 1 are less significant than `abs_tolerance` —
+        meaning that we can apply the standard `round` routine to set these digits to
+        0.  We then divide by that same power of 2 to bring the array data back to
+        nearly its original value.  By working with powers of 2, we ensure that the 0s
+        at the intermediate stage are represented as 0 bits in the final result.
+
+        For floats and array-like objects, all values must be strictly positive, or
+        `inf` or `nan` will result.
+
+        """
+        if callable(abs_tolerance):
+            abs_tolerance = abs_tolerance(self)
+        power_of_2 = (2.0 ** np.floor(-np.log2(abs_tolerance)))
+        self.ndarray *= power_of_2
+        np.round(self.ndarray, out=self.ndarray)
+        self.ndarray /= power_of_2
