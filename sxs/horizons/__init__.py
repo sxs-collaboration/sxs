@@ -43,8 +43,9 @@ class HorizonQuantities(object):
         of its surface area divided by 16π, where area is measured as a function of
         time.
     christodoulou_mass : (N,) array_like
-        The Christodoulou mass `mᵪ` of the horizon is related to the irreducible
-        mass `mᵢ` and the spin magnitude `s` by `mᵪ² = mᵢ² + s²/4mᵢ²`.
+        The Christodoulou mass `mᵪ` of the horizon is related to the areal (or
+        irreducible) mass `mₐ` and the dimensionful spin magnitude `s` by the
+        expression `mᵪ² = mₐ² + s²/4mₐ²`.
     coord_center_inertial : (N, 3) array_like
         Cartesian coordinates of the center of the apparent horizon, in the
         "inertial frame," the asymptotically inertial frame in which the
@@ -60,7 +61,7 @@ class HorizonQuantities(object):
     Attributes
     ----------
     All of the above parameters are converted to TimeSeries objects and accessible
-    as attributes, along with the following
+    as attributes, along with the following:
 
     dimensionful_inertial_spin_mag : (N,) TimeSeries
         Euclidean norm of the `dimensionful_inertial_spin` quantity
