@@ -31,7 +31,6 @@ def download_file(url, path, progress=False, if_newer=True):
     import pathlib
     import os
     import shutil
-    import tempfile
     import urllib.parse
     import requests
     from tqdm.auto import tqdm
