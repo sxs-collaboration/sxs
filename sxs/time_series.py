@@ -383,7 +383,9 @@ class TimeSeries(np.ndarray):
 
         """
         from .utilities import xor
-        return xor(self.ndarray, reverse=reverse, preserve_dtype=preserve_dtype, axis=self.time_axis, **kwargs)
+        kw = kwargs.copy()
+        kw.update({"axis": self.time_axis})
+        return xor(self.ndarray, reverse=reverse, preserve_dtype=preserve_dtype, **kw)
 
     def truncate(self, abs_tolerance):
         """Truncate the precision of this object's `data` in place
