@@ -4,29 +4,12 @@ from ..utilities import default_shuffle_widths
 
 
 def save(w, file_name=None, L2norm_fractional_tolerance=1e-10, log_frame=None, shuffle_widths=default_shuffle_widths):
-    import os
-    import warnings
-    import tempfile
-    import contextlib
-    import pathlib
-    import bz2
-    import json
-
-    import sys
-    import numpy as np
-    import scipy
-    import h5py
-
-    import quaternionic
-    import spherical
-    from .. import __version__
-    from ..utilities import xor, md5checksum, multishuffle
-
     raise ValueError("""Check
-    w.t, w.frame, w.data, w.frame_type, w.spin_weight, w.metadata, w.max_norm_time, w.norm
+    w.t, w.frame, w.data, w.frame_type, w.spin_weight, w.metadata
     w.to_corotating_frame
     w.boost_velocity, w.space_translation
     """)
+    1
 
     # Make sure that we can understand the file_name and create the directory
     if file_name is None:
@@ -56,7 +39,7 @@ def save(w, file_name=None, L2norm_fractional_tolerance=1e-10, log_frame=None, s
                 relaxation_time = w.metadata.relaxation_time
                 max_norm_time = w.max_norm_time()
                 z_alignment_region = ((relaxation_time - initial_time) / (max_norm_time - initial_time), 0.95)
-            except:
+            except Exception:
                 z_alignment_region = (0.1, 0.95)
             w, log_frame = w.to_corotating_frame(
                 tolerance=1e-10, z_alignment_region=z_alignment_region, truncate_log_frame=True
@@ -176,17 +159,15 @@ def save(w, file_name=None, L2norm_fractional_tolerance=1e-10, log_frame=None, s
 
 
 def load(file_name, ignore_validation=False, check_md5=True):
-    import os
     import warnings
     import pathlib
     import bz2
     import json
     import numpy as np
     import h5py
-    import quaternion
-    import scri
-    from scri.utilities import xor_timeseries_reverse as unxor
-    from sxs.utilities import md5checksum
+    import quaternionic
+    from ..utilities import md5checksum, xor, multishuffle
+    from . import WaveformModes
 
     def invalid(message):
         if ignore_validation:
@@ -198,7 +179,7 @@ def load(file_name, ignore_validation=False, check_md5=True):
     json_path = h5_path.with_suffix(".json")
 
     # This will be used for validation
-    h5_size = os.stat(h5_path).st_size
+    h5_size = h5_path.stat().st_size
 
     if not json_path.exists():
         invalid(f'\nJSON file "{json_path}" cannot be found, but is expected for this data format.')
@@ -255,7 +236,7 @@ def load(file_name, ignore_validation=False, check_md5=True):
         ell_min = f.attrs["ell_min"]
         ell_max = f.attrs["ell_max"]
         shuffle_widths = tuple(f.attrs["shuffle_widths"])
-        unshuffle = scri.utilities.multishuffle(shuffle_widths, forward=False)
+        unshuffle = multishuffle(shuffle_widths, forward=False)
         n_modes = ell_max * (ell_max + 2) - ell_min ** 2 + 1
         i1 = n_times * sizeof_float
         i2 = i1 + n_times * sizeof_complex * n_modes
@@ -275,17 +256,17 @@ def load(file_name, ignore_validation=False, check_md5=True):
     log_frame = log_frame.reshape((-1, n_times)).T.copy().view(np.float64)
 
     # Un-XOR the data
-    t = unxor(t)
-    data = unxor(data)
-    log_frame = unxor(log_frame)
+    t = xor(t, reverse=True)
+    data = xor(data, reverse=True)
+    log_frame = xor(log_frame, reverse=True)
 
-    frame = np.exp(quaternion.as_quat_array(np.insert(log_frame, 0, 0.0, axis=1)))
+    frame = np.exp(quaternionic.array(np.insert(log_frame, 0, 0.0, axis=1)))
 
-    w = scri.WaveformModes(
+    w = WaveformModes(
+        data,
         t=t,
         frame=frame,
-        data=data,
-        frame_type=scri.Corotating,
+        frame_type="corotating",
         dataType=dataType,
         m_is_scaled_out=True,
         r_is_scaled_out=True,

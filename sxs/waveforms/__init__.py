@@ -1,6 +1,5 @@
 """Containers for various types of waveforms"""
 
-
 from .waveform_mixin import WaveformMixin
 from .waveform_modes import WaveformModes
 from .waveform_grid import WaveformGrid
