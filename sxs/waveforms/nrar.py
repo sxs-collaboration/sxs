@@ -347,7 +347,7 @@ def load(file, **kwargs):
         data,
         time=time,
         time_axis=0,
-        mode_axis=1,
+        modes_axis=1,
         ell_min=ell_min,
         ell_max=ell_max,
         **w_attributes
