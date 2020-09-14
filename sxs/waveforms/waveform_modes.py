@@ -5,11 +5,11 @@ from .. import TimeSeries, jit
 from . import WaveformMixin
 
 
-class WaveformModes(TimeSeries, WaveformMixin):
+class WaveformModes(WaveformMixin, TimeSeries):
     import functools
 
     def __new__(cls, input_array, *args, **kwargs):
-        for requirement in ["mode_axis", "ell_min", "ell_max"]:
+        for requirement in ["modes_axis", "ell_min", "ell_max"]:
             if requirement not in kwargs and requirement not in getattr(input_array, "_metadata", {}):
                 raise ValueError(f"{cls} could not find required argument '{requirement}'")
         self = super().__new__(cls, input_array, *args, **kwargs)
@@ -67,7 +67,7 @@ class WaveformModes(TimeSeries, WaveformMixin):
     @property
     def abs(self):
         """Absolute value of the data"""
-        return np.abs(self)
+        return np.abs(self).view(TimeSeries)
 
     @property
     def arg(self):
@@ -262,7 +262,7 @@ class WaveformModes(TimeSeries, WaveformMixin):
         """
         if quat.shape != (self.n_times, 4):
             raise ValueError(f"Quaternionic array shape {quat.shape} not understood; expected {(self.n_times, 4)}")
-        D = np.empty((sf.WignerD._total_size_D_matrices(self.ell_min, self.ell_max),), dtype=complex)
+        D = np.empty((spherical.WignerD._total_size_D_matrices(self.ell_min, self.ell_max),), dtype=complex)
         new_data = self.data.copy()
         quat2spinor = quat.two_spinor
         _rotate_decomposition_basis(new_data, quat2spinor.a, quat2spinor.b, self.ell_min, self.ell_max, D)
@@ -352,10 +352,10 @@ def _rotate_decomposition_basis(data, R_basis_a, R_basis_b, ell_min, ell_max, D)
 
     """
     for i_t in range(data.shape[0]):
-        sf._Wigner_D_matrices(R_basis_a[i_t], R_basis_b[i_t], ell_min, ell_max, D)
+        spherical._Wigner_D_matrices(R_basis_a[i_t], R_basis_b[i_t], ell_min, ell_max, D)
         for ell in range(ell_min, ell_max + 1):
             i_data = ell ** 2 - ell_min ** 2
-            i_D = sf._linear_matrix_offset(ell, ell_min)
+            i_D = spherical._linear_matrix_offset(ell, ell_min)
 
             for i_m in range(2 * ell + 1):
                 new_data_mp = 0j
