@@ -20,3 +20,26 @@ from .horizons import Horizons, HorizonQuantities
 from .waveforms import WaveformModes, WaveformGrid, WaveformSignal
 from . import catalog, metadata, horizons, waveforms
 from .handlers import load
+
+# The speed of light is, of course, defined to be exactly
+speed_of_light = 299_792_458.0  # m/s
+
+# By "IAU 2012 Resolution B2", the astronomical unit is defined to be exactly
+astronomical_unit = 149_597_870_700.0  # m
+
+# The parsec is, in turn, defined as "The distance at which 1 au subtends 1 arc sec: 1 au divided by
+# pi/648000."  Thus, the extended-precision value of the parsec in meters is
+parsec_in_meters = 3.0856775814913672789139379577965e16  # m
+
+# The value of the solar mass parameter G*M_sun is known to higher accuracy than either of its
+# factors.  The value here is taken from the publication "2018 Selected Astronomical Constants",
+# which can be found at <http://asa.hmnao.com/static/files/2018/Astronomical_Constants_2018.pdf>.
+# In the TDB (Barycentric Dynamical Time) time scale — which seems to be the more relevant one and
+# looks like the more standard one for LIGO — we have
+solar_mass_parameter = 1.32712440041e20  # m^3/s^2
+
+# Dividing by the speed of light squared, we get the mass of the sun in meters; dividing again, we
+# get the mass of the sun in seconds. For consistency with the nominal value above, we retain more
+# precision than is warranted by the measurement.
+m_sun_in_meters = 1476.6250385063112526099633973363  # m
+m_sun_in_seconds = 4.925490949162941425997992909269e-06  # s
