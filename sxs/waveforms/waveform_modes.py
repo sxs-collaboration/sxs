@@ -1,6 +1,7 @@
 import numpy as np
+import quaternionic
 import spherical
-from .. import TimeSeries
+from .. import TimeSeries, jit
 from . import WaveformMixin
 
 
@@ -13,14 +14,6 @@ class WaveformModes(TimeSeries, WaveformMixin):
                 raise ValueError(f"{cls} could not find required argument '{requirement}'")
         self = super().__new__(cls, input_array, *args, **kwargs)
         return self
-
-    @property
-    def t(self):  # A handy alias for backwards-compatibility
-        return self.time
-
-    @property
-    def data(self):  # A handy alias for backwards-compatibility
-        return self.ndarray
 
     @property
     def modes_axis(self):
@@ -70,10 +63,6 @@ class WaveformModes(TimeSeries, WaveformMixin):
 
         """
         return spherical.LM_index(ell, m, self.ell_min)
-
-    @property
-    def data_type(self):
-        return self._metadata["data_type"]
 
     @property
     def abs(self):
@@ -247,3 +236,131 @@ class WaveformModes(TimeSeries, WaveformMixin):
                 mode_minus = self.ndarray[..., i_minus].copy()
                 self.ndarray[..., i_plus] = (mode_plus + mode_minus) / np.sqrt(2)
                 self.ndarray[..., i_minus] = np.conjugate(mode_plus - mode_minus) / np.sqrt(2)
+
+    # TODO:
+    # angular_velocity
+    # expectation_value_LL
+    # expectation_value_Ldt
+    # expectation_value_L
+    # inner_product
+    # # Don't bother with inner_product_LL, as it doesn't appear to be used; maybe a more general version?
+    # mode_frame
+    # to_mode_frame
+    # corotating_frame
+
+    def rotate(self, quat):
+        """Rotate decomposition basis of modes represented by this waveform
+
+        This returns a new waveform object, with missing "frame" data.
+
+        Parameters
+        ----------
+        quat : quaternionic.array
+            This must have the same number of quaternions as the number of times in the
+            waveform.
+
+        """
+        if quat.shape != (self.n_times, 4):
+            raise ValueError(f"Quaternionic array shape {quat.shape} not understood; expected {(self.n_times, 4)}")
+        D = np.empty((sf.WignerD._total_size_D_matrices(self.ell_min, self.ell_max),), dtype=complex)
+        new_data = self.data.copy()
+        quat2spinor = quat.two_spinor
+        _rotate_decomposition_basis(new_data, quat2spinor.a, quat2spinor.b, self.ell_min, self.ell_max, D)
+        new_metadata = self._metadata.copy()
+        new_metadata.pop("frame")
+        w = type(self)(new_data, **new_metadata)
+        return w
+
+    def to_inertial_frame(self):
+        """Return a copy of this waveform in the inertial frame"""
+        if "frame" not in self._metadata:
+            raise ValueError("This waveform has no frame information")
+        if self.frame.shape[0] == 1:
+            raise ValueError("This waveform appears to already be in an inertial frame")
+        if self.frame.shape != (self.n_times, 4):
+            raise ValueError(f"Frame shape {frame.shape} not understood; expected {(self.n_times, 4)}")
+        w = self.rotate(~self.frame)
+        w._metadata["frame_type"] = "inertial"
+        return w
+
+    def to_corotating_frame(
+        self, R0=None, tolerance=1e-12, z_alignment_region=None, return_omega=False, truncate_log_frame=False
+    ):
+        """Return a copy of this waveform in the corotating frame
+
+        The corotating frame is defined to be a rotating frame for which the (L² norm
+        of the) time-dependence of the modes expressed in that frame is minimized.
+        This leaves the frame determined only up to an overall rotation.  In this 
+
+        Parameters
+        ----------
+        R0 : quaternionic, optional
+            Initial value of frame when integrating angular velocity.  Defaults to the
+            identity.
+        tolerance : float, optional
+            Absolute tolerance used in integration of angular velocity
+        z_alignment_region : {None, 2-tuple of floats}, optional
+            If not None, the dominant eigenvector of the <LL> matrix is aligned with
+            the z axis, averaging over this portion of the data.  The first and second
+            elements of the input are considered fractions of the inspiral at which to
+            begin and end the average.  For example, (0.1, 0.9) would lead to starting
+            10% of the time from the first time step to the max norm time, and ending
+            at 90% of that time.
+        return_omega : bool, optional
+            If True, return a 2-tuple consisting of the waveform in the corotating
+            frame (the usual returned object) and the angular-velocity data.  That is
+            frequently also needed, so this is just a more efficient way of getting the
+            data.
+        truncate_log_frame : bool, optional
+            If True, set bits of log(frame) with lower significance than `tolerance` to
+            zero, and use exp(truncated(log(frame))) to rotate the waveform.  Also
+            returns `log_frame` along with the waveform (and optionally `omega`)
+
+        """
+        raise NotImplementedError()
+        frame, omega = corotating_frame(
+            self, R0=R0, tolerance=tolerance, z_alignment_region=z_alignment_region, return_omega=True
+        )
+        if truncate_log_frame:
+            log_frame = np.log(frame).ndarray
+            power_of_2 = 2 ** int(-np.floor(np.log2(2 * tolerance)))
+            log_frame = np.round(log_frame * power_of_2) / power_of_2
+            frame = np.exp(quaternionic.array(log_frame))
+        w = self.rotate_decomposition_basis(frame)
+        w._metadata["frame_type"] = "corotating"
+        w._metadata["frame"] = frame
+        if return_omega:
+            if truncate_log_frame:
+                return (w, omega, log_frame)
+            else:
+                return (w, omega)
+        else:
+            if truncate_log_frame:
+                return (w, log_frame)
+            else:
+                return w
+
+
+@jit("void(c16[:,:], c16[:], c16[:], i8, i8, c16[:])")
+def _rotate_decomposition_basis(data, R_basis_a, R_basis_b, ell_min, ell_max, D):
+    """Rotate data by a different rotor at each point in time
+
+    `D` is just a workspace, which holds the Wigner D matrices.
+    During the summation, it is also used as temporary storage to hold
+    the results for each item of data, where the first row in the
+    matrix is overwritten with the new sums.
+
+    """
+    for i_t in range(data.shape[0]):
+        sf._Wigner_D_matrices(R_basis_a[i_t], R_basis_b[i_t], ell_min, ell_max, D)
+        for ell in range(ell_min, ell_max + 1):
+            i_data = ell ** 2 - ell_min ** 2
+            i_D = sf._linear_matrix_offset(ell, ell_min)
+
+            for i_m in range(2 * ell + 1):
+                new_data_mp = 0j
+                for i_mp in range(2 * ell + 1):
+                    new_data_mp += data[i_t, i_data + i_mp] * D[i_D + i_m + (2 * ell + 1) * i_mp]
+                D[i_D + i_m] = new_data_mp
+            for i_m in range(2 * ell + 1):
+                data[i_t, i_data + i_m] = D[i_D + i_m]
