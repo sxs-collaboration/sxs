@@ -1,4 +1,6 @@
 import abc
+import numpy as np
+import quaternionic
 
 
 class WaveformMixin(abc.ABC):
