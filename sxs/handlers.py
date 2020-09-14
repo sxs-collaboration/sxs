@@ -53,7 +53,6 @@ def sxs_handler(format_string):
                 if any(format_string in next(format_cycler) for _ in range(len(format_list)-1)):
                     raise ValueError(f"Format string '{format_string}' found in multiple sxs format groups")
                 return format_dict[format_string]
-            next(format_cycler)
     raise ValueError(f"Format '{format_string}' is unknown to the `sxs` package; maybe you need to update `sxs`")
 
 
