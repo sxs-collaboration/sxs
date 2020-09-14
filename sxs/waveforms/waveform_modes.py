@@ -169,18 +169,18 @@ class WaveformModes(TimeSeries, WaveformMixin):
     def max_norm_index(self, skip_fraction_of_data=4):
         """Index of time step with largest norm
 
-        The optional argument skips a fraction of the data.  The default is
-        4, which means that it only searches the last three-fourths of the
-        data for the max.  If 0 or 1 is input, this is ignored, and all the
-        data is searched.
+        The optional argument skips a fraction of the data.  The default is 4, which
+        means that it skips the first 1/4 of the data, and only searches the last 3/4
+        of the data for the max.  This must be strictly greater than 1, or the entire
+        data is searched for the maximum of the norm.
 
         """
-        if skip_fraction_of_data == 0 or skip_fraction_of_data == 1:
+        if skip_fraction_of_data <= 1:
             indices = slice(None, None, None)
             return np.argmax(self.norm(indices=indices))
         else:
-            indices = slice(self.n_times // skip_fraction_of_data, None, None)
-            return np.argmax(self.norm(indices=indices)) + (self.n_times // skip_fraction_of_data)
+            indices = slice(int(self.n_times // skip_fraction_of_data), None, None)
+            return np.argmax(self.norm(indices=indices)) + int(self.n_times // skip_fraction_of_data)
 
     def max_norm_time(self, skip_fraction_of_data=4):
         """Return time at which largest norm occurs in data
@@ -200,11 +200,8 @@ class WaveformModes(TimeSeries, WaveformMixin):
         """
         if tol != 0.0:
             tol_per_mode = tol / np.sqrt(self.n_modes)
-            absolute_tolerance = np.linalg.norm(self.ndarray, axis=self.modes_axis) * tol_per_mode
-            power_of_2 = (2.0 ** np.floor(-np.log2(absolute_tolerance)))[:, np.newaxis]
-            self.ndarray *= power_of_2
-            np.round(self.ndarray, out=self.ndarray)
-            self.ndarray /= power_of_2
+            abs_tolerance = np.linalg.norm(self.ndarray, axis=self.modes_axis, keepdims=True) * tol_per_mode
+            super().truncate(abs_tolerance)
 
     def convert_to_conjugate_pairs(self):
         """Convert modes to conjugate-pair format in place
