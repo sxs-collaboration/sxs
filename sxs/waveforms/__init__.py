@@ -1,7 +1,4 @@
-"""Containers for various types of waveforms
-
-
-"""
+"""Containers for various types of waveforms"""
 
 
 from .waveform_mixin import WaveformMixin

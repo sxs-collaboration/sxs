@@ -1,3 +1,5 @@
+import numpy as np
+import spherical
 from .. import TimeSeries
 from . import WaveformMixin
 
@@ -6,12 +8,19 @@ class WaveformModes(TimeSeries, WaveformMixin):
     import functools
 
     def __new__(cls, input_array, *args, **kwargs):
+        for requirement in ["mode_axis", "ell_min", "ell_max"]:
+            if requirement not in kwargs and requirement not in getattr(input_array, "_metadata", {}):
+                raise ValueError(f"{cls} could not find required argument '{requirement}'")
         self = super().__new__(cls, input_array, *args, **kwargs)
-        raise NotImplementedError()
-        assert mode_axis is not None
-        assert ell_min is not None
-        assert ell_max is not None
         return self
+
+    @property
+    def t(self):  # A handy alias for backwards-compatibility
+        return self.time
+
+    @property
+    def data(self):  # A handy alias for backwards-compatibility
+        return self.ndarray
 
     @property
     def modes_axis(self):
@@ -60,7 +69,6 @@ class WaveformModes(TimeSeries, WaveformMixin):
             Index such that self.LM[idx] == [ell, m]
 
         """
-        import spherical
         return spherical.LM_index(ell, m, self.ell_min)
 
     @property
@@ -70,7 +78,6 @@ class WaveformModes(TimeSeries, WaveformMixin):
     @property
     def abs(self):
         """Absolute value of the data"""
-        import numpy as np
         return np.abs(self)
 
     @property
@@ -91,7 +98,6 @@ class WaveformModes(TimeSeries, WaveformMixin):
         WaveformModes.arg_unwrapped
 
         """
-        import numpy as np
         return np.angle(self).view(TimeSeries)
 
     @property
@@ -114,7 +120,6 @@ class WaveformModes(TimeSeries, WaveformMixin):
         WaveformModes.arg
 
         """
-        import numpy as np
         return np.unwrap(self.arg, axis=self.time_axis)
 
     def norm(self, take_sqrt=False, indices=slice(None, None, None)):
@@ -149,7 +154,6 @@ class WaveformModes(TimeSeries, WaveformMixin):
         orthonormal basis.
 
         """
-        import numpy as np
         # Because of MKL and similar fanciness, np.linalg.norm is faster than most
         # other built-in things, even with its sqrt.  Numba can be faster; taking this
         # shortcut out of laziness for now.
@@ -194,7 +198,6 @@ class WaveformModes(TimeSeries, WaveformMixin):
         time.
 
         """
-        import numpy as np
         if tol != 0.0:
             tol_per_mode = tol / np.sqrt(self.n_modes)
             absolute_tolerance = np.linalg.norm(self.ndarray, axis=self.modes_axis) * tol_per_mode
