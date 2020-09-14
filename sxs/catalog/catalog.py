@@ -44,7 +44,7 @@ class Catalog(object):
         from .. import sxs_directory, read_config
         from ..utilities import download_file
 
-        progress = read_config("download_progress") or False
+        progress = read_config("download_progress", True)
 
         cache_path = sxs_directory("cache") / "catalog.zip"
 
@@ -124,13 +124,13 @@ class Catalog(object):
     def save(self, **kwargs):
         raise NotImplementedError()
 
-    def select_files(self, path_pattern):
+    def select_files(self, path_pattern, include_json=True):
         """Return paths and file information from all files available in the catalog
 
-        This function is essentially the same as the `select` function, except that
-        — whereas that function returns only the matching paths — this function
-        returns matching paths and file information about those paths, including
-        things like checksum, filesize, and download links.
+        This function is essentially the same as the `select` function, except that —
+        whereas that function returns only the matching paths — this function returns
+        matching paths and file information about those paths, including things like
+        checksum, filesize, and download links.
 
         Parameters
         ----------
@@ -141,8 +141,12 @@ class Catalog(object):
         Returns
         -------
         selections : dict
-            This is a dictionary with keys given by the paths to selected files in
-            the catalog, and values given by `file_info` dicts described below.
+            This is a dictionary with keys given by the paths to selected files in the
+            catalog, and values given by `file_info` dicts described below.
+        include_json : bool, optional
+            If True (the default), for each file that would be returned naturally, if a
+            file with the same name but ending in '.json' is found in the `files`, the
+            json file is also returned.
 
         See Also
         --------
@@ -167,10 +171,10 @@ class Catalog(object):
 
         """
         files = self.files
-        selection = self.select(path_pattern, files=files)
+        selection = self.select(path_pattern, files=files, include_json=include_json)
         return {s: files[s] for s in selection}
 
-    def select(self, path_pattern, files=None):
+    def select(self, path_pattern, files=None, include_json=True):
         """Select from all catalog files by progressively matching path components
 
         Parameters
@@ -187,6 +191,10 @@ class Catalog(object):
             components to `max`, resulting in multiple matches.
         files : Iterable[str], optional
             A list of files to select from.  Default is all files in the catalog.
+        include_json : bool, optional
+            If True (the default), for each file that would be returned naturally, if a
+            file with the same name but ending in '.json' is found in the `files`, the
+            json file is also returned.
 
         Returns
         -------
@@ -231,9 +239,16 @@ class Catalog(object):
              "SXS:BBH:0002v7/Lev6/h_extrapolated_n2.h5"}
 
         """
+        import pathlib
         from ..utilities import select_by_path_component
         files = files or self.files
-        selections = select_by_path_component(path_pattern, set(files))
+        selections = select_by_path_component(path_pattern, files)
+        if include_json:
+            for selection in selections:
+                if not selection.endswith(".json"):
+                    p = pathlib.Path(selection).with_suffix(".json")
+                    if p in selections:
+                        selections.add(str(p))
         return sorted(selections)
 
     @property
