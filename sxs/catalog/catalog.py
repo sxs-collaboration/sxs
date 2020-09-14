@@ -40,7 +40,6 @@ class Catalog(object):
         import pathlib
         import tempfile
         import zipfile
-        from datetime import datetime, timezone
         from .. import sxs_directory, read_config
         from ..utilities import download_file
 
@@ -58,7 +57,7 @@ class Catalog(object):
                 temp_path = pathlib.Path(temp_dir) / "catalog.json"
                 zip_path = pathlib.Path(temp_dir) / "catalog.zip"
                 try:
-                    downloaded_path = download_file(cls.url, temp_path, progress=progress, if_newer=if_newer)
+                    download_file(cls.url, temp_path, progress=progress, if_newer=if_newer)
                 except Exception as e:
                     if download:
                         raise RuntimeError(f"Failed to download '{cls.url}'") from e
