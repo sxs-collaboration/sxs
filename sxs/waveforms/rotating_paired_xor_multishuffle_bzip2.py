@@ -158,7 +158,7 @@ def save(w, file_name=None, L2norm_fractional_tolerance=1e-10, log_frame=None, s
     return w, log_frame
 
 
-def load(file_name, ignore_validation=False, check_md5=True):
+def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertial=True):
     import warnings
     import pathlib
     import bz2
@@ -169,8 +169,12 @@ def load(file_name, ignore_validation=False, check_md5=True):
     from ..utilities import md5checksum, xor, multishuffle
     from . import WaveformModes
 
+    sxs_formats = {"rotating_paired_xor"}
+
     def invalid(message):
         if ignore_validation:
+            pass:
+        elif ignore_validation is None:
             warnings.warn(message)
         else:
             raise ValueError(message)
@@ -188,14 +192,14 @@ def load(file_name, ignore_validation=False, check_md5=True):
         with open(json_path) as f:
             json_data = json.load(f)
 
-        dataType = json_data.get("data_info", {}).get("data_type", "UnknownDataType")
-        dataType = scri.DataType[scri.DataNames.index(dataType)]
+        data_type = json_data.get("data_info", {}).get("data_type", "unknown")
 
         # Make sure this is our format
         sxs_format = json_data.get("sxs_format", "")
         if sxs_format not in sxs_formats:
             invalid(
-                f'\nThe `sxs_format` found in JSON file is "{sxs_format}"; it should be one of\n' f"    {sxs_formats}."
+                f"\nThe `sxs_format` found in JSON file is '{sxs_format}';\n"
+                f"it should be one of {sxs_formats}."
             )
 
         # Make sure the expected H5 file size matches the observed value
@@ -218,7 +222,8 @@ def load(file_name, ignore_validation=False, check_md5=True):
         sxs_format = f.attrs["sxs_format"]
         if sxs_format not in sxs_formats:
             raise ValueError(
-                f'The `sxs_format` found in H5 file is "{sxs_format}"; it should be one of\n' f"    {sxs_formats}."
+                f"\nThe `sxs_format` found in H5 file is '{sxs_format}';"
+                f"it should be one of {sxs_formats}."
             )
 
         # Ensure that the 'validation' keys from the JSON file are the same as in this file
@@ -256,9 +261,9 @@ def load(file_name, ignore_validation=False, check_md5=True):
     log_frame = log_frame.reshape((-1, n_times)).T.copy().view(np.float64)
 
     # Un-XOR the data
-    t = xor(t, reverse=True)
-    data = xor(data, reverse=True)
-    log_frame = xor(log_frame, reverse=True)
+    t = xor(t, reverse=True, preserve_dtype=True)
+    data = xor(data, reverse=True, preserve_dtype=True)
+    log_frame = xor(log_frame, reverse=True, preserve_dtype=True)
 
     frame = np.exp(quaternionic.array(np.insert(log_frame, 0, 0.0, axis=1)))
 
@@ -267,13 +272,18 @@ def load(file_name, ignore_validation=False, check_md5=True):
         t=t,
         frame=frame,
         frame_type="corotating",
-        dataType=dataType,
+        data_type=data_type,
         m_is_scaled_out=True,
         r_is_scaled_out=True,
         ell_min=ell_min,
         ell_max=ell_max,
     )
     w.convert_from_conjugate_pairs()
-    w.json_data = json_data
 
-    return w, log_frame
+    if transform_to_inertial:
+        w = w.to_inertial_frame()
+
+    w.json_data = json_data
+    w.log_frame = log_frame
+
+    return w
