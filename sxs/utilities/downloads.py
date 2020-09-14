@@ -79,24 +79,22 @@ def download_file(url, path, progress=False, if_newer=True):
 
     file_size = int(r.headers.get('Content-Length', 0))
     r.raw.read = functools.partial(r.raw.read, decode_content=True)
-    with tempfile.TemporaryDirectory() as temp_dir:
-        if local_filename.exists():
-            output_path = pathlib.Path(temp_dir) / "temp_data"
-        else:
-            output_path = local_filename
-        try:
-            with output_path.open("wb") as f:
-                if progress and file_size:
-                    desc = "(Unknown total file size)" if file_size == 0 else ""
-                    print(f"Downloading to {path}:", flush=True)
-                    with tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc, ncols=79) as r_raw:
-                        shutil.copyfileobj(r_raw, f)
-                else:
-                    shutil.copyfileobj(r.raw, f)
-        except Exception as e:
-            raise RuntimeError(f"Failed to download {url} to {local_filename}; original file remains") from e
-        else:
-            if local_filename.exists():
-                output_path.replace(local_filename)
+
+    output_path = local_filename.parent / (local_filename.name + '.part')
+    try:
+        with output_path.open("wb") as f:
+            if progress and file_size:
+                desc = "(Unknown total file size)" if file_size == 0 else ""
+                print(f"Downloading to {path}:", flush=True)
+                with tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc, dynamic_ncols=True) as r_raw:
+                    shutil.copyfileobj(r_raw, f)
+            else:
+                shutil.copyfileobj(r.raw, f)
+    except Exception as e:
+        raise RuntimeError(f"Failed to download {url} to {local_filename}; original file remains") from e
+    else:
+        output_path.replace(local_filename)
+    finally:
+        output_path.unlink(missing_ok=True)
 
     return local_filename
