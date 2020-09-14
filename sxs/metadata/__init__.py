@@ -1,6 +1,6 @@
 """Interface to SXS metadata files"""
 
-from .container import Metadata
+from .metadata import Metadata
 
 formats = {
     None: Metadata,
