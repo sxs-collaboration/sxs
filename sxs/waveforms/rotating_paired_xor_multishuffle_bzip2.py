@@ -169,11 +169,11 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
     from ..utilities import md5checksum, xor, multishuffle
     from . import WaveformModes
 
-    sxs_formats = {"rotating_paired_xor"}
+    sxs_formats = {"rotating_paired_xor_multishuffle_bzip2"}
 
     def invalid(message):
         if ignore_validation:
-            pass:
+            pass
         elif ignore_validation is None:
             warnings.warn(message)
         else:
@@ -262,14 +262,16 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
 
     # Un-XOR the data
     t = xor(t, reverse=True, preserve_dtype=True)
-    data = xor(data, reverse=True, preserve_dtype=True)
-    log_frame = xor(log_frame, reverse=True, preserve_dtype=True)
+    data = xor(data.view(np.float64), reverse=True, preserve_dtype=True, axis=0)
+    log_frame = xor(log_frame, reverse=True, preserve_dtype=True, axis=0)
 
     frame = np.exp(quaternionic.array(np.insert(log_frame, 0, 0.0, axis=1)))
 
     w = WaveformModes(
         data,
-        t=t,
+        time=t,
+        time_axis=0,
+        modes_axis=1,
         frame=frame,
         frame_type="corotating",
         data_type=data_type,
