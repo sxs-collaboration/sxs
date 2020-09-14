@@ -12,7 +12,10 @@ except ModuleNotFoundError:  # pragma: no cover
 __version__ = importlib_metadata.version(__name__)
 
 from . import utilities
-from .utilities import file_format, sxs_directory, read_config, write_config, sxs_id, lev_number
+from .utilities import (
+    file_format, sxs_directory, read_config, write_config, sxs_id, lev_number,
+    jit, vectorize, guvectorize
+)
 from .time_series import TimeSeries
 from .catalog import Catalog
 from .metadata import Metadata
