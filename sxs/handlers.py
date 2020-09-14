@@ -86,24 +86,27 @@ def sxs_loader(file):
 
     """
     import re
+    import pathlib
     from .utilities import file_format
     format_string = file_format(file)
     if format_string is None:
-        if "catalog" in str(file).lower():
+        file_string = str(pathlib.Path(file).name).lower()
+        if "catalog" in file_string:
             format_string = "catalog"
-        elif "metadata" in str(file).lower():
+        elif "metadata" in file_string:
             format_string = "metadata"
-        elif "horizons" in str(file).lower():
+        elif "horizons" in file_string:
             format_string = "horizons"
-        elif re.match("(rh_|rhoverm_|rpsi4_|rmpsi4_)", re.IGNORECASE):
+        elif re.match("(rh_|rhoverm_|rpsi4_|rmpsi4_)", file_string):
             format_string = "waveforms"
         else:
             raise ValueError(f"File '{file}' contains no recognized format information")
     handler = sxs_handler(format_string)
+    # noinspection PyUnresolvedReferences
     return handler.load
 
 
-def load(location, download=None, cache=None, progress=False, **kwargs):
+def load(location, download=None, cache=None, progress=None, **kwargs):
     """Load an SXS-format dataset, optionally downloading and caching
 
     The dataset can be the full catalog of all SXS simulations, or metadata,
@@ -128,9 +131,10 @@ def load(location, download=None, cache=None, progress=False, **kwargs):
         configuration will be ignored and any files will be downloaded to a
         temporary directory that will be deleted when python exits.
     progress : {None, bool}, optional
-        If True, and a nonzero Content-Length header is returned, a progress bar
-        will be shown during any downloads.  Default is False unless
-        `read_config("download_progress")` is True.
+        If True, full file names will be shown and, if a nonzero Content-Length
+        header is returned, a progress bar will be shown during any downloads.
+        Default is None, which just reads the configuration value with
+        `read_config("download_progress", True)`, defaulting to True.
 
     Keyword Parameters
     ------------------
@@ -173,11 +177,11 @@ def load(location, download=None, cache=None, progress=False, **kwargs):
 
     # Note: `download` and/or `cache` may still be `None` after this
     if download is None:
-        download = read_config("download")
+        download = read_config("download", True)
     if cache is None:
         cache = read_config("cache")
     if progress is None:
-        progress = read_config("download_progress")
+        progress = read_config("download_progress", True)
 
     # We set the cache path to be persistent if `cache` is `True` or `None`.  Thus,
     # we test for whether or not `cache` literally *is* `False`, rather than just
