@@ -6,6 +6,52 @@ from . import WaveformMixin
 
 
 class WaveformModes(WaveformMixin, TimeSeries):
+    """Array-like object representing time-series data of SWSH modes
+
+    We generally assume that the data represent mode weights in expansions of
+    functions in terms of spin-weighted spherical harmonics (where the standard
+    spherical harmonics just happen to have spin weight 0).
+
+    This object is based on the TimeSeries object, but has many additional methods
+    for manipulating modes.
+
+    Parameters
+    ----------
+    input_array : (..., N, ..., M, ...) array_like
+        Input data representing the dependent variable, in any form that can be
+        converted to a numpy array.  This includes scalars, lists, lists of tuples,
+        tuples, tuples of tuples, tuples of lists, and numpy ndarrays.  It can have
+        an arbitrary number of dimensions, but the length `N` along `time_axis`
+        must match the length of `time`, and the length `M` along `modes_axis` (see
+        below) must be consistent with `ell_min` and `ell_max`.  Values must be
+        finite.
+    time : (N,) array_like
+        1-D array containing values of the independent variable.  Values must be
+        real, finite, and in strictly increasing order.
+    time_axis : int, optional
+        Axis along which `input_array` is assumed to be varying in time, meaning
+        that for `time[i]` the corresponding values are `np.take(input_array, i,
+        axis=time_axis)`.  If this is not given, the first axis of `input_array`
+        that has the same length as `time` is chosen as the time axis — which may
+        be prone to errors.
+    modes_axis : int
+        Axis of the array along which the modes are stored.  See Notes below.
+    ell_min : int
+        Smallest value of ℓ stored in the data
+    ell_max : int
+        Largest value of ℓ stored in the data
+
+    Notes
+    -----
+    We assume that the modes at a given time, say, are stored in a flat array, in
+    order of increasing `m` and `ell`, with `m` varying most rapidly — something
+    like the following:
+
+        [f(ell, m) for ell in range(ell_min, ell_max+1) for m in range(-ell,ell+1)]
+
+    The total size is implicitly `ell_max * (ell_max + 2) - ell_min ** 2 + 1`.
+
+    """
     import functools
 
     def __new__(cls, input_array, *args, **kwargs):
@@ -15,16 +61,40 @@ class WaveformModes(WaveformMixin, TimeSeries):
         self = super().__new__(cls, input_array, *args, **kwargs)
         return self
 
+    def __getitem__(self, key):
+        obj, time_key = self._slice(key)
+        if time_key is None:
+            raise ValueError(f"Fancy indexing (with {key}) is not supported")
+        obj = obj.view(type(self))
+        if "frame" in obj._metadata and obj.frame.shape == (self.n_times, 4):
+            obj._metadata["frame"] = obj.frame[time_key, :]
+        return obj
+
     @property
     def modes_axis(self):
+        """Axis of the array storing the various modes
+
+        We assume that the modes at a given time, say, are stored in a flat array, in
+        order of increasing `m` and `ell`, with `m` varying most rapidly — something
+        like the following:
+
+            [f(ell, m) for ell in range(ell_min, ell_max+1) for m in range(-ell, ell+1)]
+
+        See Also
+        --------
+        time_axis : Axis of the array along which time varies
+
+        """
         return self._metadata["modes_axis"]
 
     @property
     def ell_min(self):
+        """Smallest value of ℓ stored in the data"""
         return self._metadata["ell_min"]
 
     @property
     def ell_max(self):
+        """Largest value of ℓ stored in the data"""
         return self._metadata["ell_max"]
 
     @property
