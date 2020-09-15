@@ -74,11 +74,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
     def modes_axis(self):
         """Axis of the array storing the various modes
 
-        We assume that the modes at a given time, say, are stored in a flat array, in
-        order of increasing `m` and `ell`, with `m` varying most rapidly — something
-        like the following:
-
-            [f(ell, m) for ell in range(ell_min, ell_max+1) for m in range(-ell, ell+1)]
+        See the documentation of this class for an explanation of what this means.
 
         See Also
         --------
@@ -99,6 +95,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
     @property
     def n_modes(self):
+        """Total number of mode weights stored in the data"""
         return self.shape[self.modes_axis]
 
     @property
@@ -136,8 +133,20 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
     @property
     def abs(self):
-        """Absolute value of the data"""
-        return np.abs(self).view(TimeSeries)
+        """Absolute value of the data
+
+        Returns
+        -------
+        absolute : TimeSeries
+            Because the absolute values make no sense as mode weights, this is just a
+            plain TimeSeries object.
+
+        See Also
+        --------
+        arg
+
+        """
+        return np.abs(self.view(TimeSeries))
 
     @property
     def arg(self):
@@ -154,17 +163,17 @@ class WaveformModes(WaveformMixin, TimeSeries):
         See Also
         --------
         numpy.angle
-        WaveformModes.arg_unwrapped
+        arg_unwrapped
 
         """
-        return np.angle(self).view(TimeSeries)
+        return np.angle(self.view(TimeSeries))
 
     @property
     def arg_unwrapped(self):
         """Complex phase angle of the data, unwrapped along the time axis
 
         The result is "unwrapped", meaning that discontinuities as the phase approaches
-        ±π are removed
+        ±π are removed by adding an appropriate amount to all following data points.
 
         Returns
         -------
@@ -176,24 +185,14 @@ class WaveformModes(WaveformMixin, TimeSeries):
         --------
         numpy.angle
         numpy.unwrap
-        WaveformModes.arg
+        arg
 
         """
         return np.unwrap(self.arg, axis=self.time_axis)
 
-    def norm(self, take_sqrt=False, indices=slice(None, None, None)):
-        """Compute a norm of the waveform
-
-        Parameters
-        ----------
-        take_sqrt : bool, optional
-            If True, return the standard L² norm, which involves taking the square
-            root.  If False (the default), the square root is not taken, meaning that
-            the returned value is the square of the usual L² norm.
-        indices : array_like, optional
-            If present, the data is sliced along the time axis with this quantity —
-            specifically, using `numpy.take`.  See that function's docstring for more
-            explanation.
+    @property
+    def norm(self):
+        """Compute the L² norm of the waveform
 
         Returns
         -------
@@ -203,6 +202,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         --------
         numpy.linalg.norm
         numpy.take
+        norm2 : squared version of this
 
         Notes
         -----
@@ -213,17 +213,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         orthonormal basis.
 
         """
-        # Because of MKL and similar fanciness, np.linalg.norm is faster than most
-        # other built-in things, even with its sqrt.  Numba can be faster; taking this
-        # shortcut out of laziness for now.
-        if indices == slice(None, None, None):
-            n = np.linalg.norm(self.ndarray, axis=self.modes_axis)
-        else:
-            n = np.linalg.norm(np.take(self.ndarray, indices, axis=self.time_axis), axis=self.modes_axis)
-        if take_sqrt:
-            return n
-        else:
-            return n**2
+        return np.linalg.norm(self.view(TimeSeries), axis=self.modes_axis)
 
     def max_norm_index(self, skip_fraction_of_data=4):
         """Index of time step with largest norm
@@ -235,11 +225,10 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         """
         if skip_fraction_of_data <= 1:
-            indices = slice(None, None, None)
-            return np.argmax(self.norm(indices=indices))
+            return np.argmax(self.norm)
         else:
-            indices = slice(int(self.n_times // skip_fraction_of_data), None, None)
-            return np.argmax(self.norm(indices=indices)) + int(self.n_times // skip_fraction_of_data)
+            i = int(self.n_times // skip_fraction_of_data)
+            return np.argmax(self[i:].norm) + i
 
     def max_norm_time(self, skip_fraction_of_data=4):
         """Return time at which largest norm occurs in data
@@ -282,12 +271,14 @@ class WaveformModes(WaveformMixin, TimeSeries):
         each time for this data is the same as it is for the original data.
 
         """
+        mode_plus = np.empty_like(self.ndarray[..., 0])
+        mode_minus = np.empty_like(mode_plus)
         for ell in range(self.ell_min, self.ell_max + 1):
             for m in range(1, ell + 1):
                 i_plus = self.index(ell, m)
                 i_minus = self.index(ell, -m)
-                mode_plus = self.ndarray[..., i_plus].copy()
-                mode_minus = self.ndarray[..., i_minus].copy()
+                mode_plus[:] = self.ndarray[..., i_plus]
+                mode_minus[:] = self.ndarray[..., i_minus]
                 self.ndarray[..., i_plus] = (mode_plus + np.conjugate(mode_minus)) / np.sqrt(2)
                 self.ndarray[..., i_minus] = (mode_plus - np.conjugate(mode_minus)) / np.sqrt(2)
 
@@ -298,12 +289,14 @@ class WaveformModes(WaveformMixin, TimeSeries):
         function's docstring for details.
 
         """
+        mode_plus = np.empty_like(self.ndarray[..., 0])
+        mode_minus = np.empty_like(mode_plus)
         for ell in range(self.ell_min, self.ell_max + 1):
             for m in range(1, ell + 1):
                 i_plus = self.index(ell, m)
                 i_minus = self.index(ell, -m)
-                mode_plus = self.ndarray[..., i_plus].copy()
-                mode_minus = self.ndarray[..., i_minus].copy()
+                mode_plus[:] = self.ndarray[..., i_plus]
+                mode_minus[:] = self.ndarray[..., i_minus]
                 self.ndarray[..., i_plus] = (mode_plus + mode_minus) / np.sqrt(2)
                 self.ndarray[..., i_minus] = np.conjugate(mode_plus - mode_minus) / np.sqrt(2)
 
@@ -314,7 +307,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
     # expectation_value_L
     # inner_product
     # # Don't bother with inner_product_LL, as it doesn't appear to be used; maybe a more general version?
-    # mode_frame
+    # mode_frame : Minimally rotating O'Shaughnessy et al. frame
     # to_mode_frame
     # corotating_frame
 
