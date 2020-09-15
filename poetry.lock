@@ -524,7 +524,7 @@ description = "Interpret numpy arrays as quaternionic arrays with numba accelera
 name = "quaternionic"
 optional = false
 python-versions = ">=3.6,<4.0"
-version = "0.1.15"
+version = "0.1.16"
 
 [package.dependencies]
 numpy = ">=1.13,<2.0"
@@ -788,7 +788,7 @@ mktheapidocs = ["mktheapidocs"]
 pymdown-extensions = ["pymdown-extensions"]
 
 [metadata]
-content-hash = "e6601169de65445e46d2b8c3ea6e7776a41682761310730fa7efe861745ffd7d"
+content-hash = "c8eef001678651a7de1650f429eb09de34d58da438832d5a7846fd4421c9274e"
 lock-version = "1.1"
 python-versions = "^3.6"
 
@@ -1129,8 +1129,8 @@ pyyaml = [
     {file = "PyYAML-5.3.1.tar.gz", hash = "sha256:b8eac752c5e14d3eca0e6dd9199cd627518cb5ec06add0de9d32baeee6fe645d"},
 ]
 quaternionic = [
-    {file = "quaternionic-0.1.15-py3-none-any.whl", hash = "sha256:9e0e9acc92b7bf7a6bebe21474d068e24453b5a7e4d319b01c424795b1ab0c10"},
-    {file = "quaternionic-0.1.15.tar.gz", hash = "sha256:4cc8a318818b5fdd9982307b9178b872e414036f7102c2824be8204cf28ab449"},
+    {file = "quaternionic-0.1.16-py3-none-any.whl", hash = "sha256:4f4439fd26e9a19aa3a6896713e63e53a5181ce1f8d5174fa78d455b11a13332"},
+    {file = "quaternionic-0.1.16.tar.gz", hash = "sha256:4edbf184f47a959ee5d58101a4c88998056291fd8764161e76e4dcd18d64fa46"},
 ]
 regex = [
     {file = "regex-2020.7.14-cp27-cp27m-win32.whl", hash = "sha256:e46d13f38cfcbb79bfdb2964b0fe12561fe633caf964a77a5f8d4e45fe5d2ef7"},
