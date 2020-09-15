@@ -15,8 +15,8 @@ class TimeSeries(np.ndarray):
         Input data representing the dependent variable, in any form that can be
         converted to a numpy array.  This includes scalars, lists, lists of tuples,
         tuples, tuples of tuples, tuples of lists, and numpy ndarrays.  It can have
-        an arbitrary number of dimensions, but the length along `time_axis` (see
-        below) must match the length of `time`.  Values must be finite.
+        an arbitrary number of dimensions, but the length `N` along `time_axis`
+        (see below) must match the length of `time`.  Values must be finite.
     time : (N,) array_like
         1-D array containing values of the independent variable.  Values must be
         real, finite, and in strictly increasing order.
@@ -105,33 +105,13 @@ class TimeSeries(np.ndarray):
         if "time" not in self._metadata:
             self._metadata["time"] = None  # Placeholder about to be updated
 
-    def __getitem__(self, key):
-        """Extract a slice of this object
+    def _slice(self, key):
+        """Slice this object
 
-        Note that slicing this object works slightly differently than slicing the
-        underlying ndarray object, basically because we want to ensure that the
-        returned object is still a TimeSeries object.
-
-        First, if a single element is requested along the time dimension, that
-        dimension will not be removed.  For a 2-d ndarray `arr`, taking `arr[3]`
-        will return a 1-d array; the first dimension will be removed because only
-        the third element is extracted.  For a 2-d TimeSeries `ts` with
-        `time_axis=0`, `ts[3]` will return a 2-d TimeSeries; the first dimension
-        will just have size 1, representing the third element.  If the requested
-        element is not along the time dimension, the requested dimension will be
-        removed as usual.
-
-        Also, taking an irregular slice of this object is not permitted.  For
-        example:
-
-            >>> a = np.arange(3*4).reshape(3, 4)
-            >>> a[a % 5 == 0]
-            array([ 0,  5, 10])
-
-        Even though `a % 5 == 0` is a 2-d array, indexing flattens `a` and the
-        indexing set, so that the result is a 1-d array.  This probably does not
-        make sense for TimeSeries arrays, so attempting to do something like this
-        raises a ValueError.
+        This is the core function used by __getitem__, and returns not only the sliced
+        result, but also the indices used to slice the time array.  This is useful for
+        subclasses when they also need the latter to slice additional time-related
+        quantities.
 
         """
         from numbers import Integral
@@ -189,8 +169,9 @@ class TimeSeries(np.ndarray):
             old_key_normalize = tuple(e for e in full_key_normalize if not newaxis_type(e))
             return old_key_normalize, full_key_normalize
 
+        time_key = slice(None)
+
         if key is np.newaxis:
-            new_time = self.time
             new_time_axis = self.time_axis + 1
             new_data = super().__getitem__(key)
 
@@ -219,12 +200,10 @@ class TimeSeries(np.ndarray):
                 full_key = tuple(e if i != full_time_axis else time_key for i, e in enumerate(full_key))
             # Index the data and time arrays
             new_data = super().__getitem__(full_key)
-            new_time = self.time[time_key]
 
         elif isinstance(key, np.ndarray) and key.ndim-1 <= self.time_axis:
             # This is okay; it's just indexing the leading dimensions
             new_data = super().__getitem__(key)
-            new_time = self.time
             new_time_axis = self.time_axis
 
         else:  # Try the slow way
@@ -240,6 +219,7 @@ class TimeSeries(np.ndarray):
                     f"    {type(self).__name__}(sliced_data, time=sliced_time, time_axis=sliced_time_axis)\n"
                 )
             try:
+                time_key = None
                 new_time_slice = tuple(0 if i != self.time_axis else slice(None) for i in range(self.ndim))
                 new_time = self.time_broadcast[key][new_time_slice].copy()
             except Exception as e:
@@ -252,12 +232,42 @@ class TimeSeries(np.ndarray):
             new_time_axis = self.time_axis
 
         # Create the new sliced object along with its metadata
+        if time_key is not None:
+            new_time = self.time[time_key]
         metadata = self._metadata.copy()
         metadata.update(**getattr(new_data, '_metadata', {}))
         metadata["time"] = new_time
         metadata["time_axis"] = new_time_axis
 
-        return type(self)(new_data, **metadata)
+        return type(self)(new_data, **metadata), time_key
+
+    def __getitem__(self, key):
+        """Extract a slice of this object
+
+        Note that slicing this object works slightly differently than slicing the
+        underlying ndarray object, basically because we want to ensure that the
+        returned object is still a TimeSeries object.
+
+        First, if a single element is requested along the time dimension, that
+        dimension will not be removed.  For a 2-d ndarray `arr`, taking `arr[3]` will
+        return a 1-d array; the first dimension will be removed because only the third
+        element is extracted.  For a 2-d TimeSeries `ts` with `time_axis=0`, `ts[3]`
+        will return a 2-d TimeSeries; the first dimension will just have size 1,
+        representing the third element.  If the requested element is not along the time
+        dimension, the requested dimension will be removed as usual.
+
+        Also, taking an irregular slice of this object is not permitted.  For example:
+
+            >>> a = np.arange(3*4).reshape(3, 4)
+            >>> a[a % 5 == 0]
+            array([ 0,  5, 10])
+
+        Even though `a % 5 == 0` is a 2-d array, indexing flattens `a` and the indexing
+        set, so that the result is a 1-d array.  This probably does not make sense for
+        TimeSeries arrays, so attempting to do something like this raises a ValueError.
+
+        """
+        return self._slice(key)[0]
 
     @property
     def ndarray(self):
@@ -266,6 +276,12 @@ class TimeSeries(np.ndarray):
 
     @property
     def time_axis(self):
+        """Axis of the array along which time varies
+
+        At the time `time[i]`, the corresponding values of the data are
+        `np.take(input_array, i, axis=time_axis)`.
+
+        """
         return self._metadata["time_axis"]
 
     @property
@@ -277,6 +293,7 @@ class TimeSeries(np.ndarray):
 
     @property
     def n_times(self):
+        """Size of the array along the time_axis"""
         return self.time.size
 
     @property
@@ -295,9 +312,9 @@ class TimeSeries(np.ndarray):
         # noinspection SpellCheckingInspection
         nditer = np.nditer(
             self.time[new_shape],
-            flags=['multi_index', 'zerosize_ok'],
+            flags=["multi_index", "zerosize_ok"],
             itershape=self.shape,
-            order='C'
+            order="C"
         )
         return nditer.itviews[0]
 
@@ -309,6 +326,42 @@ class TimeSeries(np.ndarray):
         return repr(self)
 
     def interpolate(self, new_time, derivative_order=0, out=None):
+        """Interpolate this object to a new set of times
+
+        Parameters
+        ----------
+        new_time : array_like
+            Points to evaluate the interpolant at
+        derivative_order : int, optional
+            Order of derivative to evaluate.  If negative, the antiderivative is
+            returned.  Default value of 0 returns the interpolated data without
+            derivatives or antiderivatives.  Must be between -3 and 3, inclusive.
+
+        See Also
+        --------
+        scipy.interpolate.CubicSpline :
+            The function that this function is based on.
+        antiderivative :
+            Calls this funtion with `new_time=self.time` and
+            `derivative_order=-antiderivative_order` (defaulting to a single
+            antiderivative).
+        derivative :
+            Calls this function `new_time=self.time` and
+            `derivative_order=derivative_order` (defaulting to a single derivative).
+        dot :
+            Property calling `self.derivative(1)`.
+        ddot :
+            Property calling `self.derivative(2)`.
+        int :
+            Property calling `self.antiderivative(1)`.
+        iint :
+            Property calling `self.antiderivative(2)`.
+
+        Notes
+        -----
+        This function is essentially a wrapper around `scipy.interpolate.CubicSpline`
+
+        """
         from scipy.interpolate import CubicSpline
         if derivative_order > 3:
             raise ValueError(
@@ -343,31 +396,97 @@ class TimeSeries(np.ndarray):
         return type(self)(result, **metadata)
 
     def antiderivative(self, antiderivative_order=1):
-        """Integrate modes with respect to time"""
+        """Integrate modes with respect to time
+
+        Parameters
+        ----------
+        antiderivative_order : int, optional
+            Order of antiderivative to evaluate.  Default value is 1.  Must be between
+            -3 and 3, inclusive.
+
+        See Also
+        --------
+        scipy.interpolate.CubicSpline :
+            The function that this function is based on.
+        interpolate :
+            This function simply calls `self.interpolate` with appropriate arguments.
+        int :
+            Property calling `self.antiderivative(1)`.
+        iint :
+            Property calling `self.antiderivative(2)`.
+
+        """
         return self.interpolate(self.time, derivative_order=-antiderivative_order)
 
     def derivative(self, derivative_order=1):
-        """Differentiate modes with respect to time"""
+        """Differentiate modes with respect to time
+
+        Parameters
+        ----------
+        derivative_order : int, optional
+            Order of derivative to evaluate.  Default value is 1.  Must be between -3
+            and 3, inclusive.
+
+        See Also
+        --------
+        scipy.interpolate.CubicSpline :
+            The function that this function is based on.
+        interpolate :
+            This function simply calls `self.interpolate` with appropriate arguments.
+        dot :
+            Property returning `self.derivative(1)`.
+        ddot :
+            Property returning `self.derivative(2)`.
+
+        """
         return self.interpolate(self.time, derivative_order=derivative_order)
 
     @property
     def dot(self):
-        """Differentiate modes once with respect to time"""
+        """Differentiate modes once with respect to time
+
+        See Also
+        --------
+        derivative : This property simply returns `self.derivative(1)`
+        ddot : Property returning `self.derivative(2)`.
+
+        """
         return self.derivative()
 
     @property
     def ddot(self):
-        """Differentiate modes twice with respect to time"""
+        """Differentiate modes twice with respect to time
+
+        See Also
+        --------
+        derivative : This property simply returns `self.derivative(2)`
+        dot : Property returning `self.derivative(1)`.
+
+        """
         return self.derivative(2)
 
     @property
     def int(self):
-        """Integrate modes once with respect to time"""
+        """Integrate modes once with respect to time
+
+        See Also
+        --------
+        antiderivative : This property simply returns `self.antiderivative(1)`
+        iint : Property returning `self.antiderivative(2)`.
+
+        """
         return self.antiderivative()
 
     @property
     def iint(self):
-        """Integrate modes twice with respect to time"""
+        """Integrate modes twice with respect to time
+
+        See Also
+        --------
+        antiderivative : This property simply returns `self.antiderivative(2)`
+        int : Property returning `self.antiderivative(1)`.
+
+        """
         return self.antiderivative(2)
 
     def xor(self, reverse=False, preserve_dtype=False, **kwargs):
@@ -406,7 +525,8 @@ class TimeSeries(np.ndarray):
         Returns
         -------
         None
-            This is to serve as a reminder that this function operates in place.
+            This value is returned to serve as a reminder that this function operates
+            in place.
 
         Notes
         -----
