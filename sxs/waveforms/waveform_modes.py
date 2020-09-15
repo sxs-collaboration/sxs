@@ -238,6 +238,48 @@ class WaveformModes(WaveformMixin, TimeSeries):
         """
         return self.t[self.max_norm_index(skip_fraction_of_data=skip_fraction_of_data)]
 
+    def interpolate(self, new_time, derivative_order=0, out=None):
+        """Interpolate this object to a new set of times
+
+        Note that if this object has "frame" data and the derivative order is nonzero,
+        it is not entirely clear what is desired.  In those cases, the frame is just
+        interpolated to the new times, but no derivative or antiderivative is taken.
+
+        Parameters
+        ----------
+        new_time : array_like
+            Points to evaluate the interpolant at
+        derivative_order : int, optional
+            Order of derivative to evaluate.  If negative, the antiderivative is
+            returned.  Default value of 0 returns the interpolated data without
+            derivatives or antiderivatives.  Must be between -3 and 3, inclusive.
+
+        See Also
+        --------
+        scipy.interpolate.CubicSpline :
+            The function that this function is based on.
+        antiderivative :
+            Calls this funtion with `new_time=self.time` and
+            `derivative_order=-antiderivative_order` (defaulting to a single
+            antiderivative).
+        derivative :
+            Calls this function `new_time=self.time` and
+            `derivative_order=derivative_order` (defaulting to a single derivative).
+        dot :
+            Property calling `self.derivative(1)`.
+        ddot :
+            Property calling `self.derivative(2)`.
+        int :
+            Property calling `self.antiderivative(1)`.
+        iint :
+            Property calling `self.antiderivative(2)`.
+
+        """
+        result = self.view(TimeSeries).interpolate(new_time, derivative_order=0, out=None).view(type(self))
+        if self.frame.shape == (self.n_times, 4) and not np.array_equal(self.time, result.time):
+            self._metadata["frame"] = quaternionic.squad(self.frame, self.time, result.time)
+        return result
+
     def truncate(self, tol=1e-10):
         """Truncate the precision of this object's data in place
 
