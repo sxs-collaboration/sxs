@@ -1,20 +1,8 @@
 """Interfaces for horizon data
 
 This module provides two basic container classes that provide a uniform
-interface to data describing horizons in numerical-relativity simulations:
-
-    HorizonQuantities
-        Container for various TimeSeries related to an individual horizon
-    Horizons
-        Container for several HorizonQuantities related to a merger
-
-There are also functions for saving and loading horizon data in standardized
-formats:
-
-    spec_horizons_h5.save
-    spec_horizons_h5.load
-    xor_multishuffle_bzip2.save
-    xor_multishuffle_bzip2.load
+interface to data describing horizons in numerical-relativity simulations, as
+well as functions for saving and loading horizon data in standardized formats.
 
 """
 
