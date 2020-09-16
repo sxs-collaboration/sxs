@@ -1,3 +1,5 @@
+"""Several convenient functions for interacting with files"""
+
 from contextlib import contextmanager
 
 

@@ -1,3 +1,5 @@
+"""Handlers for waveforms in the old NRAR data format"""
+
 import sys
 import warnings
 import ast

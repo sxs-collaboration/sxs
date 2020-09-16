@@ -1,3 +1,5 @@
+"""A very simple function for fitting output to a console"""
+
 def fit_to_console(obj, initial_indent='', subsequent_indent='', width=None,):
     """Return a string formatted to fit nicely in the console
 

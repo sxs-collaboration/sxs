@@ -1,3 +1,5 @@
+"""Functions to check and enforce monotonicity of array values"""
+
 import numpy as np
 from . import jit
 

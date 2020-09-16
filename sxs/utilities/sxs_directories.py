@@ -1,3 +1,5 @@
+"""Functions to find user-specific config and cache directories"""
+
 import functools
 
 

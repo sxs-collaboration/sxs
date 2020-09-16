@@ -1,3 +1,5 @@
+"""A core utility function for downloading efficiently and robustly"""
+
 def download_file(url, path, progress=False, if_newer=True):
     """Download large file efficiently from url into path
 

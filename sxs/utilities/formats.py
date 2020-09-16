@@ -1,4 +1,4 @@
-"""Functions to inspect file formats"""
+"""Function to inspect file formats"""
 
 
 def file_format(file):

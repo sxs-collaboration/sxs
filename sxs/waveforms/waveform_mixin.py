@@ -1,3 +1,5 @@
+"""Base class for all waveform-like objects"""
+
 import abc
 import numpy as np
 import quaternionic

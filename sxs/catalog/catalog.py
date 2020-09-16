@@ -1,8 +1,11 @@
+"""Container interface to the SXS catalog"""
+
 import functools
 
 
 # noinspection SpellCheckingInspection
 class Catalog(object):
+    """Container interface to the SXS catalog"""
     url = "https://data.black-holes.org/catalog.json"
 
     def __init__(self, catalog=None, **kwargs):

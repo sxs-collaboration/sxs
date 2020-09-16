@@ -1,3 +1,5 @@
+"""Regular expressions for validating and parsing URLs"""
+
 import re
 
 # Much of this regex is quite similar to the django URL validator

@@ -1,3 +1,5 @@
+"""Full documentation for the contents of the catalog.json file"""
+
 
 # NOTE: This string is placed into the top of the catalog JSON file as a JSON string.  JSON strings
 # are enclosed in double quotes, so it would quickly get ugly if we used double quotes within this

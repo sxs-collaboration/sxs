@@ -1,3 +1,5 @@
+"""The main container for waveform objects with mode weights"""
+
 import numpy as np
 import quaternionic
 import spherical
