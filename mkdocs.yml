@@ -7,7 +7,7 @@ plugins:
       modules:
         sxs:
           section: api
-          source_repo: "https://github.com/sxs-collaboration/sxs"
+          source_repo: "https://github.com/sxs-collaboration/sxs/blob/main"
 
 theme:
   name: 'readthedocs'
