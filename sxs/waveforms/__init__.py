@@ -1,9 +1,13 @@
-"""Containers for various types of waveforms"""
+"""Containers for various types of waveforms
+
+Currently, the most interesting object in this submodule is [`WaveformModes`](waveform_modes).
+
+"""
 
 from .waveform_mixin import WaveformMixin
 from .waveform_modes import WaveformModes
-from .waveform_grid import WaveformGrid
-from .waveform_signal import WaveformSignal
+# from .waveform_grid import WaveformGrid
+# from .waveform_signal import WaveformSignal
 
 from . import nrar, rotating_paired_xor_multishuffle_bzip2  #, corotating_paired_xor
 
