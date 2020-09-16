@@ -161,8 +161,9 @@ def load(file, **kwargs):
     if not root_group:
         extrapolation_order = kwargs.pop("extrapolation_order", None)
         if extrapolation_order is None:
-            raise ValueError(f"Root group must be entered either as `h5_group` or as `extrapolation_order` keyword")
-        if isinstance(extrapolation_order, str):
+            warning = "\nCould not find root group as `h5_group` or as `extrapolation_order`; returning all groups"
+            warnings.warn(warning)
+        elif isinstance(extrapolation_order, str):
             root_group = extrapolation_order
         elif extrapolation_order == -1:
             root_group = "OutermostExtraction.dir"
@@ -179,7 +180,10 @@ def load(file, **kwargs):
                 raise ValueError(f"Input root group '{root_group}' was not found in '{file_path}'")
             f = f_h5[root_group]
         else:
-            f = f_h5
+            return {
+                new_h5_group: load(file, **dict(h5_group=new_h5_group, **kwargs))
+                for new_h5_group in f_h5 if "VersionHist.ver" not in new_h5_group
+            }
 
         # If it exists, add the metadata file to `w` as an object.  So, for example, the initial spin on
         # object 1 can be accessed as `w.metadata.initial_spin1`.  See the documentation of
