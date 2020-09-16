@@ -5,7 +5,7 @@ repo_url: https://github.com/sxs-collaboration/sxs
 plugins:
   - mktheapidocs:
       modules:
-        - "sxs": sxs
+        - sxs
           section: api
           source_repo: "https://github.com/sxs-collaboration/sxs/blob/main"
 
