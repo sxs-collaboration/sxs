@@ -99,7 +99,6 @@ class WaveformModes(WaveformMixin, TimeSeries):
         return self.shape[self.modes_axis]
 
     @property
-    @functools.lru_cache()
     def LM(self):
         """Array of (ell, m) values in the data
 
@@ -342,10 +341,107 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 self.ndarray[..., i_plus] = (mode_plus + mode_minus) / np.sqrt(2)
                 self.ndarray[..., i_minus] = np.conjugate(mode_plus - mode_minus) / np.sqrt(2)
 
+    def evaluate(self, *directions):
+        """Evaluate waveform in a particular direction or set of directions
+
+        Parameters
+        ----------
+        directions : array_like
+            Directions are specified using the usual spherical coordinates, and an
+            optional polarization angle (see Notes below).  These can be expressed as 2
+            or 3 floats (where the third is the polarization angle), or as an array
+            with final dimension of size 2 or 3.  Input arrays can have multiple
+            leading dimensions; the final dimension is always considered to hold the
+            directions, and the other dimensions are retained in the output.
+
+        Returns
+        -------
+        signal : array_like
+            Note that this is complex-valued, meaning that it represents both
+            polarizations.  To get the signal measured by a single detector, just take
+            the real part.
+
+        Notes
+        -----
+        Here, we assume that the reference basis is the basis defining the
+        spin-weighted spherical harmonics used to decompose the waveform into modes.
+        Then, we define the spherical coordinates (θ, ϕ) such that θ is the polar angle
+        (angle between the z axis and the point) and ϕ is the azimuthal angle (angle
+        between x axis and orthogonal projection of the point into the x-y plane).
+        This gives rise to the standard unit tangent vectors (θ̂, ϕ̂).
+
+        We also define the polarization angle ψ as the rotation through which we must
+        rotate the vector θ̂) in a positive sense about n̂ to line up with the vector
+        defining the legs of the detector
+
+        Examples
+        --------
+        We can evaluate the signal in a single direction:
+
+        >>> θ, ϕ, ψ = 0.1, 0.2, 0.3
+        >>> w.evaluate(θ, ϕ)  # Default polarization angle
+        >>> w.evaluate(θ, ϕ, ψ)  # Specified polarization angle
+
+        Or we can evaluate in a set of directions:
+
+        >>> w.evaluate([[θ, ϕ], [θ+0.4, ϕ], [θ+0.8, ϕ]])
+
+        We can also evaluate on a more extensive set of directions.  Here, we construct
+        an equi-angular grid to evaluate the waveform on (though irregular grids are
+        also acceptable as long as you can pack them into a numpy array).
+
+        >>> n_theta = n_phi = 2 * w.ell_max + 1
+        >>> equiangular = np.array([
+            [
+                [theta, phi]
+                for phi in np.linspace(0.0, 2*np.pi, num=n_phi, endpoint=False)
+            ]
+            for theta in np.linspace(0.0, np.pi, num=n_theta, endpoint=True)
+        ])
+        >>> w.evaluate(equiangular)
+
+        """
+        import string
+        if len(directions) == 1:
+            directions = directions[0]
+        directions = np.asarray(directions, dtype=float)
+        if directions.shape[-1] == 2:
+            R = quaternionic.array.from_spherical_coordinates(directions)
+            #R = quaternionic.array.from_spherical_coordinates(directions[..., 0], directions[..., 1])
+        elif directions.shape[-1] == 3:
+            R = quaternionic.array.from_euler_angles(directions[..., 1], directions[..., 0], directions[..., 2])
+        else:
+            raise ValueError(f"Final dimension of input directions must have size 2 or 3, not {directions.shape[-1]}")
+        # R.shape == directions.shape[:-1] + (4,)
+        if self.frame == np.atleast_2d(quaternionic.one):
+            sYlm = spherical.SWSH_grid(R, self.spin_weight, self.ell_max)
+            sYlm = sYlm[..., spherical.LM_index(self.ell_min, -self.ell_min, 0):]  # Chop off leading zeros
+            # sYlm.shape == directions.shape[:-1] + (self.n_modes,)
+            result = np.tensordot(self.data, sYlm, axes=[[self.modes_axis], [-1]])
+        else:
+            # We have to account for a rotating frame
+            frame = self.frame.reshape((self.frame.shape[0],) + (1,)*(R.ndim-1) + (4,))
+            R = frame.inverse * R[np.newaxis]
+            sYlm = spherical.SWSH_grid(R, self.spin_weight, self.ell_max)
+            sYlm = sYlm[..., spherical.LM_index(self.ell_min, -self.ell_min, 0):]  # Chop off leading zeros
+            # sYlm.shape == frame.shape[:1] + directions.shape[:-1] + (self.n_modes,)
+            self_indices = list(string.ascii_letters[:self.ndim])
+            self_indices[self.time_axis] = "y"
+            self_indices[self.modes_axis] = "z"
+            self_indices = ''.join(self_indices)
+            sYlm_indices = list(string.ascii_letters[self.ndim:self.ndim+sYlm.ndim])
+            sYlm_indices[0] = "y"
+            sYlm_indices[-1] = "z"
+            sYlm_indices = ''.join(sYlm_indices)
+            result_indices = self_indices.replace("z", "") + sYlm_indices.replace("y", "").replace("z", "")
+            subscripts = f"{self_indices},{sYlm_indices}->{result_indices}"
+            result = np.einsum(subscripts, self.data, sYlm)
+        return TimeSeries(result, self.time)
+
     # TODO:
-    # angular_velocity
     # expectation_value_LL
     # expectation_value_Ldt
+    # angular_velocity
     # expectation_value_L
     # inner_product
     # # Don't bother with inner_product_LL, as it doesn't appear to be used; maybe a more general version?
