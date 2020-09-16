@@ -202,7 +202,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         arg
 
         """
-        return np.unwrap(self.arg, axis=self.time_axis)
+        return TimeSeries(np.unwrap(self.arg, axis=self.time_axis), self.time)
 
     @property
     def norm(self):
@@ -227,7 +227,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         orthonormal basis.
 
         """
-        return np.linalg.norm(self.view(TimeSeries), axis=self.modes_axis)
+        return TimeSeries(np.linalg.norm(self, axis=self.modes_axis), self.time)
 
     def max_norm_index(self, skip_fraction_of_data=4):
         """Index of time step with largest norm
