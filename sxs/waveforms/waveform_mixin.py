@@ -24,13 +24,21 @@ class WaveformMixin(abc.ABC):
 
     @property
     @abc.abstractmethod
+    def spin_weight(self):
+        return self._metadata.get("spin_weight", None)
+
+    @property
+    @abc.abstractmethod
     def frame(self):
         return self._metadata.get("frame", np.atleast_2d(quaternionic.one))
 
     @property
     @abc.abstractmethod
     def frame_type(self):
-        return self._metadata.get("frame_type", "unknown")
+        if "frame" in self._metadata:
+            return self._metadata.get("frame_type", "unknown")
+        else:
+            return self._metadata.get("frame_type", "inertial")
 
     # metadata
     # spin_weight
