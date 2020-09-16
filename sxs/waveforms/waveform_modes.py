@@ -115,7 +115,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         return np.array([[ell, m] for ell in range(self.ell_min, self.ell_max+1) for m in range(-ell, ell+1)])
 
     def index(self, ell, m):
-        """Index of given (ell,m) mode in the data
+        """Mode index of given (ell,m) mode in the data
 
         Parameters
         ----------
@@ -129,6 +129,21 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         """
         return spherical.LM_index(ell, m, self.ell_min)
+
+    def index_closest_to(self, t):
+        """Time index closest to the given time
+
+        Parameters
+        ----------
+        t : float
+
+        Returns
+        -------
+        idx : int
+            Index such that abs(self.t[idx]-t) is as small as possible
+
+        """
+        return np.argmin(np.abs(self.t - t))
 
     @property
     def abs(self):
