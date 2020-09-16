@@ -17,8 +17,8 @@ from .utilities import (
     jit, vectorize, guvectorize
 )
 from .time_series import TimeSeries
-from .catalog import Catalog
 from .metadata import Metadata
+from .catalog import Catalog
 from .horizons import Horizons, HorizonQuantities
 from .waveforms import WaveformModes, WaveformGrid, WaveformSignal
 from . import catalog, metadata, horizons, waveforms

@@ -6,7 +6,13 @@ class Catalog(object):
     url = "https://data.black-holes.org/catalog.json"
 
     def __init__(self, catalog=None, **kwargs):
+        from .. import Metadata
         self._dict = catalog or type(self).load(**kwargs)
+        self._dict["_simulations_raw"] = self._dict["simulations"]
+        self._dict["simulations"] = {
+            k: Metadata(v)
+            for k, v in self._dict["_simulations_raw"].items()
+        }
 
     @classmethod
     @functools.lru_cache()
@@ -297,19 +303,19 @@ class Catalog(object):
 
     @property
     def description(self):
-        return self._dict['catalog_file_description']
+        return self._dict["catalog_file_description"]
 
     @property
     def modified(self):
-        return self._dict['modified']
+        return self._dict["modified"]
 
     @property
     def records(self):
-        return self._dict['records']
+        return self._dict["records"]
 
     @property
     def simulations(self):
-        return self._dict['simulations']
+        return self._dict["simulations"]
 
     @property
     def open_access(self):
