@@ -108,6 +108,7 @@ def save(w, file_name=None, L2norm_fractional_tolerance=1e-10, log_frame=None, s
                 f.create_dataset("modes", data=w.data.view(np.uint64), chunks=(w.n_times, 1), **compression_options)
                 f["modes"].attrs["ell_min"] = w.ell_min
                 f["modes"].attrs["ell_max"] = w.ell_max
+                f["modes"].attrs["spin_weight"] = w.spin_weight
                 if log_frame.size > 1:
                     f.create_dataset(
                         "log_frame", data=log_frame.view(np.uint64), chunks=(w.n_times, 1), **compression_options
@@ -144,7 +145,11 @@ def save(w, file_name=None, L2norm_fractional_tolerance=1e-10, log_frame=None, s
                 "sxs": __version__,
                 # see below 'spec_version_hist'
             },
-            "validation": {"h5_file_size": h5_size, "n_times": w.n_times, "md5sum": md5sum},
+            "validation": {
+                "h5_file_size": h5_size,
+                "n_times": w.n_times,
+                "md5sum": md5sum
+            },
         }
         if hasattr(w, "boost_velocity"):
             json_data["transformations"]["boost_velocity"] = w.boost_velocity.tolist()
@@ -188,11 +193,14 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
     if not json_path.exists():
         invalid(f'\nJSON file "{json_path}" cannot be found, but is expected for this data format.')
         json_data = {}
+        data_type = "unknown"
+        spin_weight = None
     else:
         with open(json_path) as f:
             json_data = json.load(f)
 
         data_type = json_data.get("data_info", {}).get("data_type", "unknown")
+        spin_weight = json_data.get("data_info", {}).get("spin_weight", None)
 
         # Make sure this is our format
         sxs_format = json_data.get("sxs_format", "")
@@ -240,6 +248,8 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
         sizeof_complex = 2 * sizeof_float
         ell_min = f.attrs["ell_min"]
         ell_max = f.attrs["ell_max"]
+        spin_weight = f.attrs.get("spin_weight", spin_weight)
+        data_type = f.attrs.get("data_type", data_type)
         shuffle_widths = tuple(f.attrs["shuffle_widths"])
         unshuffle = multishuffle(shuffle_widths, forward=False)
         n_modes = ell_max * (ell_max + 2) - ell_min ** 2 + 1
@@ -272,6 +282,10 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
 
     frame = np.exp(quaternionic.array(np.insert(log_frame, 0, 0.0, axis=1)))
 
+    if spin_weight is None:
+        warning = f"Spin weight has not been provided for {h5_path}.  This may result in errors with some functions."
+        warnings.warn(warning)
+
     w = WaveformModes(
         data.view(np.complex128),
         time=t,
@@ -284,6 +298,7 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
         r_is_scaled_out=True,
         ell_min=ell_min,
         ell_max=ell_max,
+        spin_weight=spin_weight,
     )
     w.convert_from_conjugate_pairs()
 
