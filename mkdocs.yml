@@ -3,11 +3,17 @@ site_name: sxs
 repo_url: https://github.com/sxs-collaboration/sxs
 
 plugins:
-  - mktheapidocs:
-      modules:
-        sxs:
-          section: api
-          source_repo: "https://github.com/sxs-collaboration/sxs/blob/main"
+  - search
+  - mkapi
+  # - mktheapidocs:
+  #     modules:
+  #       sxs:
+  #         section: api
+  #         source_repo: "https://github.com/sxs-collaboration/sxs/blob/main"
+
+nav:
+  - index.md
+  - API: mkapi/api/sxs
 
 theme:
   name: 'readthedocs'
@@ -16,5 +22,7 @@ extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js
 
 markdown_extensions:
+  - toc:
+      permalink: "#"
   - pymdownx.arithmatex:
       generic: true
