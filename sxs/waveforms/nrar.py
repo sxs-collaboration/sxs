@@ -31,6 +31,12 @@ DataNamesLaTeX = [
 ]
 
 
+def translate_date_type_to_spin_weight(d):
+    return [sys.maxsize, 2, 1, 0, -1, -2, 2, -2, -2, -2, sys.maxsize][d]
+
+def translate_date_type_to_sxs_string(d):
+    return ["unknown", "psi0", "psi1", "psi2", "psi3", "psi4", "sigma", "h", "hdot", "news", "psin"][d]
+
 def translate_data_types_GWFrames_to_waveforms(d):
     if d < 8:
         return {0: UnknownDataType, 1: h, 2: hdot, 3: psi4, 4: psi3, 5: psi2, 6: psi1, 7: psi0}[d]
@@ -97,6 +103,8 @@ def descriptor_string(w):
 def load(file, **kwargs):
     """Read data from an H5 file in NRAR format
 
+    Note that either `h5_group` or `extrapolation_order` must be given.
+
     Parameters
     ----------
     file : {str, pathlib.Path}
@@ -107,9 +115,15 @@ def load(file, **kwargs):
 
     Keyword parameters
     ------------------
+    h5_group : str, optional
+        HDF5 group in which to find the data within the H5 file
+    extrapolation_order : {str or int}, optional
+        Extrapolation order to load from the file.  This can be a string naming the
+        HDF5 group to find the data in — like "OutermostExtraction.dir" or
+        "Extrapolated_N2.dir" — or it can be an integer that is translated into
+        such a string, where -1 is translated into "OutermostExtraction.dir".
     frame_type : int, optional
     data_type : int, optional
-
     r_is_scaled_out : bool, optional
         True if the radius is scaled out, meaning that the asymptotic form of this
         data could be finite and nonzero.
@@ -144,6 +158,16 @@ def load(file, **kwargs):
     file_str = file_str + file_ending
     if not root_group:
         root_group = kwargs.pop("h5_group", "")
+    if not root_group:
+        extrapolation_order = kwargs.pop("extrapolation_order", None)
+        if extrapolation_order is None:
+            raise ValueError(f"Root group must be entered either as `h5_group` or as `extrapolation_order` keyword")
+        if isinstance(extrapolation_order, str):
+            root_group = extrapolation_order
+        elif extrapolation_order == -1:
+            root_group = "OutermostExtraction.dir"
+        else:
+            root_group = f"Extrapolated_N{extrapolation_order}.dir"
 
     file_path = pathlib.Path(file_str).expanduser().resolve()
     file_name = file_path.name
@@ -151,6 +175,8 @@ def load(file, **kwargs):
 
     with h5py.File(file_path, "r") as f_h5:
         if root_group:
+            if root_group not in f_h5:
+                raise ValueError(f"Input root group '{root_group}' was not found in '{file_path}'")
             f = f_h5[root_group]
         else:
             f = f_h5
@@ -207,19 +233,16 @@ def load(file, **kwargs):
                     if type_name.lower() in file_name.lower():
                         found = True
                         w_attributes["data_type"] = type_int
-                        warning = (
-                            f"\n`dataType` was not found in '{file_str}' or the keyword arguments.\n"
-                            + f"Using default value `{type_name}`.  You may want to set it manually."
-                        )
-                        warnings.warn(warning)
                         break
                 if not found:
                     warning = (
                         f"\n`dataType` was not found in '{file_str}' or the keyword arguments.\n"
-                        + "You may want to set it manually."
+                        + f"Using default value `{type_name}`.  You may want to set it manually."
                     )
                     warnings.warn(warning)
                     w_attributes["data_type"] = 0
+            w_attributes["spin_weight"] = translate_date_type_to_spin_weight(w_attributes["data_type"])
+            w_attributes["data_type"] = translate_date_type_to_sxs_string(w_attributes["data_type"])
 
             if "RIsScaledOut" in f.attrs:
                 w_attributes["r_is_scaled_out"] = bool(f.attrs["RIsScaledOut"])
