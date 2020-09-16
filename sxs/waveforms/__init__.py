@@ -1,6 +1,6 @@
 """Containers for various types of waveforms
 
-Currently, the most interesting object in this submodule is [`WaveformModes`](waveform_modes).
+Currently, the most interesting object in this submodule is [`WaveformModes`](../sxs.waveforms.waveform_modes/).
 
 """
 
