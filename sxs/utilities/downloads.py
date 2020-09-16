@@ -94,6 +94,9 @@ def download_file(url, path, progress=False, if_newer=True):
     else:
         output_path.replace(local_filename)
     finally:
-        output_path.unlink(missing_ok=True)
+        try:
+            output_path.unlink()  # missing_ok is only available in python 3.8
+        except FileNotFoundError:
+            pass
 
     return local_filename
