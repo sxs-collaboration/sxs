@@ -8,10 +8,13 @@ class Catalog(object):
     def __init__(self, catalog=None, **kwargs):
         from .. import Metadata
         self._dict = catalog or type(self).load(**kwargs)
-        self._dict["_simulations_raw"] = self._dict["simulations"]
+        for sim in self._dict["simulations"].values():
+            if "metadata_path" in sim:
+                sim["metadata_path"] = sim["metadata_path"].replace("/Users/boyle/.sxs/cache/", "")
+        self._simulations_raw = self._dict["simulations"]
         self._dict["simulations"] = {
             k: Metadata(v)
-            for k, v in self._dict["_simulations_raw"].items()
+            for k, v in self._simulations_raw.items()
         }
 
     @classmethod
@@ -126,8 +129,22 @@ class Catalog(object):
         cls.load.cache_clear()
         return cls.load(download=download)
 
-    def save(self, **kwargs):
-        raise NotImplementedError()
+    def save(self, file):
+        """Save Catalog object to JSON file
+
+        Parameters
+        ----------
+        file : file-like object, string, or pathlib.Path
+            Path to the file on disk or a file-like object (such as an open file
+            handle) to be written to.
+
+        """
+        import pathlib
+        import json
+        path = pathlib.Path(file).expanduser().resolve().with_suffix(".json")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w") as f:
+            json.dump(self._dict, f, indent=2, separators=(",", ": "), ensure_ascii=True)
 
     def select_files(self, path_pattern, include_json=True):
         """Return paths and file information from all files available in the catalog
@@ -259,6 +276,7 @@ class Catalog(object):
     @property
     @functools.lru_cache()
     def files(self):
+        """Map of all file names to the corresponding file info"""
         import collections
         import re
         import pathlib
@@ -303,19 +321,160 @@ class Catalog(object):
 
     @property
     def description(self):
+        """Documentation of each piece of information stored in the catalog"""
         return self._dict["catalog_file_description"]
 
     @property
     def modified(self):
+        """Modification time of most recently updated records on Zenodo or CaltechDATA"""
         return self._dict["modified"]
 
     @property
     def records(self):
+        """Details about records stored on Zenodo or CaltechDATA"""
         return self._dict["records"]
 
     @property
     def simulations(self):
+        """Metadata for all simulations"""
         return self._dict["simulations"]
+
+    @property
+    @functools.lru_cache()
+    def simulations_dataframe(self):
+        """Return a pandas.DataFrame containing the metadata for all simulations"""
+        import numpy as np
+        import pandas as pd
+        simulations = pd.DataFrame.from_dict(self.simulations, orient="index")
+
+        def floater(x):
+            try:
+                f = float(x)
+            except:
+                f = np.nan
+            return f
+
+        def floaterbound(x):
+            try:
+                f = float(x)
+            except:
+                try:
+                    f = float(x.replace("<", ""))
+                except:
+                    f = np.nan
+            return f
+
+        def norm(x):
+            try:
+                n = np.linalg.norm(x)
+            except:
+                n = np.nan
+            return n
+
+        def three_vec(x):
+            try:
+                a = np.array(x)
+            except:
+                a = np.array([np.nan, np.nan, np.nan])
+            return a
+
+        def space_translation(x):
+            try:
+                a = np.array(x["space_translation"])
+            except:
+                a = np.array([np.nan, np.nan, np.nan])
+            return a
+
+        def space_translation_norm(x):
+            try:
+                n = np.linalg.norm(np.array(x["space_translation"]))
+            except:
+                n = np.nan
+            return n
+
+        def boost_velocity(x):
+            try:
+                a = np.array(x["boost_velocity"])
+            except:
+                a = np.array([np.nan, np.nan, np.nan])
+            return a
+
+        sims_df = pd.concat((
+            simulations["object_types"].astype("category"),
+            simulations["initial_separation"].map(floater),
+            simulations["initial_orbital_frequency"].map(floater),
+            simulations["initial_adot"].map(floater),
+            simulations["initial_ADM_energy"].map(floater),
+            simulations["initial_ADM_linear_momentum"].map(three_vec),
+            simulations["initial_ADM_linear_momentum"].map(norm).rename("initial_ADM_linear_momentum_mag"),
+            simulations["initial_ADM_angular_momentum"].map(three_vec),
+            simulations["initial_ADM_angular_momentum"].map(norm).rename("initial_ADM_angular_momentum_mag"),
+            simulations["initial_mass1"].map(floater),
+            simulations["initial_mass2"].map(floater),
+            simulations["initial_mass_ratio"].map(floater),
+            simulations["initial_dimensionless_spin1"].map(three_vec),
+            simulations["initial_dimensionless_spin1"].map(norm).rename("initial_dimensionless_spin1_mag"),
+            simulations["initial_dimensionless_spin2"].map(three_vec),
+            simulations["initial_dimensionless_spin2"].map(norm).rename("initial_dimensionless_spin2_mag"),
+            simulations["initial_position1"].map(three_vec),
+            simulations["initial_position2"].map(three_vec),
+            simulations["com_parameters"].map(space_translation).rename("com_correction_space_translation"),
+            simulations["com_parameters"].map(space_translation_norm).rename("com_correction_space_translation_mag"),
+            simulations["com_parameters"].map(boost_velocity).rename("com_correction_boost_velocity"),
+            simulations["com_parameters"].map(boost_velocity).map(norm).rename("com_correction_boost_velocity_mag"),
+            simulations["reference_time"].map(floater),
+            (
+                simulations["reference_position1"].map(three_vec)
+                -simulations["reference_position2"].map(three_vec)
+            ).map(norm).rename("reference_separation"),
+            simulations["reference_orbital_frequency"].map(norm).rename("reference_orbital_frequency_mag"),
+            simulations["reference_mass_ratio"].map(floater),
+            simulations["reference_dimensionless_spin1"].map(norm).rename("reference_chi1_mag"),
+            simulations["reference_dimensionless_spin2"].map(norm).rename("reference_chi2_mag"),
+            simulations["reference_chi_eff"].map(floater),
+            simulations["reference_chi1_perp"].map(floater),
+            simulations["reference_chi2_perp"].map(floater),
+            simulations["reference_eccentricity"].map(floater),
+            simulations["reference_eccentricity"].map(floaterbound).rename("reference_eccentricity_bound"),
+            simulations["reference_mean_anomaly"].map(floater),
+            simulations["reference_mass1"].map(floater),
+            simulations["reference_mass2"].map(floater),
+            simulations["reference_dimensionless_spin1"].map(three_vec),
+            simulations["reference_dimensionless_spin1"].map(norm).rename("reference_dimensionless_spin1_mag"),
+            simulations["reference_dimensionless_spin2"].map(three_vec),
+            simulations["reference_dimensionless_spin2"].map(norm).rename("reference_dimensionless_spin2_mag"),
+            simulations["reference_orbital_frequency"].map(three_vec),
+            simulations["reference_position1"].map(three_vec),
+            simulations["reference_position2"].map(three_vec),
+            simulations["relaxation_time"].map(floater),
+            #simulations["merger_time"].map(floater),
+            simulations["common_horizon_time"].map(floater),
+            simulations["remnant_mass"].map(floater),
+            simulations["remnant_dimensionless_spin"].map(three_vec),
+            simulations["remnant_dimensionless_spin"].map(norm).rename("remnant_dimensionless_spin_mag"),
+            simulations["remnant_velocity"].map(three_vec),
+            simulations["remnant_velocity"].map(norm).rename("remnant_velocity_mag"),
+            #simulations["final_time"].map(floater),
+            simulations["eos"],
+            simulations["initial_data_type"].astype("category"),
+            #simulations["object1"].astype("category"),
+            #simulations["object2"].astype("category"),
+            simulations["disk_mass"].map(floater),
+            simulations["ejecta_mass"].map(floater),
+            simulations["url"],
+            #simulations["simulation_name"],
+            #simulations["alternative_names"],
+            simulations["metadata_path"],
+        ), axis=1)
+
+        #  57  reference_spin1                2 non-null      object
+        #  58  reference_spin2                1 non-null      object
+        #  59  nitial_spin1                   2 non-null      object
+        #  60  initial_spin2                  2 non-null      object
+        #  61  remnant_spin                   2 non-null      object
+        #  62  initial_mass_withspin2         2 non-null      float64
+
+        return sims_df
 
     @property
     def open_access(self):
