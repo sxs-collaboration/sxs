@@ -1,5 +1,3 @@
-"""Container for metadata of individual simulations"""
-
 import re
 import collections
 
