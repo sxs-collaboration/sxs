@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "sxs"
-version = "0.0.0a0"
-description = "Interpret numpy arrays as sxs arrays with numba acceleration"
+version = "2020.9.11"
+description = "Interface to data produced by the Simulating eXtreme Spacetimes collaboration"
 readme = "README.md"
 license = "MIT"
 authors = ["Michael Boyle <michael.oliver.boyle@gmail.com>"]
