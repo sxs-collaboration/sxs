@@ -72,7 +72,7 @@ class Catalog(object):
                     download_file(cls.url, temp_path, progress=progress, if_newer=if_newer)
                 except Exception as e:
                     if download:
-                        raise RuntimeError(f"Failed to download '{cls.url}'") from e
+                        raise RuntimeError(f"Failed to download '{cls.url}'; try setting `download=False`") from e
                     download_failed = e  # We'll try the cache
                 else:
                     download_failed = False
