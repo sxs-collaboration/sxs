@@ -1,3 +1,5 @@
+"""Container for metadata of individual simulations"""
+
 import re
 import collections
 
@@ -60,9 +62,7 @@ class Metadata(collections.OrderedDict):
 
         Raises
         ------
-        SyntaxError
-            If a line in the `.txt` file cannot be parsed and `ignore_invalid_lines` is
-            False.
+        SyntaxError : on  `.txt` parse errors when `ignore_invalid_lines` is  False.
 
         """
         from pathlib import Path
@@ -160,7 +160,7 @@ class Metadata(collections.OrderedDict):
         -----
         A standard metadata.txt file is close to being an executable python script that
         just defines a bunch of constants.  The three main problems with the
-        metadata.txt format are:
+        metadata.txt format are
 
           1) variable names contain dashes, which is the subtraction operator in python,
           2) strings are not enclosed in quotes, and
@@ -327,11 +327,11 @@ class Metadata(collections.OrderedDict):
 
         Parameters
         ----------
-        first_only: bool, optional
+        first_only : bool, optional
             If True, add the first set of parameters directly under the top-level key
             `com_parameters`; otherwise, add separate entries under that key for each
             file ending in `_CoM.h5`.
-        raise_on_errors: bool, optional
+        raise_on_errors : bool, optional
             If False, suppress any exceptions that happen in the core loop of this
             function; otherwise, raise.
 
