@@ -1,5 +1,7 @@
 """Functions to facilitate generic handling of SXS-format data files"""
 
+import contextlib
+
 
 def sxs_handler(format_string):
     """Find an object to load from or save to files in the given format.
@@ -235,3 +237,39 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
     loader = sxs_loader(path)
 
     return loader(path, **kwargs)
+
+
+@contextlib.contextmanager
+def loadcontext(*args, **kwargs):
+    """Context manager for backwards compatibility
+
+    This context manager takes precisely the same arguments as `sxs.load` and
+    yields precisely the same results; essentially it is a trivial wrapper around
+    the `load` function.  The benefit of this approach is that it can be used in
+    precisely the same way as `h5py.File` would have been used previously.  For
+    example, the old approach would be to open an HDF5 file like this:
+
+        with h5py.File("Horizons.h5", "r") as horizons:
+            areal_mass = horizons["AhA.dir/ArealMass.dat"]
+
+    With this function, the same effect can be achieved as
+
+        with sxs.loadcontext("Horizons.h5") as horizons:
+            areal_mass = horizons["AhA.dir/ArealMass.dat"]
+
+    Each of the datasets found in Horizons.h5 as well as the old NRAR-style files
+    will be available through this interface, even when using newer files in
+    different formats.  Thus, only one line of code would need to change to use the
+    new interface.
+
+    However, be aware that this may not an be efficient use of memory, and is
+    almost certainly slower than the newer interfaces.  Wherever possible, you
+    should update your code to use newer interfaces.  Failing to do so will leave
+    you open to ridicule from your peers and loved ones.
+
+    See Also
+    --------
+    load
+
+    """
+    yield load(*args, **kwargs)
