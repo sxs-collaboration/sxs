@@ -132,21 +132,6 @@ class WaveformModes(WaveformMixin, TimeSeries):
         """
         return spherical.LM_index(ell, m, self.ell_min)
 
-    def index_closest_to(self, t):
-        """Time index closest to the given time
-
-        Parameters
-        ----------
-        t : float
-
-        Returns
-        -------
-        idx : int
-            Index such that abs(self.t[idx]-t) is as small as possible
-
-        """
-        return np.argmin(np.abs(self.t - t))
-
     @property
     def abs(self):
         """Absolute value of the data

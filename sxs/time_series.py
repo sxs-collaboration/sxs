@@ -291,6 +291,21 @@ class TimeSeries(np.ndarray):
 
     t = time
 
+    def index_closest_to(self, t):
+        """Time index closest to the given time `t`
+
+        Parameters
+        ----------
+        t : float
+
+        Returns
+        -------
+        idx : int
+            Index such that abs(self.time[idx]-t) is as small as possible
+
+        """
+        return np.argmin(np.abs(self.t - t))
+
     @property
     def n_times(self):
         """Size of the array along the time_axis"""
