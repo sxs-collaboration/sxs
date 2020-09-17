@@ -1352,7 +1352,7 @@ description = "Evaluate and transform D matrices, 3-j symbols, and (scalar or sp
 name = "spherical"
 optional = false
 python-versions = ">=3.6,<4.0"
-version = "0.0.1"
+version = "0.1.0"
 
 [package.dependencies]
 numpy = ">=1.13,<2.0"
@@ -1540,7 +1540,7 @@ mkdocs = ["mkdocs"]
 pymdown-extensions = ["pymdown-extensions"]
 
 [metadata]
-content-hash = "2a1f32dba3a18ac973c827fdae7a6bbca66ed94637dc4d2ac2d1334b2a03915e"
+content-hash = "68d585fa3fd73bb9a79d434404abcf4fa97dd2abb2f3ca262f03a40ee3008073"
 lock-version = "1.1"
 python-versions = "^3.6.1"
 
@@ -2396,8 +2396,8 @@ six = [
     {file = "six-1.15.0.tar.gz", hash = "sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259"},
 ]
 spherical = [
-    {file = "spherical-0.0.1-py3-none-any.whl", hash = "sha256:3024ff9de3e4205408ffa0a6d1cbc1924838c037e87e7fe7f654299191156975"},
-    {file = "spherical-0.0.1.tar.gz", hash = "sha256:b2e44f1e18796d0928d4bec66253b37650aaba661ac9e66787779cca71dfbc11"},
+    {file = "spherical-0.1.0-py3-none-any.whl", hash = "sha256:351d7677d1a52ae54c7fd64600e937cf5bd9ff22154a81874e33ad30f402518e"},
+    {file = "spherical-0.1.0.tar.gz", hash = "sha256:a3a2474fd38d06a4535b826b940f3b01ab1fd5383a146714a5fb6462783d7b49"},
 ]
 spherical-functions = [
     {file = "spherical-functions-2020.8.18.15.37.20.tar.gz", hash = "sha256:775408f6b535151c99f4eb49c2d568298f4503b9c212bb574740b4178ca82043"},
