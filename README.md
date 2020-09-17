@@ -39,8 +39,22 @@ or
 python -m pip install sxs
 ```
 
-Either of these will download and install the package.  You may also want to
-set some sensible defaults to automatically download and cache data:
+These commands will download and install just the `sxs` package.  If you want
+to install all the goodies that enable things like interactive tables in
+jupyter notebooks, you could run
+
+```bash
+conda install -c conda-forge sxs-ecosystem
+```
+
+or
+
+```bash
+python -m pip install sxs[ecosystem]
+```
+
+Either way, you will probably also want to set some sensible defaults to
+automatically download and cache data:
 
 ```bash
 python -c "import sxs; sxs.write_config(download=True, cache=True)"
