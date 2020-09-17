@@ -52,7 +52,7 @@ jobs:
       - name: Run tests
         if: "matrix.os != 'windows-latest'"
         run: |
-          python -m poetry run pytest -s --cov --cov-branch --cov-report=xml
+          python -m poetry run pytest -s --cov=sxs --cov-branch --cov-report=xml
 
       - name: Upload coverage
         if: "matrix.python-version == 3.8 && matrix.os == 'ubuntu-latest'"
@@ -91,13 +91,15 @@ jobs:
 
       - name: Bump version
         shell: bash
+        env:
+          github_event_head_commit_message: ${{ github.event.head_commit.message }}
         run: |
-          export version_bump_rule=$(echo '${{ github.event.head_commit.message }}' | python .github/scripts/parse_bump_rule.py )
+          export version_bump_rule=$(python .github/scripts/parse_bump_rule.py)
           echo "version_bump_rule: '${version_bump_rule}'"
           python -m poetry version "${version_bump_rule}"
           export new_version=$(python .github/scripts/parse_version.py pyproject.toml)
           echo "new_version: '${new_version}'"
-          echo "::set-env name=new_version_tag::v${new_version}"  # Save env variable for later steps
+          echo "::set-env name=new_version::${new_version}"  # Save env variable for later steps
 
       - name: Tag and push new version
         shell: bash
@@ -117,8 +119,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.new_version_tag }}
-          release_name: Release ${{ env.new_version_tag }}
+          tag_name: v${{ env.new_version }}
+          release_name: Release v${{ env.new_version }}
           draft: false
           prerelease: false
 
