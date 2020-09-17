@@ -6,7 +6,10 @@ well as functions for saving and loading horizon data in standardized formats.
 
 """
 
+import numpy as np
+import inflection
 from . import spec_horizons_h5, xor_multishuffle_bzip2
+
 xmb = xor_multishuffle_bzip2
 
 formats = {
@@ -103,19 +106,15 @@ class HorizonQuantities(object):
 
     @property
     def dimensionful_inertial_spin_mag(self):
-        import numpy as np
         return np.linalg.norm(self.dimensionful_inertial_spin, axis=1)
 
     @property
     def chi_inertial_mag(self):
-        import numpy as np
         return np.linalg.norm(self.chi_inertial, axis=1)
 
     chi_mag_inertial = chi_inertial_mag  # backwards-compatible alias because the name is inconsistent
 
     def __getitem__(self, key):
-        import numpy as np
-        import inflection
         dat = key.endswith(".dat")
         standardized_key = inflection.underscore(key.replace(".dat", ""))
         attribute = getattr(self, standardized_key)
@@ -198,6 +197,16 @@ class Horizons(object):
         self.B = kwargs.pop("B", None)
         self.C = kwargs.pop("C", None)
 
+    def __getitem__(self, key):
+        shorter_key = key.replace("AhA.dir", "A").replace("AhB.dir", "B").replace("AhC.dir", "C")
+        if shorter_key.upper() in "ABC":
+            return getattr(self, shorter_key.upper())
+        elif len(shorter_key.split("/", maxsplit=1)) == 2:
+            horizon, sub_key = shorter_key.split("/", maxsplit=1)
+            return getattr(self, horizon)[sub_key]
+        else:
+            raise ValueError(f"Cannot find key '{key}' in this {type(self).__name__} object")
+
     @property
     def a(self):
         return self.A
@@ -210,12 +219,100 @@ class Horizons(object):
     def c(self):
         return self.C
 
-    def __getitem__(self, key):
-        shorter_key = key.replace("AhA.dir", "A").replace("AhB.dir", "B").replace("AhC.dir", "C")
-        if shorter_key.upper() in "ABC":
-            return getattr(self, shorter_key.upper())
-        elif len(shorter_key.split("/", maxsplit=1)) == 2:
-            horizon, sub_key = shorter_key.split("/", maxsplit=1)
-            return getattr(self, horizon)[sub_key]
-        else:
-            raise ValueError(f"Cannot find key '{key}' in this {type(self).__name__} object")
+    @property
+    def newtonian_com(self):
+        """Newtonian center of mass as function of time
+
+        This returns only the center of mass of the binary components; the center of
+        mass of the common horizon is just `horizons.C.coord_center_inertial`.
+
+        Returns
+        -------
+        com : ndarray
+            This has shape (self.A.n_times, 3), representing the components of the
+            vector as a function of time.
+
+        See Also
+        --------
+        average_com_motion : fit uniform motion to this result
+
+        Notes
+        -----
+        This just evaluates the simple formula
+
+            (m_A * x_A + m_B * x_B) / (m_A + m_B)
+
+        where the masses are the respective Christodoulou masses, and the positions are
+        taken from the `coord_center_inertial` properties of the respective horizons.
+        This is highly susceptible to the vagaries of gauge, and must always be taken
+        with plentiful grains of salt.
+
+        """
+        m_A = self.A.christodoulou_mass[:, np.newaxis]
+        x_A = self.A.coord_center_inertial
+        m_B = self.B.christodoulou_mass[:, np.newaxis]
+        x_B = self.B.coord_center_inertial
+        m = m_A + m_B
+        com = ((m_A * x_A) + (m_B * x_B)) / m
+        return com
+
+    def average_com_motion(self, skip_beginning_fraction=0.01, skip_ending_fraction=0.10):
+        """Fit uniform motion to measured Newtonian center of mass
+
+        Parameters
+        ----------
+        skip_beginning_fraction : float, optional
+            Exclude this portion from the beginning of the data.  Note that this is
+            a fraction, rather than a percentage.  The default value is 0.01,
+            meaning the first 1% of the data will be ignored.
+        skip_ending_fraction : float, optional
+            Exclude this portion from the end of the data.  Note that this is a
+            fraction, rather than a percentage.  The default value is 0.10, meaning
+            the last 10% of the data will be ignored.
+
+        Returns
+        -------
+        x_i : length-3 array of floats
+            Best-fit initial position of the center of mass
+        v_i : length-3 array of floats
+            Best-fit initial velocity of the center of mass
+        t_i : float
+            Initial time used.  This is determined by the `skip_beginning_fraction`
+            input parameter.
+        t_f : float
+            Final time used.  This is determined by the `skip_ending_fraction` input
+            parameter.
+
+        See Also
+        --------
+        newtonian_com : measured quantity as function of time
+
+        Notes
+        -----
+        See the docstring of `newtonian_com` for some relevant caveats.  The
+        translation to be applied to the data should be calculated given the values
+        returned by this function as
+
+            com_average = sxs.TimeSeries(
+                x_i[np.newaxis] + v_i[np.newaxis] * horizons.A.time[:, np.newaxis],
+                horizons.A.time
+            )
+
+        """
+        from scipy.integrate import simps
+
+        t = self.A.time
+        com = self.newtonian_com
+
+        # We will be skipping the beginning and end of the data;
+        # this gives us the initial and final indices
+        t_i, t_f = t[0] + (t[-1] - t[0]) * skip_beginning_fraction, t[-1] - (t[-1] - t[0]) * skip_ending_fraction
+        i_i, i_f = np.argmin(np.abs(t - t_i)), np.argmin(np.abs(t - t_f))
+
+        # Find the optimum analytically
+        com_0 = simps(com[i_i : i_f + 1], t[i_i : i_f + 1], axis=0)
+        com_1 = simps((t[:, np.newaxis] * com)[i_i : i_f + 1], t[i_i : i_f + 1], axis=0)
+        x_i = 2 * (com_0 * (2 * t_f ** 3 - 2 * t_i ** 3) + com_1 * (-3 * t_f ** 2 + 3 * t_i ** 2)) / (t_f - t_i) ** 4
+        v_i = 6 * (com_0 * (-t_f - t_i) + 2 * com_1) / (t_f - t_i) ** 3
+
+        return x_i, v_i, t_i, t_f
