@@ -16,18 +16,23 @@ interact correctly with Python:
   2. In addition to the `sxs` package and its requirements, Mathematica
      requires the `pyzmq` package.
 
-If you happen to be running Python 3.7, for instance, you can just install
-`pyzmq` and move on.  (For example, replace `sxs` with `pyzmq` in [the original
+If you happen to be running Python 3.6 or 3.7, you can just install `pyzmq` and
+move on.  (For example, replace `sxs` with `pyzmq` in [the original
 installation directions](../#installation).)
 
 Otherwise, the easiest thing to do is to create a separate environment with
 just these requirements.  With
-[`conda`](https://docs.anaconda.com/anaconda/install/), you can just run
+[`conda`](https://docs.anaconda.com/anaconda/install/), you can run
 
 ```bash
 conda create -n sxs_mathematica python=3.7 sxs pyzmq
 conda activate sxs_mathematica
 ```
+
+The second command here just "activates" your new environment, which basically
+just changes the `PATH` in your current terminal so that it uses this version
+of python by default; that change will disappear the next time you open a
+terminal or if you call `conda deactivate`.
 
 Finally, you'll need to tell Mathematica the full path to your python
 executable.  You can print that out with
@@ -38,8 +43,8 @@ python -c 'import sys; print(sys.executable)'
 
 Just make sure that you run this command using the version of Python that you
 actually intend to use — which was the purpose of the `conda activate` command
-above.  You may never need to activate the environment again; just don't delete
-it if you intend to use it from Mathematica.
+above.  You may never need to activate the environment again except to update;
+just don't delete it if you intend to continue using it from Mathematica.
 
 
 ## Usage
@@ -47,16 +52,19 @@ it if you intend to use it from Mathematica.
 In Mathematica, you can call something like the following:
 
 ```mathematica
-session = StartExternalSession[<|"System" -> "Python", "Executable" -> "/full/path/to/bin/python"|>];
+session = StartExternalSession[<|
+    "System" -> "Python",
+    "Executable" -> "/full/path/to/bin/python"
+    |>];
 py = ExternalEvaluate[session];
 ```
 
-Obviously, you'll need to set the full path to your python executable above.
+Remember to set the full path to your python executable in the first command.
 
 Running this code will start up a python session, which will remain running
-until you quit this Mathematica kernel, or call `DeleteObject[session]`.  And
-you pass all your python code to the `py` function.  To get started, import the
-`sxs` module like this:
+until you quit this Mathematica kernel or call `DeleteObject[session]`.  And
+you pass all your python code to the `py` function as strings.  To get started,
+import the `sxs` module like this:
 
 ```mathematica
 py["import sxs"];
