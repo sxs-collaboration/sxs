@@ -307,7 +307,7 @@ class Metadata(collections.OrderedDict):
         import collections
         if len(args) > 0:
             args = list(args)
-            if isinstance(args[0], collections.Mapping):
+            if isinstance(args[0], collections.abc.Mapping):
                 mapping = args[0]
                 args[0] = collections.OrderedDict([(_valid_identifier(key), mapping[key]) for key in mapping])
             else:
@@ -610,10 +610,10 @@ class Metadata(collections.OrderedDict):
         return super(Metadata, self).setdefault(_valid_identifier(key), default)
 
     def update(self, mapping_or_iterable=None, **kwargs):
-        if isinstance(mapping_or_iterable, collections.Mapping):
+        if isinstance(mapping_or_iterable, collections.abc.Mapping):
             mapping_or_iterable = collections.OrderedDict(
                 [(_valid_identifier(key), mapping_or_iterable[key]) for key in mapping_or_iterable]
             )
-        elif isinstance(mapping_or_iterable, collections.Iterable):
+        elif isinstance(mapping_or_iterable, collections.abc.Iterable):
             mapping_or_iterable = [(_valid_identifier(k), v) for k, v in mapping_or_iterable]
         return super(Metadata, self).update(mapping_or_iterable)
