@@ -1,16 +1,9 @@
 name: tests
 
-on:
-  push:
-    paths-ignore:
-      - 'README.md'
-      - 'docs/**'
-      - 'mkdocs.yml'
-      - '.readthedocs.yml'
-  pull_request:
-    types: [opened, reopened, ready_for_review, review_requested]
+on: [push]
 
 jobs:
+
   build:
     name: ${{ matrix.os }} python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
@@ -20,9 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # os: [ubuntu-latest]
-        # python-version: [3.6]
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest] #, windows-latest]
         python-version: [3.6, 3.7, 3.8] #, pypy3]
         # exclude:
         #   - os: windows-latest

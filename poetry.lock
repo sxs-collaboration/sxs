@@ -98,7 +98,7 @@ description = "An easy safelist-based HTML-sanitizing tool."
 name = "bleach"
 optional = true
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
-version = "3.2.0"
+version = "3.2.1"
 
 [package.dependencies]
 packaging = "*"
@@ -783,7 +783,7 @@ description = "Converting Jupyter Notebooks"
 name = "nbconvert"
 optional = true
 python-versions = ">=3.6"
-version = "6.0.3"
+version = "6.0.4"
 
 [package.dependencies]
 bleach = "*"
@@ -1239,7 +1239,7 @@ description = "Interpret numpy arrays as quaternionic arrays with numba accelera
 name = "quaternionic"
 optional = false
 python-versions = ">=3.6,<4.0"
-version = "0.1.16"
+version = "0.2.0"
 
 [package.dependencies]
 numpy = ">=1.13,<2.0"
@@ -1352,11 +1352,11 @@ description = "Evaluate and transform D matrices, 3-j symbols, and (scalar or sp
 name = "spherical"
 optional = false
 python-versions = ">=3.6,<4.0"
-version = "0.1.0"
+version = "0.1.1"
 
 [package.dependencies]
 numpy = ">=1.13,<2.0"
-quaternionic = ">=0.1.15,<0.2.0"
+quaternionic = ">=0.2.0,<0.3.0"
 scipy = ">=1.0,<2.0"
 black = {version = ">=20.8b1", markers = "implementation_name == \"cpython\""}
 importlib-metadata = {version = ">=1.0,<2.0", markers = "python_version < \"3.8\""}
@@ -1400,11 +1400,11 @@ mpmath = ">=0.19"
 
 [[package]]
 category = "main"
-description = "Terminals served to xterm.js using Tornado websockets"
+description = "Tornado websocket backend for the Xterm.js Javascript terminal emulator library."
 name = "terminado"
 optional = true
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
-version = "0.8.3"
+python-versions = ">=3.6"
+version = "0.9.1"
 
 [package.dependencies]
 tornado = ">=4"
@@ -1592,8 +1592,8 @@ black = [
     {file = "black-20.8b1.tar.gz", hash = "sha256:1c02557aa099101b9d21496f8a914e9ed2222ef70336404eeeac8edba836fbea"},
 ]
 bleach = [
-    {file = "bleach-3.2.0-py2.py3-none-any.whl", hash = "sha256:769483204d247465c0b001ead257fb86bba6944bce6fe1b6759c812cceb54e3d"},
-    {file = "bleach-3.2.0.tar.gz", hash = "sha256:f9e0205cc57b558c21bdfc11034f9d96b14c4052c25be60885d94f4277c792e0"},
+    {file = "bleach-3.2.1-py2.py3-none-any.whl", hash = "sha256:9f8ccbeb6183c6e6cddea37592dfb0167485c1e3b13b3363bc325aa8bda3adbd"},
+    {file = "bleach-3.2.1.tar.gz", hash = "sha256:52b5919b81842b1854196eaae5ca29679a2f2e378905c346d3ca8227c2c66080"},
 ]
 certifi = [
     {file = "certifi-2020.6.20-py2.py3-none-any.whl", hash = "sha256:8fc0819f1f30ba15bdb34cceffb9ef04d99f420f68eb75d901e9560b8749fc41"},
@@ -2015,8 +2015,8 @@ nbclient = [
     {file = "nbclient-0.5.0.tar.gz", hash = "sha256:8ad52d27ba144fca1402db014857e53c5a864a2f407be66ca9d74c3a56d6591d"},
 ]
 nbconvert = [
-    {file = "nbconvert-6.0.3-py3-none-any.whl", hash = "sha256:06c64fd45d4b6424e88eb3bf7e5eb205a0fc8a4c0a69666f0b9a2262c76f59e1"},
-    {file = "nbconvert-6.0.3.tar.gz", hash = "sha256:d8490f40368a1324521f8e740a0e341dc40bcd6e6926da64fa64b3a8801f16a3"},
+    {file = "nbconvert-6.0.4-py3-none-any.whl", hash = "sha256:1539c838acc1b5d3227f72fa03d39ca2b9ad9489d7a0e3083e04dbe5f3e1237c"},
+    {file = "nbconvert-6.0.4.tar.gz", hash = "sha256:73b3cff6090a16bb8ce2bfb84a6f8654802104e81da71d8a42297f5660a9ecea"},
 ]
 nbformat = [
     {file = "nbformat-5.0.7-py3-none-any.whl", hash = "sha256:ea55c9b817855e2dfcd3f66d74857342612a60b1f09653440f4a5845e6e3523f"},
@@ -2322,8 +2322,8 @@ quaternion = [
     {file = "Quaternion-0.03.1.tar.gz", hash = "sha256:c2a28dfabe1ded237fb1bab491a8a9752893483281629e8a682d4cdc7b5d29a9"},
 ]
 quaternionic = [
-    {file = "quaternionic-0.1.16-py3-none-any.whl", hash = "sha256:4f4439fd26e9a19aa3a6896713e63e53a5181ce1f8d5174fa78d455b11a13332"},
-    {file = "quaternionic-0.1.16.tar.gz", hash = "sha256:4edbf184f47a959ee5d58101a4c88998056291fd8764161e76e4dcd18d64fa46"},
+    {file = "quaternionic-0.2.0-py3-none-any.whl", hash = "sha256:f78e735b0ca7fc22409ac1b2886d2b3fde6fd614fd2770f3139567227ef2585c"},
+    {file = "quaternionic-0.2.0.tar.gz", hash = "sha256:bf17cb455eb9717f82b5670d037ebb6c0f18985848151bb4a3e783ca48503686"},
 ]
 regex = [
     {file = "regex-2020.7.14-cp27-cp27m-win32.whl", hash = "sha256:e46d13f38cfcbb79bfdb2964b0fe12561fe633caf964a77a5f8d4e45fe5d2ef7"},
@@ -2396,8 +2396,8 @@ six = [
     {file = "six-1.15.0.tar.gz", hash = "sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259"},
 ]
 spherical = [
-    {file = "spherical-0.1.0-py3-none-any.whl", hash = "sha256:351d7677d1a52ae54c7fd64600e937cf5bd9ff22154a81874e33ad30f402518e"},
-    {file = "spherical-0.1.0.tar.gz", hash = "sha256:a3a2474fd38d06a4535b826b940f3b01ab1fd5383a146714a5fb6462783d7b49"},
+    {file = "spherical-0.1.1-py3-none-any.whl", hash = "sha256:517bcbb5ab779f524416da1bd4a8a3910344d08301bee4e02b1c9ec332150929"},
+    {file = "spherical-0.1.1.tar.gz", hash = "sha256:b92a546ac8e92643fd3eb233a2e660d2644978ab8a695adfdcda23ce2f233cb5"},
 ]
 spherical-functions = [
     {file = "spherical-functions-2020.8.18.15.37.20.tar.gz", hash = "sha256:775408f6b535151c99f4eb49c2d568298f4503b9c212bb574740b4178ca82043"},
@@ -2422,8 +2422,8 @@ sympy = [
     {file = "sympy-1.6.2.tar.gz", hash = "sha256:1cfadcc80506e4b793f5b088558ca1fcbeaec24cd6fc86f1fdccaa3ee1d48708"},
 ]
 terminado = [
-    {file = "terminado-0.8.3-py2.py3-none-any.whl", hash = "sha256:a43dcb3e353bc680dd0783b1d9c3fc28d529f190bc54ba9a229f72fe6e7a54d7"},
-    {file = "terminado-0.8.3.tar.gz", hash = "sha256:4804a774f802306a7d9af7322193c5390f1da0abb429e082a10ef1d46e6fb2c2"},
+    {file = "terminado-0.9.1-py3-none-any.whl", hash = "sha256:c55f025beb06c2e2669f7ba5a04f47bb3304c30c05842d4981d8f0fc9ab3b4e3"},
+    {file = "terminado-0.9.1.tar.gz", hash = "sha256:3da72a155b807b01c9e8a5babd214e052a0a45a975751da3521a1c3381ce6d76"},
 ]
 testpath = [
     {file = "testpath-0.4.4-py2.py3-none-any.whl", hash = "sha256:bfcf9411ef4bf3db7579063e0546938b1edda3d69f4e1fb8756991f5951f85d4"},

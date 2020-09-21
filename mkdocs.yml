@@ -12,11 +12,15 @@ plugins:
   #         source_repo: "https://github.com/sxs-collaboration/sxs/blob/main"
 
 nav:
-  - index.md
-  - API: mkapi/api/sxs
+    - Home: 'index.md'
+    - Mathematica: 'mathematica.md'
+    - API: mkapi/api/sxs
 
 theme:
   name: 'readthedocs'
+  highlightjs: true
+  hljs_languages:
+    - mathematica
 
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js
@@ -26,3 +30,5 @@ markdown_extensions:
       permalink: "#"
   - pymdownx.arithmatex:
       generic: true
+  # - pymdownx.highlight
+  # - pymdownx.superfences

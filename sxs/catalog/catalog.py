@@ -149,56 +149,6 @@ class Catalog(object):
         with path.open("w") as f:
             json.dump(self._dict, f, indent=2, separators=(",", ": "), ensure_ascii=True)
 
-    def select_files(self, path_pattern, include_json=True):
-        """Return paths and file information from all files available in the catalog
-
-        This function is essentially the same as the `select` function, except that —
-        whereas that function returns only the matching paths — this function returns
-        matching paths and file information about those paths, including things like
-        checksum, filesize, and download links.
-
-        Parameters
-        ----------
-        path_pattern : str
-            A pattern to search for among the catalog files.  See the docstring of
-            `select` for details about how this pattern is used.
-
-        Returns
-        -------
-        selections : dict
-            This is a dictionary with keys given by the paths to selected files in the
-            catalog, and values given by `file_info` dicts described below.
-        include_json : bool, optional
-            If True (the default), for each file that would be returned naturally, if a
-            file with the same name but ending in '.json' is found in the `files`, the
-            json file is also returned.
-
-        See Also
-        --------
-        select : Return only the paths, not the file info
-
-        Notes
-        -----
-        Because multiple versions of the same simulation may exist with some
-        identical files, and because we don't want to reproduce those identical
-        files in each version, many files in the catalog should just be links to
-        those files in previous versions of their simulations.  This relationship
-        is encapsulated by the `truepath` element of the `file_info` dict.
-
-        The `file_info` dict returned for each selection contains the following
-        key:value pairs:
-
-          * checksum: MD5 sum of the file
-          * filename: Name of this file in this version of the simulation.
-          * filesize: Size of the file in bytes
-          * download: The URL to use to download this file
-          * truepath: The full SXS path to the original file
-
-        """
-        files = self.files
-        selection = self.select(path_pattern, files=files, include_json=include_json)
-        return {s: files[s] for s in selection}
-
     def select(self, path_pattern, files=None, include_json=True):
         """Select from all catalog files by progressively matching path components
 
@@ -275,6 +225,56 @@ class Catalog(object):
                     if p in selections:
                         selections.add(str(p))
         return sorted(selections)
+
+    def select_files(self, path_pattern, include_json=True):
+        """Return paths and file information from all files available in the catalog
+
+        This function is essentially the same as the `select` function, except that —
+        whereas that function returns only the matching paths — this function returns
+        matching paths and file information about those paths, including things like
+        checksum, filesize, and download links.
+
+        Parameters
+        ----------
+        path_pattern : str
+            A pattern to search for among the catalog files.  See the docstring of
+            `select` for details about how this pattern is used.
+
+        Returns
+        -------
+        selections : dict
+            This is a dictionary with keys given by the paths to selected files in the
+            catalog, and values given by `file_info` dicts described below.
+        include_json : bool, optional
+            If True (the default), for each file that would be returned naturally, if a
+            file with the same name but ending in '.json' is found in the `files`, the
+            json file is also returned.
+
+        See Also
+        --------
+        select : Return only the paths, not the file info
+
+        Notes
+        -----
+        Because multiple versions of the same simulation may exist with some
+        identical files, and because we don't want to reproduce those identical
+        files in each version, many files in the catalog should just be links to
+        those files in previous versions of their simulations.  This relationship
+        is encapsulated by the `truepath` element of the `file_info` dict.
+
+        The `file_info` dict returned for each selection contains the following
+        key:value pairs:
+
+          * checksum: MD5 sum of the file
+          * filename: Name of this file in this version of the simulation.
+          * filesize: Size of the file in bytes
+          * download: The URL to use to download this file
+          * truepath: The full SXS path to the original file
+
+        """
+        files = self.files
+        selection = self.select(path_pattern, files=files, include_json=include_json)
+        return {s: files[s] for s in selection}
 
     @property
     @functools.lru_cache()
@@ -376,7 +376,9 @@ class Catalog(object):
 
         def three_vec(x):
             try:
-                a = np.array(x)
+                a = np.array(x, dtype=float)
+                if a.shape != (3,):
+                    raise ValueError("Don't understand input as a three-vector")
             except:
                 a = np.array([np.nan, np.nan, np.nan])
             return a
@@ -402,6 +404,13 @@ class Catalog(object):
                 a = np.array([np.nan, np.nan, np.nan])
             return a
 
+        def boost_velocity_norm(x):
+            try:
+                n = np.linalg.norm(np.array(x["boost_velocity"]))
+            except:
+                n = np.nan
+            return n
+
         sims_df = pd.concat((
             simulations["object_types"].astype("category"),
             simulations["initial_separation"].map(floater),
@@ -424,7 +433,7 @@ class Catalog(object):
             simulations["com_parameters"].map(space_translation).rename("com_correction_space_translation"),
             simulations["com_parameters"].map(space_translation_norm).rename("com_correction_space_translation_mag"),
             simulations["com_parameters"].map(boost_velocity).rename("com_correction_boost_velocity"),
-            simulations["com_parameters"].map(boost_velocity).map(norm).rename("com_correction_boost_velocity_mag"),
+            simulations["com_parameters"].map(boost_velocity_norm).map(norm).rename("com_correction_boost_velocity_mag"),
             simulations["reference_time"].map(floater),
             (
                 simulations["reference_position1"].map(three_vec)
@@ -478,6 +487,8 @@ class Catalog(object):
         #  62  initial_mass_withspin2         2 non-null      float64
 
         return sims_df
+
+    table = simulations_dataframe
 
     @property
     def open_access(self):
