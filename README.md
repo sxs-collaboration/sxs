@@ -40,9 +40,14 @@ or
 python -m pip install sxs
 ```
 
-These commands will download and install just the `sxs` package.  If you want
-to install all the goodies that enable things like interactive tables in
-jupyter notebooks, you could run
+Here, `conda` requires the [conda](https://docs.anaconda.com/anaconda/install/)
+installation of python, which is the most recommended approach for scientific
+python; the second command assumes that you have an appropriate python
+environment set up in some other way.  Either of these commands will download
+and install the `sxs` package and its most vital requirements.
+
+If you want to install all the goodies that enable things like jupyter
+notebooks with plots and interactive tables, you could run
 
 ```bash
 conda install -c conda-forge sxs-ecosystem
@@ -54,19 +59,27 @@ or
 python -m pip install sxs[ecosystem]
 ```
 
-Either way, you will probably also want to set some sensible defaults to
-automatically download and cache data:
+You will probably also want to set some sensible defaults to automatically
+download and cache data:
 
 ```bash
 python -c "import sxs; sxs.write_config(download=True, cache=True)"
 ```
 
-This will write the configuration file in the directory returned by
-`sxs.sxs_directory("config")`, and data will be cached in the directory
-returned by `sxs.sxs_directory("cache")`.
+This will write a configuration file in the directory returned by
+`sxs.sxs_directory("config")`, and downloaded data will be cached in the
+directory returned by `sxs.sxs_directory("cache")`.  See [that function's
+documentation](api/sxs.utilities.sxs_directories/#sxsutilitiessxs_directoriessxs_directory)
+for details.
 
 
 ## Usage
+
+An extensive demonstration of this package's capabilities is available
+[here](https://mybinder.org/v2/gh/moble/sxs_notebooks/master), in the form of
+interactive jupyter notebooks that are actually running this code and some
+pre-downloaded data.  The following is just a very brief overview of the `sxs`
+package's main components.
 
 There are four important objects to understand in this package:
 
@@ -91,7 +104,7 @@ which contains metadata about that simulation — things like mass ratio, spins,
 etc.  This `metadata` reflects the actual output of the simulations, which
 leads to some inconsistencies in their formats.  A more consistent interface
 (though it is biased toward returning NaNs where a human might glean more
-information) is provided by `catalog.simulations_dataframe`, which returns a
+information) is provided by `catalog.table`, which returns a
 [`pandas`](https://pandas.pydata.org/docs/) `DataFrame` with specific data
 types for each column.
 
