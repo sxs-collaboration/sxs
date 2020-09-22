@@ -139,6 +139,7 @@ def load(file, **kwargs):
     import h5py
     import quaternionic
     import spherical
+    from ..utilities import KeyPassingDict
 
     # This unfortunate concoction is needed to determine the (ell,m) values of the various mode data sets
     pattern_Ylm = re.compile(r"""Y_l(?P<L>[0-9]+)_m(?P<M>[-+0-9]+)\.dat""")
@@ -182,10 +183,13 @@ def load(file, **kwargs):
                 raise ValueError(f"Input root group '{root_group}' was not found in '{file_path}'")
             f = f_h5[root_group]
         else:
-            return {
+            return KeyPassingDict(**{
                 new_h5_group: load(file, **dict(h5_group=new_h5_group, **kwargs))
                 for new_h5_group in f_h5 if "VersionHist.ver" not in new_h5_group
-            }
+            }, **{
+                new_h5_group: f_h5[new_h5_group][:]
+                for new_h5_group in f_h5 if "VersionHist.ver" in new_h5_group
+            })
 
         # If it exists, add the metadata file to `w` as an object.  So, for example, the initial spin on
         # object 1 can be accessed as `w.metadata.initial_spin1`.  See the documentation of
