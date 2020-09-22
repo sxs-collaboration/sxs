@@ -211,6 +211,7 @@ def load(file, **kwargs):
                     old_history = f["History.txt"][()]
             else:
                 old_history = ""
+            w_attributes["history"] = old_history
 
             # Get the frame data, converting to quaternion objects
             if "Frame" in f:

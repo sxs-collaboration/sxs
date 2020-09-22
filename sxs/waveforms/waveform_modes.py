@@ -61,6 +61,19 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         h_22 = waveform["Y_l2_m2.dat"]
 
+    Note that "History.txt" may not contain anything but an empty string, because
+    history is not retained in more recent data formats.  Also note that — while
+    not strictly a part of this class — the loaders that open waveform files will
+    return a dict-like object when the extrapolation order is not specified.  That
+    object can also be accessed in a backwards-compatible way much like the root
+    directory of the NRAR-format HDF5 files.  For example:
+
+        with sxs.loadcontext("rhOverM_Asymptotic_GeometricUnits_CoM.h5") as f:
+            h_22 = f["Extrapolated_N2.dir/Y_l2_m2.dat"]
+
+    Here, `sxs.loadcontext` replaces a similar call to `h5py.File`, and `f` is the
+    dict-like object that can be accessed just like an open `h5py.File` object.
+
     """
     import functools
 
@@ -73,6 +86,8 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
     def __getitem__(self, key):
         if isinstance(key, str):
+            if key == "History.txt":
+                return self._metadata.get("history", "")
             # Assume we're asking for Y_l2_m2.dat or something
             if self.data.shape != (self.n_times, self.n_modes):
                 raise ValueError(f"Data has shape {self.data.shape}, which is incompatible with NRAR format")
@@ -85,7 +100,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
             if abs(m) > ell:
                 raise ValueError(f"Key '{key}' requested (ell, m)=({ell}, {m}) value does not make sense")
             index = self.index(ell, m)
-            data = np.take(self.data, index, axis=self.mode_axis).view(float).reshape((-1, 2))
+            data = np.take(self.data, index, axis=self.modes_axis).view(float).reshape((-1, 2))
             return np.hstack((self.time[:, np.newaxis], data))
         obj, time_key = self._slice(key)
         if time_key is None:
