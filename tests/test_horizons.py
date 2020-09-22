@@ -1,3 +1,4 @@
+import contextlib
 import pathlib
 import tempfile
 import numpy as np
@@ -16,11 +17,13 @@ def test_spec_format():
         "DimensionfulInertialSpinMag", "chiInertial", "chiMagInertial"
     ]
 
-    catalog = sxs.load("catalog")
+    with contextlib.redirect_stdout(None):
+        catalog = sxs.load("catalog")
     selected = catalog.select_files(file_name)
     selected_path = list(selected.values())[0]["truepath"]
 
-    horizons = sxs.load(file_name)
+    with contextlib.redirect_stdout(None):
+        horizons = sxs.load(file_name)
     cached_path = sxs.sxs_directory("cache") / selected_path
 
     with h5py.File(cached_path, "r") as f:
@@ -36,7 +39,8 @@ def test_spec_format():
 
 def test_xmb_format():
     # horizons_spec = sxs.horizons.spec_horizons_h5.load(file_name)
-    horizons_spec = sxs.load(file_name)
+    with contextlib.redirect_stdout(None):
+        horizons_spec = sxs.load(file_name)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         file = pathlib.Path(temp_dir) / 'horizons.h5'

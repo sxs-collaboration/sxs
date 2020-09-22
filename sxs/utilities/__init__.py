@@ -19,3 +19,4 @@ from .select import select_by_path_component
 from .formats import file_format
 from .pretty_print import fit_to_console
 from .files import md5checksum, lock_file_manager, find_simulation_directories, find_files
+from .dicts import KeyPassingDict

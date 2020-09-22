@@ -189,7 +189,16 @@ class Horizons(object):
     returns an Nx4 array.  For scalar-valued functions of time, the returned object
     has shape Nx2, rather than just N.  This provides full backward compatibility
     with SpEC-format Horizons.h5 files, in the sense that a `Horizons` object can
-    be indexed in exactly the same way as a Horizons.h5 file.
+    be indexed in exactly the same way as a Horizons.h5 file.  Also note that the
+    function `sxs.loadcontext` provides a context manager just like `h5py`:
+
+        with sxs.loadcontext("Horizons.h5") as f:
+            time = f["AhA.dir/ArealMass.dat"][:, 0]
+            areal_mass = f["AhA.dir/ArealMass.dat"][:, 1]
+
+    This code is identical to the equivalent code using `h5py` except that the call
+    to `h5py.File` is replaced with the call to `sxs.loadcontext`.  The `.dat`
+    datasets are re-computed on the fly.
 
     """
     def __init__(self, **kwargs):
