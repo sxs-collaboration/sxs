@@ -1,10 +1,13 @@
 """The main container for waveform objects with mode weights"""
 
+import re
 import numpy as np
 import quaternionic
 import spherical
 from .. import TimeSeries, jit
 from . import WaveformMixin
+
+NRAR_mode_regex = re.compile(r"""Y_l(?P<L>[0-9]+)_m(?P<M>[-+0-9]+)\.dat""")
 
 
 class WaveformModes(WaveformMixin, TimeSeries):
@@ -53,6 +56,11 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
     The total size is implicitly `ell_max * (ell_max + 2) - ell_min ** 2 + 1`.
 
+    For backwards compatibility, it is possible to retrieve individual modes in the
+    same way as the old NRAR-format HDF5 files would be read, as in
+
+        h_22 = waveform["Y_l2_m2.dat"]
+
     """
     import functools
 
@@ -64,6 +72,21 @@ class WaveformModes(WaveformMixin, TimeSeries):
         return self
 
     def __getitem__(self, key):
+        if isinstance(key, str):
+            # Assume we're asking for Y_l2_m2.dat or something
+            if self.data.shape != (self.n_times, self.n_modes):
+                raise ValueError(f"Data has shape {self.data.shape}, which is incompatible with NRAR format")
+            match = NRAR_mode_regex.match(key)
+            if not match:
+                raise ValueError(f"Key '{key}' did not match mode format")
+            ell, m = int(match["L"]), int(match["M"])
+            if ell < self.ell_min or ell > self.ell_max:
+                raise ValueError(f"Key '{key}' requested ell={ell} value not found in this data")
+            if abs(m) > ell:
+                raise ValueError(f"Key '{key}' requested (ell, m)=({ell}, {m}) value does not make sense")
+            index = self.index(ell, m)
+            data = np.take(self.data, index, axis=self.mode_axis).view(float).reshape((-1, 2))
+            return np.hstack((self.time[:, np.newaxis], data))
         obj, time_key = self._slice(key)
         if time_key is None:
             raise ValueError(f"Fancy indexing (with {key}) is not supported")
