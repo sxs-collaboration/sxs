@@ -71,8 +71,10 @@ class WaveformModes(WaveformMixin, TimeSeries):
         with sxs.loadcontext("rhOverM_Asymptotic_GeometricUnits_CoM.h5") as f:
             h_22 = f["Extrapolated_N2.dir/Y_l2_m2.dat"]
 
-    Here, `sxs.loadcontext` replaces a similar call to `h5py.File`, and `f` is the
-    dict-like object that can be accessed just like an open `h5py.File` object.
+    This code is identical to the equivalent code using `h5py` except that the call
+    to `h5py.File` is replaced with the call to `sxs.loadcontext`.  The `.dat`
+    datasets are reconstructed on the fly, but should be bitwise-identical to the
+    output from the HDF5 file whenever the underlying format is NRAR.
 
     """
     import functools
