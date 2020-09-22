@@ -65,21 +65,36 @@ class Catalog(object):
             if_newer = False
 
         if download or download is None:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_path = pathlib.Path(temp_dir) / "catalog.json"
-                zip_path = pathlib.Path(temp_dir) / "catalog.zip"
+            # 1. Download the full json file (zipped in flight, but auto-decompressed on arrival)
+            # 2. Zip to a temporary file (using bzip2, which is better than the in-flight compression)
+            # 3. Replace the original catalog.zip with the temporary zip file
+            # 4. Remove the full json file
+            # 5. Make sure the temporary zip file is gone too
+            temp_json = cache_path.with_suffix(".temp.json")
+            temp_zip = cache_path.with_suffix(".temp.zip")
+            try:
                 try:
-                    download_file(cls.url, temp_path, progress=progress, if_newer=if_newer)
+                    download_file(cls.url, temp_json, progress=progress, if_newer=if_newer)
                 except Exception as e:
                     if download:
                         raise RuntimeError(f"Failed to download '{cls.url}'; try setting `download=False`") from e
                     download_failed = e  # We'll try the cache
                 else:
                     download_failed = False
-                    if temp_path.exists():
-                        with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_BZIP2) as catalog_zip:
-                            catalog_zip.write(temp_path, arcname="catalog.json")
-                        zip_path.replace(cache_path)
+                    if temp_json.exists():
+                        with zipfile.ZipFile(temp_zip, "w", compression=zipfile.ZIP_BZIP2) as catalog_zip:
+                            catalog_zip.write(temp_json, arcname="catalog.json")
+                        temp_zip.replace(cache_path)
+            finally:
+                # The `missing_ok` argument to `unlink` would be much nicer, but was added in python 3.8
+                try:
+                    temp_json.unlink()
+                except FileNotFoundError as e:
+                    pass
+                try:
+                    temp_zip.unlink()
+                except FileNotFoundError as e:
+                    pass
 
         if not cache_path.exists():
             if download_failed:
