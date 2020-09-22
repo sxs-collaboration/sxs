@@ -20,7 +20,7 @@ def test_spec_format():
     with contextlib.redirect_stdout(None):
         catalog = sxs.load("catalog")
     selected = catalog.select_files(file_name)
-    selected_path = list(selected.values())[0]["truepath"]
+    selected_path = sxs.utilities.sxs_path_to_system_path(list(selected.values())[0]["truepath"])
 
     with contextlib.redirect_stdout(None):
         horizons = sxs.load(file_name)

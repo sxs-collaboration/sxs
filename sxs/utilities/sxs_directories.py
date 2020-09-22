@@ -207,3 +207,11 @@ def sxs_directory(directory_type, persistent=True):
     if directory_type == "cache":
         sxs_dir.mkdir(exist_ok=True)
     return sxs_dir
+
+
+def sxs_path_to_system_path(path):
+    import platform
+    if platform.system() == "Windows":
+        return str(path).replace(":", "_")
+    else:
+        return path
