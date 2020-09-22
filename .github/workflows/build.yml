@@ -41,7 +41,6 @@ jobs:
           python -m poetry install
 
       - name: Run tests
-        if: "matrix.os != 'windows-latest'"
         run: |
           python -m poetry run pytest -s --cov=sxs --cov-branch --cov-report=xml
 
