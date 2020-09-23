@@ -189,7 +189,7 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
     # if it casts to `False`.
     cache_path = sxs_directory("cache", persistent=(cache is not False))
 
-    path = pathlib.Path(location).expanduser().resolve()
+    path = pathlib.Path(sxs_path_to_system_path(location)).expanduser().resolve()
     h5_path = path.with_suffix('.h5')
     json_path = path.with_suffix('.json')
 
