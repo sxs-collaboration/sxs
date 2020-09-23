@@ -1,6 +1,12 @@
 """Functions to find user-specific config and cache directories"""
 
+import re
+import platform
 import functools
+from .sxs_identifiers import sxs_identifier_regex
+
+_sxs_identifier_regex = re.compile(sxs_identifier_regex)
+_platform_system = platform.system()
 
 
 def read_config(key=None, default=None):
@@ -207,3 +213,10 @@ def sxs_directory(directory_type, persistent=True):
     if directory_type == "cache":
         sxs_dir.mkdir(exist_ok=True)
     return sxs_dir
+
+
+def sxs_path_to_system_path(path):
+    if _platform_system == "Windows":
+        return _sxs_identifier_regex.sub(lambda s: s.group(0).replace(":", "_"), str(path))
+    else:
+        return path

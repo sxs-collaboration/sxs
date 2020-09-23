@@ -174,7 +174,7 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
     import pathlib
     import urllib.request
     from . import Catalog, read_config, sxs_directory
-    from .utilities import url, download_file
+    from .utilities import url, download_file, sxs_path_to_system_path
 
     # Note: `download` and/or `cache` may still be `None` after this
     if download is None:
@@ -189,7 +189,7 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
     # if it casts to `False`.
     cache_path = sxs_directory("cache", persistent=(cache is not False))
 
-    path = pathlib.Path(location).expanduser().resolve()
+    path = pathlib.Path(sxs_path_to_system_path(location)).expanduser().resolve()
     h5_path = path.with_suffix('.h5')
     json_path = path.with_suffix('.json')
 
@@ -223,7 +223,8 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
                 print("    " + "\n    ".join(selections))
             paths = []
             for sxs_path, file_info in selections.items():
-                path = cache_path / file_info.get("truepath", sxs_path)
+                truepath = sxs_path_to_system_path(file_info.get("truepath", sxs_path))
+                path = cache_path / truepath
                 if not path.exists():
                     download_url = file_info["download"]
                     download_file(download_url, path, progress=progress)

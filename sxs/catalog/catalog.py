@@ -49,7 +49,6 @@ class Catalog(object):
 
         """
         import json
-        import pathlib
         import tempfile
         import zipfile
         from .. import sxs_directory, read_config
@@ -236,7 +235,7 @@ class Catalog(object):
         if include_json:
             for selection in selections:
                 if not selection.endswith(".json"):
-                    p = pathlib.Path(selection).with_suffix(".json")
+                    p = pathlib.PurePosixPath(selection).with_suffix(".json")
                     if p in selections:
                         selections.add(str(p))
         return sorted(selections)
@@ -297,7 +296,6 @@ class Catalog(object):
         """Map of all file names to the corresponding file info"""
         import collections
         import re
-        import pathlib
         from ..utilities import sxs_identifier_regex, sxs_id
 
         sxs_id_regex = re.compile(sxs_identifier_regex + r"/?")
@@ -308,10 +306,10 @@ class Catalog(object):
             if not sxs_sim_id:
                 continue
             version = record["version"]
-            prefix = pathlib.Path(f"{sxs_sim_id}v{version}")
+            prefix = f"{sxs_sim_id}v{version}"
             files = sorted(record["files"], key=lambda f: f["filename"])
             for file in files:
-                path_str = str(prefix / sxs_id_regex.sub("", file["filename"], count=1))
+                path_str = prefix + "/" + sxs_id_regex.sub("", file["filename"], count=1)
                 file_info = {
                     "checksum": file["checksum"],
                     "filename": file["filename"],
