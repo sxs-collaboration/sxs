@@ -96,6 +96,8 @@ def select_by_path_component(path_pattern, possible_matches, recursion_index=0):
     import collections
     import re
 
+    print(f"DEBUG: select_by_path_component('{path_pattern}', ...)")
+
     # Look for exact matches
     if recursion_index == 0:
         matches = {p for p in possible_matches if p.startswith(path_pattern)}
