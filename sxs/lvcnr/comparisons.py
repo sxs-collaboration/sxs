@@ -59,7 +59,7 @@ def compare_attributes(lvc, sxs_metadata, count_errors):
 
 def compare_waveform_splines(lvc, sxs_waveform, mode_string, extrap_order="Extrapolated_N2"):
     import numpy as np
-    from . import LVCDataset
+    from . import Dataset
 
     start_time = lvc.attrs["NR_start_time"]
     peak_time = lvc.attrs["NR_peak_time"]
@@ -73,8 +73,8 @@ def compare_waveform_splines(lvc, sxs_waveform, mode_string, extrap_order="Extra
     sxs_times = hlm[start_h:, 0] - peak_time
 
     # Get LVC values
-    lvc_amp = LVCDataset.read(lvc["amp"+mode_string]).spline(sxs_times)
-    lvc_phase = LVCDataset.read(lvc["phase"+mode_string]).spline(sxs_times)
+    lvc_amp = Dataset.read(lvc["amp"+mode_string]).spline(sxs_times)
+    lvc_phase = Dataset.read(lvc["phase"+mode_string]).spline(sxs_times)
     lvc_values = lvc_amp * np.exp(1j * lvc_phase)
 
     # Linf norm of difference
@@ -84,7 +84,7 @@ def compare_waveform_splines(lvc, sxs_waveform, mode_string, extrap_order="Extra
 
 def compare_horizon_splines(lvc, sxs_horizons, key, count_errors):
     import numpy as np
-    from . import LVCDataset
+    from . import Dataset
 
     start_time = lvc.attrs["NR_start_time"]
     peak_time = lvc.attrs["NR_peak_time"]
@@ -125,7 +125,7 @@ def compare_horizon_splines(lvc, sxs_horizons, key, count_errors):
     sxs_times = quantity[start_ah:, 0] - peak_time
 
     # Linf norm of difference
-    lvc_values = LVCDataset.read(lvc[key]).spline(sxs_times)
+    lvc_values = Dataset.read(lvc[key]).spline(sxs_times)
     diff = np.max(np.abs(lvc_values - sxs_values))
     return diff
 
@@ -177,7 +177,7 @@ def compare_wave_time_series(lvc, sxs_waveform, count_errors, extrap="Extrapolat
 
 def compare_peaks(lvc, sxs_waveform, lvc_amp_keys, count_errors, extrap_order="Extrapolated_N2"):
     import numpy as np
-    from . import LVCDataset
+    from . import Dataset
 
     start_time = lvc.attrs["NR_start_time"]
     peak_time = lvc.attrs["NR_peak_time"]
@@ -192,7 +192,7 @@ def compare_peaks(lvc, sxs_waveform, lvc_amp_keys, count_errors, extrap_order="E
     # Get LVC values
     lvc_l2norm = np.zeros_like(sxs_times)
     for lvc_amp_key in lvc_amp_keys:
-        lvc_l2norm += LVCDataset.read(lvc[lvc_amp_key]).spline(sxs_times)**2
+        lvc_l2norm += Dataset.read(lvc[lvc_amp_key]).spline(sxs_times)**2
 
     # Check that the peak LVC amplitude is near t=0
     lvc_t_peak = sxs_times[np.argmax(lvc_l2norm)]

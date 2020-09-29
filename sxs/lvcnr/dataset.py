@@ -55,7 +55,7 @@ class Dataset(object):
         import h5py
         if not isinstance(input_group, h5py.Group):
             raise Exception("Parameter `input_group` must be an h5py.Group (or File) object.")
-        lvc_dataset = LVCDataset()
+        lvc_dataset = Dataset()
         lvc_dataset.deg = input_group['deg'][()]
         lvc_dataset.tol = input_group['tol'][()]
         lvc_dataset.errors = input_group['errors'][:]

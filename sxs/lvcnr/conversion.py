@@ -1,3 +1,6 @@
+import sxs
+
+
 class SimulationConverter(object):
     class Log(object):
         """Object to replace `log` function that used global `history`
@@ -101,7 +104,11 @@ class SimulationConverter(object):
         self.ell_max = max(lm[0] for lm in self.modes)
 
         # Load catalog metadata
-        self.sxs_catalog = sxs.load("catalog")
+        catalog = sxs.load("catalog")
+        self.sxs_catalog = {
+            'simulations': catalog.simulations,
+            'records': catalog.records,
+        }
 
         self.sxs_catalog_resolutions = sxs.zenodo.catalog.resolutions_for_simulations(self.sxs_catalog)
 
