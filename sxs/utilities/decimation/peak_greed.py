@@ -1,4 +1,6 @@
-def minimal_grid(x, y, tol=1e-6, error_scale=1.0):
+"""Modified greedy algorithm"""
+
+def minimal_grid(x, y, tol=1e-6, error_scale=1.0, y_reference=None):
     """Modified greedy algorithm for building a reduced-order spline
 
     This function is a modification of the algorithm found in `greedy_spline`.
@@ -17,17 +19,24 @@ def minimal_grid(x, y, tol=1e-6, error_scale=1.0):
         This function will iteratively increase the number of sampling points until
         the spline formed from those points is within this value of the input data
         at each input sample.  Defaults to 1e-6.
-    error_scale : {float, array_like[float]}
+    error_scale : {float, array_like[float]}, optional
         Multiply the error value by this scale before finding peaks or comparing to
         `tol`.  While this can be achieved by rescaling `tol` when this is a float,
         it is also possible to pass an array to this function so that each
         interpolated value may be targeted with a different tolerance.  In that
         case, the input array must have the same size as `x` and `y`.  The default
         value is 1.0.
+    y_reference : {None, array_like[float]}, optional
+        Reference `y` values with which to compare.  By default, this is precisely
+        `y`; an array similar to `y` can be passed instead, so that `y` will be
+        used to construct the splines, but `y_reference` will be used to evaluate
+        the errors.  This can be helpful, for example, if we are truncating the
+        precision of `y` in the output, but want to ensure that the result is still
+        within the given tolerance of the original (pre-truncation) `y`.
 
     Returns
     -------
-    include_sample: array_like[bool]
+    include_sample : array_like[bool]
         Boolean array of the same length as `x` determining whether or not the
         corresponding point should be included in a reduced-order spline.  Note
         that numpy arrays can be indexed with this array, so that
@@ -41,6 +50,9 @@ def minimal_grid(x, y, tol=1e-6, error_scale=1.0):
     from scipy.signal import find_peaks
 
     deg = 3  # This used to be a parameter, before switching to CubicSpline
+
+    if y_reference is None:
+        y_reference = y
 
     error_scale = np.asarray(error_scale)
 
@@ -112,7 +124,7 @@ def minimal_grid(x, y, tol=1e-6, error_scale=1.0):
         s = spline(x[include_sample], y[include_sample])
 
         # Evaluate this spline on all input data points and find peak errors
-        i_next = next_sample(y, s(x), sign)
+        i_next = next_sample(y_reference, s(x), sign)
 
         # Break out of this loop if `tol` is satisfied
         if i_next is None:
@@ -120,5 +132,5 @@ def minimal_grid(x, y, tol=1e-6, error_scale=1.0):
 
         # Include data point that gives largest interpolation error
         include_sample[i_next] = True
-        
+
     return include_sample

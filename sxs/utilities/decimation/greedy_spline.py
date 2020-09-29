@@ -1,3 +1,5 @@
+"""Greedy algorithm"""
+
 def minimal_grid(x, y, tol=1e-6, rel=False):
     """Greedy algorithm for building a reduced-order spline
 

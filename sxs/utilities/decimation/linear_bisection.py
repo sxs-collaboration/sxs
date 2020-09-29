@@ -1,3 +1,5 @@
+"""Simple greedy algorithm from NINJA2 project"""
+
 def minimal_grid(t, amp, phi, amp_tol=1e-5, phi_tol=1e-5):
     """Select a minimal grid from the input data allowing linear interpolation to given tolerances
 
