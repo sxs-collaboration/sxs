@@ -21,7 +21,7 @@ from .metadata import Metadata
 from .catalog import Catalog
 from .horizons import Horizons, HorizonQuantities
 from .waveforms import WaveformModes #, WaveformGrid, WaveformSignal
-from . import catalog, metadata, horizons, waveforms
+from . import catalog, metadata, horizons, waveforms, lvcnr, zenodo
 from .handlers import load, loadcontext
 
 # The speed of light is, of course, defined to be exactly
