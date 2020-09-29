@@ -68,7 +68,7 @@ def _create(login=None):
     # If login is None, this creates a Login object to use
     l = login or Login()
 
-    # Search for *all* version — even unpublished ones, to get the versions right.  Note that we
+    # Search for *all* versions — even unpublished ones, to get the versions right.  Note that we
     # have to run these queries separately because there are more than 10,000 if combined, which
     # exceeds zenodo's limit.  Currently, this hack works to get them all — though it will fail if
     # more drafts are published.
