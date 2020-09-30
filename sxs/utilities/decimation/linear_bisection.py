@@ -13,7 +13,7 @@ def minimal_grid(t, amp, phi, amp_tol=1e-5, phi_tol=1e-5):
 
     """
     import numpy as np
-    
+
     # The objective here will be to create a vector of `bool`s, the same length as
     # t.  The truth value will correspond to whether or not that time step should
     # be kept in the final data.  We begin by assuming that the very first and last
@@ -24,7 +24,7 @@ def minimal_grid(t, amp, phi, amp_tol=1e-5, phi_tol=1e-5):
     # checking that every single point in the input data can be reproduced to
     # within phi_tol and amp_tol.  If that's not true, the interval is split evenly
     # into two, and the algorithm proceeds with the earlier interval.
-    
+
     i0 = 0
     i1 = ((t.size-1) >> 1)  # = midpoint of the input data set
     n_points = 2
@@ -83,7 +83,7 @@ def minimal_grid(t, amp, phi, amp_tol=1e-5, phi_tol=1e-5):
                 i1hi = i1m
 
         return i1lo
-    
+
     # Coarse -- check only phi at midpoints of each interval This loop starts from
     #   the beginning of the data set, and forms the smallest interval such that
     #   the phi tolerance is achieved by linear interpolation.  Then, it moves to
@@ -91,7 +91,7 @@ def minimal_grid(t, amp, phi, amp_tol=1e-5, phi_tol=1e-5):
     while ((i0+i1)>>1) < include_indices.size-1:
         # hunt for optimal i1
         i1 = hunt(t, phi, phi_tol, i0, i1)
-        
+
         if not include_indices[i1]:
             include_indices[i1] = True
             n_points += 1
@@ -99,7 +99,7 @@ def minimal_grid(t, amp, phi, amp_tol=1e-5, phi_tol=1e-5):
         i1 = 2*i1 - i0
         if i1<i0+2:
             i1 = i0+2
-    
+
     # Fine -- check amp and phi at every point This loop goes through each of the
     #   intervals found above, and makes sure that every data point in both phi and
     #   amp can be reconstructed to within the given tolerances.  If not, it just
@@ -129,5 +129,5 @@ def minimal_grid(t, amp, phi, amp_tol=1e-5, phi_tol=1e-5):
             i0 = i1
             i1 += 1
         i += 1
-    
+
     return include_indices

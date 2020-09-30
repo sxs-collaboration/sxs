@@ -71,7 +71,7 @@ def minimal_grid(x, y, tol=1e-6, rel=False):
             if ymax == 0.0:
                 raise ValueError("All input `y` data samples are zero.")
             tol *= ymax
-        
+
         # Construct the function used to evaluate the greedy spline
         def next_sample(x, y, y_greedy):
             errors = np.abs(y-y_greedy)
@@ -87,7 +87,7 @@ def minimal_grid(x, y, tol=1e-6, rel=False):
     # Initialize greedy algorithm with evenly spaced indices, as many
     # as needed for the desired spline degree.
     include_sample[np.linspace(0, len(x)-1, num=deg+1, dtype=int)] = True
-    
+
     # Greedy algorithm
     for _ in range(len(x)):
         # Spline interpolant on current set of knots
@@ -95,12 +95,12 @@ def minimal_grid(x, y, tol=1e-6, rel=False):
 
         # Evaluate this spline
         i_next = next_sample(x, y, s(x))
-        
+
         # Break out of this loop if `tol` is satisfied
         if i_next is None:
             break
-        
+
         # Include data point that gives largest interpolation error
         include_sample[i_next] = True
-        
+
     return include_sample

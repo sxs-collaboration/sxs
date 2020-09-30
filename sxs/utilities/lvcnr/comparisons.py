@@ -303,7 +303,7 @@ def compare(lvc_file, sxs_data_path, verbosity=1):
                     tol = lvc[key]['tol'][()]
                     result = '=' if np.abs(diff) < tol else 'x'
                     count_errors("[{0}] {1} (diff = {2}, tol = {3})".format(result, key, diff, tol))
-            
+
             count_errors("# Comparing time series")
             eps = 1.e-15
             for key in lvc_horizon_time_keys:

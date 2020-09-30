@@ -71,7 +71,7 @@ def insert_spline(sxs_horizons, spline_dictionary, spline_keys,
 
 def derived_horizon_quantities_from_sxs(sxs_horizons, start_time, peak_time):
     """Compute nhat, omega_orbit, LNhat, and horizon times from Horizons.h5
-    
+
     Specifically, returns a tuple containing nhat, a unit vector from the
     secondary black hole to the primary black hole; omega_orbit, the orbital
     frequency; LNhat, a unit vector in the direction of the orbital angular
@@ -98,7 +98,7 @@ def derived_horizon_quantities_from_sxs(sxs_horizons, start_time, peak_time):
     n_vec = x_A-x_B
     n_vec_norm = np.linalg.norm(n_vec, axis=-1)
     n_hat = n_vec/n_vec_norm[:, None]
-    
+
     # We compute dn_vec/dt to get a velocity vector, by computing differences
     # for dn_vec and dt.
     dn_vec = np.diff(n_vec, axis=0)
