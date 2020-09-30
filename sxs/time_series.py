@@ -560,6 +560,7 @@ class TimeSeries(np.ndarray):
         if callable(abs_tolerance):
             abs_tolerance = abs_tolerance(self)
         power_of_2 = (2.0 ** np.floor(-np.log2(abs_tolerance)))
-        self.ndarray *= power_of_2
-        np.round(self.ndarray, out=self.ndarray)
-        self.ndarray /= power_of_2
+        ndarray = self.ndarray
+        ndarray *= power_of_2
+        np.round(ndarray, out=ndarray)
+        ndarray /= power_of_2

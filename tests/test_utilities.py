@@ -1,6 +1,20 @@
 import sys
+import pathlib
+import contextlib
+import tempfile
 import pytest
 import sxs
+
+# catalog = sxs.load("catalog")
+# com_files = [
+#     f for f in catalog.files.values()
+#     if "rhOverM_Asymptotic_GeometricUnits_CoM.h5" in f['filename']
+#     and "SXS:BBH:1111v" not in f['truepath']
+# ]
+# min(com_files, key=lambda f: f['filesize'])
+shortest_h_com_file = "SXS:BBH:0156v1/Lev5/rhOverM_Asymptotic_GeometricUnits_CoM.h5"
+shortest_horizons = "SXS:BBH:0156v1/Lev5/Horizons.h5"
+shortest_metadata = "SXS:BBH:0156v5/Lev5/metadata.json"
 
 
 if sys.platform.startswith("win"):
@@ -234,3 +248,34 @@ def test_select_by_path_component():
         for type in ["h"]
         for extrapolation in ["extrapolated_n2", "extrapolated_n3", "extrapolated_n4"]
     )
+
+
+#@pytest.mark.skipif(sys.platform.startswith("win"), reason="does not run on windows")
+@pytest.mark.parametrize("truncation_tol", (True, None, 1e-9))
+def test_lvcnr_format(truncation_tol):
+    import shutil
+    sxs_id = sxs.sxs_id(shortest_h_com_file)
+    sxs_lev = sxs.lev_number(shortest_h_com_file)
+    shortest_lvcnr = f"{sxs_id.replace(':', '_')}_Res{sxs_lev}.h5"
+    # shortest_system = pathlib.PosixPath(shortest_h_com_file).parent
+    # shortest_system_path = sxs.sxs_directory("cache") / sxs.utilities.sxs_path_to_system_path(shortest_h_com_file)
+    with contextlib.redirect_stdout(None), contextlib.redirect_stderr(None):
+        # Load these files, just to ensure they exist
+        sxs.load(shortest_h_com_file, download=True, cache=True, progress=False, extrapolation_order=2)
+        sxs.load(shortest_horizons, download=True, cache=True, progress=False)
+        sxs.load(shortest_metadata, download=True, cache=True, progress=False)
+        # Get the truepath values
+        truepath_h = sxs.utilities.cached_path(shortest_h_com_file)
+        truepath_horizons = sxs.utilities.cached_path(shortest_horizons)
+        truepath_metadata = sxs.utilities.cached_path(shortest_metadata)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = pathlib.Path(temp_dir)
+            temp_sxs_path = temp_path / f"Lev{sxs_lev}"
+            temp_sxs_path.mkdir(parents=True)
+            shutil.copy(str(truepath_h), str(temp_sxs_path))
+            shutil.copy(str(truepath_horizons), str(temp_sxs_path))
+            shutil.copy(str(truepath_metadata), str(temp_sxs_path))
+            lvc_converter = sxs.utilities.lvcnr.SimulationConverter(quiet=True)
+            lvc_converter.convert(str(temp_sxs_path), temp_dir, truncation_tol=truncation_tol)
+            error_count = sxs.utilities.lvcnr.compare(str(temp_path / shortest_lvcnr), str(temp_sxs_path))
+            assert error_count == 0
