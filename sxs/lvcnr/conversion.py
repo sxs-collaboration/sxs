@@ -51,7 +51,6 @@ class SimulationConverter(object):
         import time
         import json
         import platform
-        import textwrap
         import numpy
         import scipy
         import h5py
@@ -61,37 +60,27 @@ class SimulationConverter(object):
         self.tolerance = tolerance
         self.quiet = quiet
 
-        self.code_versions = textwrap.dedent("""\
-            python=={python}
-            numpy=={numpy}
-            scipy=={scipy}
-            h5py=={h5py}
-            # h5py.version.api_version: {h5py_api}
-            # h5py.version.hdf5_version: {h5py_hdf5}
-            sxs=={sxs}""".format(
-                python=platform.python_version(),
-                numpy=numpy.version.version,
-                scipy=scipy.version.full_version,
-                h5py=h5py.version.version,
-                h5py_api=h5py.version.api_version,
-                h5py_hdf5=h5py.version.hdf5_version,
-                sxs=sxs.__version__
-            ))
+        self.code_versions = (
+            f"python=={platform.python_version()}\n"
+            f"numpy=={numpy.version.version}\n"
+            f"scipy=={scipy.version.full_version}\n"
+            f"h5py=={h5py.version.version}\n"
+            f"# h5py_api=={h5py.version.api_version}\n"
+            f"# h5py_hdf5=={h5py.version.hdf5_version}\n"
+            f"sxs=={sxs.__version__}\n"
+        )
 
-        self.command = textwrap.dedent("""\
-            sxs.format.lvc.convert_simulation(
-                sxs_data_path={{sxs_data_path!r}},
-                out_path={{out_path!r}},
-                truncation_time={{truncation_time!r}},
-                resolution={{resolution!r}},
-                modes={modes!r},
-                tolerance={tolerance!r},
-                quiet={quiet!r}
-            )""".format(
-                modes=modes,
-                tolerance=tolerance,
-                quiet=quiet
-            ))
+        self.command = (
+            f"sxs.utilities.lvcnr.convert_simulation(\n"
+            f"    sxs_data_path={{sxs_data_path!r}},\n"
+            f"    out_path={{out_path!r}},\n"
+            f"    truncation_time={{truncation_time!r}},\n"
+            f"    resolution={{resolution!r}},\n"
+            f"    modes={modes!r},\n"
+            f"    tolerance={tolerance!r},\n"
+            f"    quiet={quiet!r}\n"
+            f")"
+        )
 
         # Make sense of the `modes` parameter
         if modes == 'all':
@@ -113,7 +102,7 @@ class SimulationConverter(object):
         self.sxs_catalog_resolutions = sxs.zenodo.catalog.resolutions_for_simulations(self.sxs_catalog)
 
 
-    def convert(self, sxs_data_path, out_path, truncation_time=None, resolution=None):
+    def convert(self, sxs_data_path, out_path, truncation_time=None, resolution=None, truncation_tol=None):
         """Convert a simulation from the SXS BBH catalog into the LVC format.
 
         This function outputs a file in LVC format named SXS_BBH_####_Res#.h5 in
@@ -125,13 +114,21 @@ class SimulationConverter(object):
             Path to directory containing rhOverM_Asymptotic_GeometricUnits_CoM.h5,
             Horizons.h5, and metadata.json files.
         out_path : string
-            Path where LVC format file is to be output
+            Path where LVC-format file is to be output
         truncation_time : {None, float}
             If specified, truncate time series at this time instead of at the reference
             time
         resolution : {None, int}
             Integer giving the resolution (Lev) of the data to convert.  If this is not
             given, the resolution is determined automatically from sxs_data_path.
+        truncation_tol : {None, bool, callable, float, array_like}, optional
+            If None (the default) or False, nothing happens.  If True, the waveform
+            data (amplitude and phase) are "truncated" so that bits with significance
+            lower than `5e-2 * self.tolerance` are set to zero, for improved
+            compression.  Any other input is passed to `sxs.TimeSeries.truncate`.  Note
+            that this is not typically a very effective setting — perhaps providing
+            another 10% compression; the output file sizes are dominated by fairly
+            redundant time data unaffected by this parameter.
 
         """
         import os
@@ -168,12 +165,16 @@ class SimulationConverter(object):
         out_name = out_path + "/" + sxs_id.replace(':', '_') + "_Res" + str(resolution) + ".h5"
         log("Output filename is '{0}'".format(out_name))
 
-        start_time, peak_time, version_hist = convert_modes(sxs_data_path + "/rhOverM_Asymptotic_GeometricUnits_CoM.h5",
-                                                            metadata, out_name, self.modes, extrapolation_order, log,
-                                                            truncation_time, tolerance=self.tolerance/2.0)
+        start_time, peak_time, version_hist = convert_modes(
+            sxs_data_path + "/rhOverM_Asymptotic_GeometricUnits_CoM.h5",
+            metadata, out_name, self.modes, extrapolation_order, log,
+            truncation_time, tolerance=self.tolerance/2.0, truncation_tol=truncation_tol
+        )
 
         with h5py.File(sxs_data_path + "/Horizons.h5", 'r') as horizons:
-            horizon_splines_to_write, t_A, t_B, t_C = horizon_splines_from_sxs(horizons, start_time, peak_time, log)
+            horizon_splines_to_write, t_A, t_B, t_C = horizon_splines_from_sxs(
+                horizons, start_time, peak_time, log, truncation_tol=truncation_tol
+            )
         write_horizon_splines_from_sxs(out_name, horizon_splines_to_write, t_A, t_B, t_C, log)
 
         write_metadata_from_sxs(out_name, resolution, metadata,

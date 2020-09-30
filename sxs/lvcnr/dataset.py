@@ -31,9 +31,10 @@ class Dataset(object):
         if truncation_tol is not None:
             y = TimeSeries(y.copy(), x)
             y.truncate(truncation_tol)
+            y = y.ndarray
         if error_scaling is None:
             error_scaling = 1.0
-        indices = minimal_grid(x, y, tol=tol, error_scale=error_scaling, y_reference)
+        indices = minimal_grid(x, y, tol=tol, error_scale=error_scaling, y_reference=y_reference)
         lvc_dataset.deg = 3
         lvc_dataset.X = x[indices].copy()
         lvc_dataset.Y = y[indices].copy()
@@ -42,6 +43,7 @@ class Dataset(object):
         else:
             lvc_dataset.errors = np.array([np.max(np.abs(error_scaling * (y_reference - lvc_dataset.spline(x))))])
         # lvc_dataset.compression_ratio = x.size/lvc_dataset.X.size
+        # print("Size ratio:", x.size/lvc_dataset.X.size)
         return lvc_dataset
 
     def write(self, output_group):

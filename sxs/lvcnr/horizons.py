@@ -27,7 +27,7 @@ def prepare_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
     return times_AH, quantity_AH
 
 
-def spline_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
+def spline_horizon_quantity(sxs_horizon_quantity, start_time, peak_time, truncation_tol=None):
     """Return spline of a horizon quantity.
 
     Prepares `sxs_horizon_quantity` by passing it to `prepare_horizon_quantity`
@@ -35,17 +35,21 @@ def spline_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
 
     """
     from . import Dataset
-
+    tol = 1e-6
+    if truncation_tol is True:  # Test for actual identity, not just equality
+        truncation_tol = 5e-2 * tol
+    elif truncation_tol is False:
+        truncation_tol = None
     times_AH, quantity_AH = prepare_horizon_quantity(sxs_horizon_quantity, start_time, peak_time)
     spline_AH_list = [
-        Dataset.from_data(times_AH, quantity_AH[i], tol=1e-6)
+        Dataset.from_data(times_AH, quantity_AH[i], tol=tol, truncation_tol=truncation_tol)
         for i in range(0, len(sxs_horizon_quantity[0]) - 1)
     ]
     return spline_AH_list
 
 
 def insert_spline(sxs_horizons, spline_dictionary, spline_keys,
-                  horizon_key, quantity_key, start_time, peak_time, log=print):
+                  horizon_key, quantity_key, start_time, peak_time, log=print, truncation_tol=None):
     """Insert spline of horizon quantity into dictionary of horizon splines.
 
     Note: spline_keys is a vector of key names (should be length 1 for scalars,
@@ -60,7 +64,7 @@ def insert_spline(sxs_horizons, spline_dictionary, spline_keys,
     ah = str(horizon_key) + ".dir"
     qty = str(quantity_key) + ".dat"
     quantity = sxs_horizons[ah][qty]
-    spline = spline_horizon_quantity(quantity, start_time, peak_time)
+    spline = spline_horizon_quantity(quantity, start_time, peak_time, truncation_tol=truncation_tol)
     for i, spline_key in enumerate(spline_keys):
         spline_dictionary[spline_key] = spline[i]
 
@@ -123,7 +127,7 @@ def derived_horizon_quantities_from_sxs(sxs_horizons, start_time, peak_time):
     return n_hat_vs_time, omega_orbit_vs_time, LN_hat_vs_time, t_A, t_B, t_C
 
 
-def insert_derived_spline(spline_dictionary, spline_keys, derived_quantity, log=print):
+def insert_derived_spline(spline_dictionary, spline_keys, derived_quantity, log=print, truncation_tol=None):
     """Inserts a spline into a dictionary of horizon splines
 
     Derived from Horizons.h5.  Note: spline_keys is a vector of key
@@ -138,13 +142,18 @@ def insert_derived_spline(spline_dictionary, spline_keys, derived_quantity, log=
     # N.B. times already shifted, truncated to remove junk by
     # derived_horizon_quantities_from_sxs()
     log("Computing " + str(spline_keys))
+    tol = 1e-6
+    if truncation_tol is True:  # Test for actual identity, not just equality
+        truncation_tol = 5e-2 * tol
+    elif truncation_tol is False:
+        truncation_tol = None
     times_AH = derived_quantity[:, 0]
     quantity_AH = derived_quantity[:, 1:]
     for i, spline_key in enumerate(spline_keys):
-        spline_dictionary[spline_key] = Dataset.from_data(times_AH, quantity_AH[:, i], tol=1e-6)
+        spline_dictionary[spline_key] = Dataset.from_data(times_AH, quantity_AH[:, i], tol=tol, truncation_tol=truncation_tol)
 
 
-def horizon_splines_from_sxs(horizons, start_time, peak_time, log=print):
+def horizon_splines_from_sxs(horizons, start_time, peak_time, log=print, truncation_tol=None):
     """Prepare dictionary of horizon-quantity splines
 
     The LVC format expects such a dictionary.  This function creates
@@ -156,42 +165,42 @@ def horizon_splines_from_sxs(horizons, start_time, peak_time, log=print):
 
     # Christodoulou mass
     insert_spline(horizons, horizon_splines, ['mass1-vs-time'],
-                  'AhA', 'ChristodoulouMass', start_time, peak_time, log)
+                  'AhA', 'ChristodoulouMass', start_time, peak_time, log, truncation_tol=truncation_tol)
     insert_spline(horizons, horizon_splines, ['mass2-vs-time'],
-                  'AhB', 'ChristodoulouMass', start_time, peak_time, log)
+                  'AhB', 'ChristodoulouMass', start_time, peak_time, log, truncation_tol=truncation_tol)
     insert_spline(horizons, horizon_splines, ['remnant-mass-vs-time'],
-                  'AhC', 'ChristodoulouMass', start_time, peak_time, log)
+                  'AhC', 'ChristodoulouMass', start_time, peak_time, log, truncation_tol=truncation_tol)
 
     # Dimensionless spin
     insert_spline(horizons, horizon_splines,
                   ['spin1x-vs-time', 'spin1y-vs-time', 'spin1z-vs-time'],
-                  'AhA', 'chiInertial', start_time, peak_time, log)
+                  'AhA', 'chiInertial', start_time, peak_time, log, truncation_tol=truncation_tol)
     insert_spline(horizons, horizon_splines,
                   ['spin2x-vs-time', 'spin2y-vs-time', 'spin2z-vs-time'],
-                  'AhB', 'chiInertial', start_time, peak_time, log)
+                  'AhB', 'chiInertial', start_time, peak_time, log, truncation_tol=truncation_tol)
     insert_spline(horizons, horizon_splines,
                   ['remnant-spinx-vs-time', 'remnant-spiny-vs-time', 'remnant-spinz-vs-time'],
-                  'AhC', 'chiInertial', start_time, peak_time, log)
+                  'AhC', 'chiInertial', start_time, peak_time, log, truncation_tol=truncation_tol)
 
     # Position
     insert_spline(
         horizons, horizon_splines,
         ['position1x-vs-time', 'position1y-vs-time', 'position1z-vs-time'],
-        'AhA', 'CoordCenterInertial', start_time, peak_time, log)
+        'AhA', 'CoordCenterInertial', start_time, peak_time, log, truncation_tol=truncation_tol)
     insert_spline(
         horizons, horizon_splines,
         ['position2x-vs-time', 'position2y-vs-time', 'position2z-vs-time'],
-        'AhB', 'CoordCenterInertial', start_time, peak_time, log)
+        'AhB', 'CoordCenterInertial', start_time, peak_time, log, truncation_tol=truncation_tol)
     insert_spline(
         horizons, horizon_splines,
         ['remnant-positionx-vs-time', 'remnant-positiony-vs-time', 'remnant-positionz-vs-time'],
-        'AhC', 'CoordCenterInertial', start_time, peak_time, log)
+        'AhC', 'CoordCenterInertial', start_time, peak_time, log, truncation_tol=truncation_tol)
 
     # Derived quantities: nhat, omega_orbit, LNhat
     n_hat, omega_orbit, LN_hat, t_A, t_B, t_C = derived_horizon_quantities_from_sxs(horizons, start_time, peak_time)
-    insert_derived_spline(horizon_splines, ['nhatx-vs-time', 'nhaty-vs-time', 'nhatz-vs-time'], n_hat, log)
-    insert_derived_spline(horizon_splines, ['Omega-vs-time'], omega_orbit, log)
-    insert_derived_spline(horizon_splines, ['LNhatx-vs-time', 'LNhaty-vs-time', 'LNhatz-vs-time'], LN_hat, log)
+    insert_derived_spline(horizon_splines, ['nhatx-vs-time', 'nhaty-vs-time', 'nhatz-vs-time'], n_hat, log, truncation_tol=truncation_tol)
+    insert_derived_spline(horizon_splines, ['Omega-vs-time'], omega_orbit, log, truncation_tol=truncation_tol)
+    insert_derived_spline(horizon_splines, ['LNhatx-vs-time', 'LNhaty-vs-time', 'LNhatz-vs-time'], LN_hat, log, truncation_tol=truncation_tol)
 
     return horizon_splines, t_A, t_B, t_C
 
