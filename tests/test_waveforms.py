@@ -6,6 +6,7 @@ import h5py
 import pytest
 import sxs
 
+# see test_utilities.py for explanation
 shortest_h_com_file = "SXS:BBH:0156v1/Lev5/rhOverM_Asymptotic_GeometricUnits_CoM.h5"
 
 
