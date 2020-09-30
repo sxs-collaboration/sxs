@@ -250,6 +250,7 @@ def test_select_by_path_component():
     )
 
 
+#@pytest.mark.skipif(sys.platform.startswith("win"), reason="does not run on windows")
 @pytest.mark.parametrize("truncation_tol", (True, None, 1e-9))
 def test_lvcnr_format(truncation_tol):
     import shutil
@@ -269,7 +270,7 @@ def test_lvcnr_format(truncation_tol):
         truepath_metadata = sxs.utilities.cached_path(shortest_metadata)
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = pathlib.Path(temp_dir)
-            temp_sxs_path = temp_path / sxs_id / f"Lev{sxs_lev}"
+            temp_sxs_path = temp_path / f"Lev{sxs_lev}"
             temp_sxs_path.mkdir(parents=True)
             shutil.copy(str(truepath_h), str(temp_sxs_path))
             shutil.copy(str(truepath_horizons), str(temp_sxs_path))
