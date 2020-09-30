@@ -148,4 +148,4 @@ jobs:
           -H "Accept: application/vnd.github.v3+json" \
           -u ${{ secrets.MOBLE_TOKEN }} \
           https://api.github.com/repos/moble/sxs_notebooks/actions/workflows/binder.yml/dispatches \
-          -d '{"ref":"${{ github.event.ref }}"}'
+          -d '{"ref":"refs/heads/master"}'
