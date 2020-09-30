@@ -23,8 +23,8 @@ class Dataset(object):
     def from_data(cls, x, y, tol, rel=False, error_scaling=None, truncation_tol=None):
         """Construct reduced-order dataset from (x, y) data"""
         import numpy as np
-        from .. import TimeSeries
-        from ..utilities.decimation.peak_greed import minimal_grid
+        from ... import TimeSeries
+        from ..decimation.peak_greed import minimal_grid
         lvc_dataset = cls()
         lvc_dataset.tol = tol
         y_reference = y

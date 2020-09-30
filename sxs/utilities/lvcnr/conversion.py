@@ -1,5 +1,4 @@
-import sxs
-
+"""Class and function to convert SXS data to LVC-NR format"""
 
 class SimulationConverter(object):
     class Log(object):

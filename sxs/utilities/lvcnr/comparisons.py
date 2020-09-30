@@ -1,3 +1,4 @@
+"""Functions to compare SXS and LVC-NR formatted data sets"""
 
 
 def compare_attributes(lvc, sxs_metadata, count_errors):

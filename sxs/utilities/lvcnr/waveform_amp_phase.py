@@ -1,3 +1,5 @@
+"""Utility classes for lvcnr submodule"""
+
 class Waveform(object):
     """Contains a waveform"""
     def __init__(self, *args, **kwargs):
