@@ -52,9 +52,13 @@ class Dataset(object):
             raise Exception("Parameter `output_group` must be an h5py.Group (or File) object.")
         output_group.create_dataset('deg', data=self.deg, dtype='int')
         output_group.create_dataset('tol', data=self.tol, dtype='double')
-        output_group.create_dataset('errors', data=self.errors, dtype='double', compression='gzip', shuffle=True)
-        output_group.create_dataset('X', data=self.X, dtype='double', compression='gzip', shuffle=True)
-        output_group.create_dataset('Y', data=self.Y, dtype='double', compression='gzip', shuffle=True)
+        output_group.create_dataset('errors', data=self.errors, dtype='double')
+        output_group.create_dataset(
+            'X', data=self.X, dtype='double', compression='gzip', shuffle=True, chunks=(self.X.size,)
+        )
+        output_group.create_dataset(
+            'Y', data=self.Y, dtype='double', compression='gzip', shuffle=True, chunks=(self.Y.size,)
+        )
 
     @classmethod
     def read(cls, input_group):
