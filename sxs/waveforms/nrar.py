@@ -119,11 +119,16 @@ def load(file, **kwargs):
     ------------------
     h5_group : str, optional
         HDF5 group in which to find the data within the H5 file
-    extrapolation_order : {str or int}, optional
+    extrapolation_order : {None, str, int, Ellipsis}, optional
         Extrapolation order to load from the file.  This can be a string naming the
         HDF5 group to find the data in — like "OutermostExtraction.dir" or
         "Extrapolated_N2.dir" — or it can be an integer that is translated into
-        such a string, where -1 is translated into "OutermostExtraction.dir".
+        such a string, where -1 is translated into "OutermostExtraction.dir".  The
+        default value of `None` will return a dict-like object mapping names like
+        the above to their corresponding waveforms, but will also issue a warning
+        that it is doing so.  The final option of `Ellipsis` (which can also be
+        input as `...`) will also return this dict-like object, but will not issue
+        a warning.
     frame_type : int, optional
     data_type : int, optional
     r_is_scaled_out : bool, optional
@@ -166,6 +171,8 @@ def load(file, **kwargs):
         if extrapolation_order is None:
             warning = "\nCould not find root group as `h5_group` or as `extrapolation_order`; returning all groups"
             warnings.warn(warning)
+        elif extrapolation_order is Ellipsis:
+            pass
         elif isinstance(extrapolation_order, str):
             root_group = extrapolation_order
         elif extrapolation_order == -1:

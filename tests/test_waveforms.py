@@ -13,7 +13,7 @@ shortest_h_com_file = "SXS:BBH:0156v1/Lev5/rhOverM_Asymptotic_GeometricUnits_CoM
 def test_backwards_compatibility():
     path = sxs.sxs_directory("cache") / sxs.utilities.sxs_path_to_system_path(shortest_h_com_file)
     with contextlib.redirect_stdout(None):
-        with sxs.loadcontext(shortest_h_com_file) as h:
+        with sxs.loadcontext(shortest_h_com_file, extrapolation_order=...) as h:
             with h5py.File(path, "r") as f:
                 for group in f:
                     if group == "VersionHist.ver":
