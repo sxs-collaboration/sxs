@@ -270,7 +270,7 @@ class Metadata(collections.OrderedDict):
         """Write to JSON file"""
         from pathlib import Path
         path = Path(json_file).expanduser().resolve().with_suffix(".json")
-        path.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w") as f:
             f.write(self.to_json(indent=indent, separators=separators))
 
