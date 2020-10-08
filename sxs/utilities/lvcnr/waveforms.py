@@ -17,7 +17,7 @@ def convert_modes(sxs_format_waveform, metadata, out_filename,
     extrap = str(extrapolation_order) + ".dir"
 
     if truncation_time is None:
-        truncation_time = metadata['reference_time']
+        truncation_time = metadata['reference_time'] / (metadata["reference_mass1"] + metadata["reference_mass2"])
 
     mode_strings = ["Y_l{0[0]}_m{0[1]}.dat".format(ellm) for ellm in modes]
     h = WaveformAmpPhase.read(sxs_format_waveform, extrap, mode_strings=mode_strings, start_time=truncation_time)

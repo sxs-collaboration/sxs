@@ -1,7 +1,11 @@
 """Simple regexes to understand SXS IDs"""
 
+import re
+
 sxs_identifier_regex = r"(?P<sxs_identifier>SXS:(?P<simulation_type>BBH|BHNS|NSNS):(?P<sxs_number>[0-9]+))(?:v(?P<version>[0-9]+))?"
 lev_regex = r"Lev(?P<lev>[-0-9]*)"
+sxs_identifier_re = re.compile(sxs_identifier_regex)
+lev_re = re.compile(lev_regex)
 
 
 def sxs_id(s, default=""):
