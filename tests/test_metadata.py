@@ -12,10 +12,10 @@ shortest_metadata_txt = "SXS:BBH:0156v5/Lev5/metadata.txt"
 
 def test_json_conversion():
     with contextlib.redirect_stdout(None):
+        sxs.load(shortest_metadata, download=True, cache=True)
         try:
-            sxs.load(shortest_metadata)
-            sxs.load(shortest_metadata_txt)
-        except:
+            sxs.load(shortest_metadata_txt, download=True, cache=True)
+        except ValueError:
             pass
     path_json = sxs.utilities.cached_path(shortest_metadata)
     path_txt = sxs.utilities.cached_path(shortest_metadata_txt)
