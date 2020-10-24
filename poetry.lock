@@ -222,6 +222,17 @@ version = "0.3"
 
 [[package]]
 category = "main"
+description = "Universal feed parser, handles RSS 0.9x, RSS 1.0, RSS 2.0, CDF, Atom 0.3, and Atom 1.0 feeds"
+name = "feedparser"
+optional = false
+python-versions = ">=3.6"
+version = "6.0.1"
+
+[package.dependencies]
+sgmllib3k = "*"
+
+[[package]]
+category = "main"
 description = "Clean single-source support for Python 3 and 2"
 name = "future"
 optional = true
@@ -1074,6 +1085,14 @@ version = "2.7.1"
 
 [[package]]
 category = "main"
+description = "Simple LaTeX parser providing latex-to-unicode and unicode-to-latex conversion"
+name = "pylatexenc"
+optional = false
+python-versions = "*"
+version = "2.7"
+
+[[package]]
+category = "main"
 description = "Extension pack for Python Markdown."
 name = "pymdown-extensions"
 optional = true
@@ -1331,6 +1350,14 @@ toml = ["toml"]
 
 [[package]]
 category = "main"
+description = "Py3k port of sgmllib."
+name = "sgmllib3k"
+optional = false
+python-versions = "*"
+version = "1.0.0"
+
+[[package]]
+category = "main"
 description = "Python 2 and 3 compatibility utilities"
 name = "six"
 optional = false
@@ -1531,7 +1558,7 @@ mkdocs = ["mkdocs"]
 pymdown-extensions = ["pymdown-extensions"]
 
 [metadata]
-content-hash = "3f0497caff16a2819bd287c0366addf99873465a139086c54b3eef6e1d4ecab0"
+content-hash = "3ae6bce47e3cc645e91ef2585ef1f544ae3df6b75f86b597dde6b8ef7b5c35c8"
 lock-version = "1.1"
 python-versions = "^3.6.1"
 
@@ -1698,6 +1725,10 @@ defusedxml = [
 entrypoints = [
     {file = "entrypoints-0.3-py2.py3-none-any.whl", hash = "sha256:589f874b313739ad35be6e0cd7efde2a4e9b6fea91edcc34e58ecbb8dbe56d19"},
     {file = "entrypoints-0.3.tar.gz", hash = "sha256:c70dd71abe5a8c85e55e12c19bd91ccfeec11a6e99044204511f9ed547d48451"},
+]
+feedparser = [
+    {file = "feedparser-6.0.1-py2.py3-none-any.whl", hash = "sha256:c9b436334258e718e224c5ef8a78088557e0d0382506360f702de10667ffde32"},
+    {file = "feedparser-6.0.1.tar.gz", hash = "sha256:6ca88edcaa43f428345968df903a87f020843eda5e28d7ea24a612158d61e74c"},
 ]
 future = [
     {file = "future-0.18.2.tar.gz", hash = "sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d"},
@@ -2204,6 +2235,9 @@ pygments = [
     {file = "Pygments-2.7.1-py3-none-any.whl", hash = "sha256:307543fe65c0947b126e83dd5a61bd8acbd84abec11f43caebaf5534cbc17998"},
     {file = "Pygments-2.7.1.tar.gz", hash = "sha256:926c3f319eda178d1bd90851e4317e6d8cdb5e292a3386aac9bd75eca29cf9c7"},
 ]
+pylatexenc = [
+    {file = "pylatexenc-2.7.tar.gz", hash = "sha256:8a3de4c035b9413a7721cab11e4cc7469d9370b441fbd498fc8d2ff37cbff678"},
+]
 pymdown-extensions = [
     {file = "pymdown-extensions-8.0.1.tar.gz", hash = "sha256:9ba704052d4bdc04a7cd63f7db4ef6add73bafcef22c0cf6b2e3386cf4ece51e"},
     {file = "pymdown_extensions-8.0.1-py2.py3-none-any.whl", hash = "sha256:a3689c04f4cbddacd9d569425c571ae07e2673cc4df63a26cdbf1abc15229137"},
@@ -2379,6 +2413,9 @@ setuptools-scm = [
     {file = "setuptools_scm-4.1.2-py3.8.egg", hash = "sha256:eaaec16b7af25c5f532b5af2332213bb6223d15cca4518f6dbc4c055641c86fd"},
     {file = "setuptools_scm-4.1.2-py3.9.egg", hash = "sha256:892e63b4983f9e30f9e8bf89ad03d2a02a47e6e5ced09b03ae6fe952ade8a579"},
     {file = "setuptools_scm-4.1.2.tar.gz", hash = "sha256:a8994582e716ec690f33fec70cca0f85bd23ec974e3f783233e4879090a7faa8"},
+]
+sgmllib3k = [
+    {file = "sgmllib3k-1.0.0.tar.gz", hash = "sha256:7868fb1c8bfa764c1ac563d3cf369c381d1325d36124933a726f29fcdaa812e9"},
 ]
 six = [
     {file = "six-1.15.0-py2.py3-none-any.whl", hash = "sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced"},
