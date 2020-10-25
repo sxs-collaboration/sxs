@@ -43,6 +43,8 @@ quaternion = {version = "^0.3.1", optional = true}
 spinsfast = {version = "^104.2020.8", optional = true}
 spherical_functions = {version = "^2020.8.18", optional = true}
 scri = {version = "^2020.8.18", optional = true}
+pylatexenc = "^2.7"
+feedparser = "^6.0.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.0"
