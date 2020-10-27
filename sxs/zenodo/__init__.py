@@ -117,7 +117,12 @@ def related_identifier_formatter(identifier, relation='isSupplementTo', scheme='
     }
 
 
-def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC.out'],
+def upload(directory,
+           exclude=[
+               'HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC.out',
+               'rh_FiniteRadii_CodeUnits.h5', 'rPsi4_FiniteRadii_CodeUnits.h5',
+               'rhOverM_Asymptotic_GeometricUnits.h5', 'rMPsi4_Asymptotic_GeometricUnits.h5',
+           ],
            sandbox=False, access_token_path=None, skip_checksums='if_file_is_older',
            skip_existing=True, deposition_id=None, ignore_deletion=False,
            access_right='closed', license='CC-BY-4.0',
@@ -127,7 +132,7 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
 
     This is essentially a wrapper around many of the Zenodo API's functions,
     specialized for SXS systems and intended to account for various possible errors
-    or special conditions
+    or special conditions.
 
     This function should be able to safely handle
       1) new deposits that Zenodo has not seen previously;
@@ -152,18 +157,18 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
 
     Parameters only used in this function
     -------------------------------------
-    skip_checksums: bool or 'if_file_is_older' [defaults to 'if_file_is_older']
+    skip_checksums : bool or 'if_file_is_older' [defaults to 'if_file_is_older']
         If False, an MD5 checksum is run for any file that exists on zenodo and
         locally (unless the file sizes are different).  If 'if_file_is_older', the
         files are assumed to match if the local modification time is earlier than
         the creation date of the deposit on zenodo; otherwise, the checksum is run
         (unless the file sizes are different).  If the file sizes or checksums are
         different, the local file is uploaded to zenodo.
-    skip_existing: bool [defaults to True]
+    skip_existing : bool [defaults to True]
         If a record with this name exists already, skip this upload.
-    error_on_existing: bool [defaults to False]
+    error_on_existing : bool [defaults to False]
         If True, and a record already exists for this system, raise an error.
-    publish: bool or 'if_pending' [defaults to True]
+    publish : bool or 'if_pending' [defaults to True]
         If True and the current version on zenodo is not published, publish it.  If
         the input value is the string 'if_pending', it will be changed to True if
         no other changes are made during this run of the function, or to False if
@@ -173,17 +178,17 @@ def upload(directory, exclude=['HorizonsDump.h5', 'RedshiftQuantities.h5', 'SpEC
 
     Parameters to `.utilities.find_files`
     -------------------------------------
-    directory: string
+    directory : string
         Absolute or relative path to a directory containing 'common-metadata.txt'
         listing an SXS identifier starting with 'SXS:BBH:', 'SXS:BHNS:', or
         'SXS:NSNS:' and containing at least one 'metadata.txt' file somewhere in
         its file hierarchy.
-    exclude: list of strings [defaults to an empty list]
+    exclude : list of strings [defaults to an empty list]
 
     Parameters to `.api.login.Login`
     --------------------------------
-    sandbox: bool [defaults to False]
-    access_token_path: string or None [defaults to None]
+    sandbox : bool [defaults to False]
+    access_token_path : string or None [defaults to None]
 
     Parameters to `.api.deposit.Deposit`
     ------------------------------------
