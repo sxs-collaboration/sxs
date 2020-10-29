@@ -43,7 +43,6 @@ class WaveformMixin(abc.ABC):
             return self._metadata.get("frame_type", "inertial")
 
     # metadata
-    # spin_weight
     # boost_weight
     # type
     #     name
