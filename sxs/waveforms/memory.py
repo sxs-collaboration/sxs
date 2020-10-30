@@ -2,6 +2,7 @@ import numpy as np
 import spherical
 from . import WaveformModes
 
+
 class ModesTimeSeries(WaveformModes):
 
     @property
@@ -57,16 +58,13 @@ def 𝔇(h_mts):
 
     """
     h = h_mts.copy()
-    s = h_mts.ndarray
+    s = h.ndarray
 
     for ell in range(h.ell_min, h.ell_max + 1):
         if ell < 2:
             𝔇_value = 0
         else:
             𝔇_value = 0.125 * (ell + 2) * (ell + 1) * (ell) * (ell - 1)
-            # 𝔇_value = -0.125 * (ell + 2) * (ell + 1)**2 * (ell)**2 * (ell - 1)
-            # # 𝔇_value = 0.125 * (-ell * (ell + 1)) * (-ell * (ell + 1) + 2)
-            # # 𝔇_value = 0.125 * (-ell * (ell + 1)) ** 2 * (-ell * (ell + 1) + 2)
         s[..., h.index(ell, -ell) : h.index(ell, ell) + 1] *= 𝔇_value
 
     return h
@@ -80,16 +78,13 @@ def 𝔇inverse(h_mts):
 
     """
     h = h_mts.copy()
-    s = h_mts.ndarray
+    s = h.ndarray
 
     for ell in range(h.ell_min, h.ell_max + 1):
         if ell < 2:
             𝔇inverse_value = 0
         else:
             𝔇inverse_value = 1.0 / (0.125 * (ell + 2) * (ell + 1) * (ell) * (ell - 1))
-            # 𝔇inverse_value = 1.0 / (0.125 * (ell + 2) * (ell + 1)**2 * (ell)**2 * (ell - 1))
-            # # 𝔇inverse_value = 1.0 / (0.125 * (-ell * (ell + 1)) * (-ell * (ell + 1) + 2))
-            # # 𝔇inverse_value = 1.0 / (0.125 * (-ell * (ell + 1)) ** 2 * (-ell * (ell + 1) + 2))
         s[..., h.index(ell, -ell) : h.index(ell, ell) + 1] *= 𝔇inverse_value
 
     return h
@@ -103,42 +98,16 @@ def 𝔇inverseLaplacianinverse(h_mts):
 
     """
     h = h_mts.copy()
-    s = h_mts.ndarray
+    s = h.ndarray
 
     for ell in range(h.ell_min, h.ell_max + 1):
         if ell < 2:
             𝔇inverse_value = 0
         else:
-            # 𝔇inverse_value = 1.0 / (0.125 * (ell + 2) * (ell + 1) * (ell) * (ell - 1))
-            𝔇inverse_value = 1.0 / (0.125 * (ell + 2) * (ell + 1)**2 * (ell)**2 * (ell - 1))
-            # # 𝔇inverse_value = 1.0 / (0.125 * (-ell * (ell + 1)) * (-ell * (ell + 1) + 2))
-            # # 𝔇inverse_value = 1.0 / (0.125 * (-ell * (ell + 1)) ** 2 * (-ell * (ell + 1) + 2))
+            𝔇inverse_value = -1.0 / (0.125 * (ell + 2) * (ell + 1)**2 * (ell)**2 * (ell - 1))
         s[..., h.index(ell, -ell) : h.index(ell, ell) + 1] *= 𝔇inverse_value
 
     return h
-
-
-# def 𝔇inverse(h_mts, use_laplacian=False):
-#     """Inverse of differential operator 𝔇
-
-#     As defined in Eq. (7b) of 'Adding Gravitational Memory to Waveform Catalogs
-#     using BMS Balance Laws'
-
-#     """
-#     h = h_mts.copy()
-#     s = h_mts.ndarray
-
-#     for ell in range(h.ell_min, h.ell_max + 1):
-#         if ell < 2:
-#             𝔇inverse_value = 0
-#         else:
-#             if not use_laplacian:
-#                 𝔇inverse_value = 1.0 / (0.125 * (-ell * (ell + 1)) * (-ell * (ell + 1) + 2))
-#             else:
-#                 𝔇inverse_value = 1.0 / (0.125 * (-ell * (ell + 1)) ** 2 * (-ell * (ell + 1) + 2))
-#         s[..., h.index(ell, -ell) : h.index(ell, ell) + 1] *= 𝔇inverse_value
-
-#     return h
 
 
 def mass_aspect(Psi2, h):
@@ -206,7 +175,7 @@ def J_E(h, start_time=None):
     return J_ℰ
 
 
-def J_Nhat(h, Psi1):
+def J_Nhat(h, Psi2):
     """Angular momentum aspect contribution to magnetic part of strain
 
     Calculated according to Eq. (16c) of 'Adding Gravitational Memory to Waveform
@@ -216,8 +185,8 @@ def J_Nhat(h, Psi1):
     ----------
     h : WaveformModes
         WaveformModes object corresponding to the strain
-    Psi1 : WaveformModes
-        WaveformModes object corresponding to Psi1
+    Psi2 : WaveformModes
+        WaveformModes object corresponding to Psi2
 
     Returns
     -------
@@ -227,15 +196,20 @@ def J_Nhat(h, Psi1):
     """
 
     h = MTS(h)
-    Psi1 = MTS(Psi1)
+    Psi2 = MTS(Psi2)
 
     # # Note that the contributions from the last two terms drop out as soon as we
     # # take the imaginary part below.
     # m = mass_aspect(Psi2, h)
     # N̂ = 2 * Psi1 - 0.25 * (h.bar * h.eth) - h.t * m.eth - 0.125 * (h * h.bar).eth
 
-    N̂ = 2 * Psi1 - 0.25 * (h.bar * h.eth)
-    J_N̂ = 0.5j * 𝔇inverseLaplacianinverse(N̂.dot.ethbar.im).ethbar.ethbar
+    # Ψ̇₁ = - ½ (ðΨ₂ - ½ h̄ ðḣ)
+    # N̂̇ = 2 Ψ̇₁ - ¼ h̄ ðḣ - ¼ h̄̇ ðh
+    #   = -ðΨ₂ + ½ h̄ ðḣ - ¼ h̄ ðḣ - ¼ h̄̇ ðh
+    #   = -ðΨ₂ + ¼ h̄ ðḣ - ¼ h̄̇ ðh
+
+    N̂dot = -Psi2.eth + 0.25 * (h.bar * h.dot.eth - h.bar.dot * h.eth)
+    J_N̂ = 0.5j * 𝔇inverseLaplacianinverse(N̂dot.ethbar.im).ethbar.ethbar
 
     return J_N̂
 
@@ -286,101 +260,4 @@ def add_memory(h, start_time=None):
         WaveformModes object corresponding to the strain with electric memory
 
     """
-    h_with_mem = h.copy()
-    h_with_mem += J_E(h, start_time=start_time).data
-
-    return h_with_mem
-
-
-# def BMS_strain(h, Psi2, news=None, start_time=None, match_time=None):
-#     """Strain inferred from the BMS balance laws
-
-#     Calculated according to Eqs. () of 'Adding Gravitational Memory to Waveform
-#     Catalogs using BMS Balance Laws'
-
-#     Parameters
-#     ----------
-#     h : WaveformModes
-#         WaveformModes object corresponding to the strain
-#     Psi2 : WaveformModes
-#         WaveformModes object corresponding to Psi2
-#     news : WaveformModes, optional
-#         WaveformModes object corresponding to the news.  The default is to compute
-#         this as the time-derivative of the strain, `h.dot`.
-#     start_time : float, optional
-#         Time at which the energy flux integral should begin.  Default is `h.t[0]`.
-#     match_time : float, optional
-#         Time at which the strain and BMS strain should match.
-
-#     Returns
-#     -------
-#     (h_BMS, constraint) : tuple of WaveformModes
-
-#     """
-
-#     if news is None:
-#         news = h.copy()
-#         news.data = h.dot
-#     h_mts = MTS(h)
-#     news_mts = MTS(news)
-#     Psi2_mts = MTS(Psi2)
-
-#     Psi2_term = 0.5 * 𝔇inverse(-(Psi2_mts + 0.25 * news_mts * h_mts.bar)).ethbar.ethbar
-
-#     h_BMS = h.copy()
-#     E = mem_energy_flux_contribution(h, news=news, start_time=start_time)
-#     h_BMS.data = E.data + np.array(Psi2_term[:, LM_index(2, -2, 0) :])
-
-#     if not match_time is None:
-#         match_time_idx = np.argmin(abs(h.t - match_time))
-#         h_BMS.data = h_BMS.data + (h.data[match_time_idx, LM_index(2, -2, h.ell_min) :] - h_BMS.data[match_time_idx, :])
-
-#     Constraint = h_BMS.copy()
-#     Constraint.data = h.data[:, LM_index(2, -2, h.ell_min) :] - h_BMS.data
-
-#     return (h_BMS, Constraint)
-
-
-# def BMS_strain_other(h, Psi2, Psi1, news=None, start_time=None, match_time=None):
-#     """Strain inferred from the BMS balance laws
-
-#     Calculated according to Eqs. () of 'Adding Gravitational Memory to Waveform
-#     Catalogs using BMS Balance Laws'
-
-#     Parameters
-#     ----------
-#     h : WaveformModes
-#         WaveformModes object corresponding to the strain
-#     Psi2 : WaveformModes
-#         WaveformModes object corresponding to Psi2
-#     Psi1 : WaveformModes
-#         WaveformModes object corresponding to Psi1
-#     news : WaveformModes, optional
-#         WaveformModes object corresponding to the news.  The default is to compute
-#         this as the time-derivative of the strain, `h.dot`.
-#     start_time : float, optional
-#         Time at which the energy flux integral should begin.  Default is `h.t[0]`.
-#     match_time : float, optional
-#         Time at which the strain and BMS strain should match.
-
-#     Returns
-#     -------
-#     (h_BMS, Constraint, M, E, Ndot, Jdot) : tuple of WaveformModes
-
-#     """
-
-#     h_BMS = h.copy()
-#     M = mem_mass_aspect_contribution(h, Psi2, news=news)
-#     E = mem_energy_flux_contribution(h, news=news, start_time=start_time)
-#     Ndot = mem_angular_momentum_aspect_contribution(h, Psi1, news=news)
-#     Jdot = mem_angular_momentum_flux_contribution(h, news=news)
-#     h_BMS.data = M.data + E.data + Ndot.data + Jdot.data
-
-#     if not match_time is None:
-#         match_time_idx = np.argmin(abs(h.t - match_time))
-#         h_BMS.data = h_BMS.data + (h.data[match_time_idx, LM_index(2, -2, h.ell_min) :] - h_BMS.data[match_time_idx, :])
-
-#     Constraint = h_BMS.copy()
-#     Constraint.data = h.data[:, LM_index(2, -2, h.ell_min) :] - h_BMS.data
-
-#     return (h_BMS, Constraint, M, E, Ndot, Jdot)
+    return h + J_E(h, start_time=start_time)
