@@ -7,7 +7,7 @@ this:
 
 ```python
 h = sxs.load("SXS:BBH:0123/Lev/rhOverM", extrapolation_order=3)
-h_with_memory = sxs.waveforms.memory.add_memory(h)
+h_with_memory = sxs.waveforms.memory.add_memory(h, start_time=1000.0)
 ```
 
 """
@@ -270,9 +270,9 @@ def add_memory(h, start_time=None):
 
     Returns
     -------
-    h_with_mem : WaveformModes
+    h_with_memory : WaveformModes
         WaveformModes object corresponding to the strain with electric memory
 
     """
-    h_plus_memory = MTS(h) + J_E(h, start_time=start_time)
-    return WaveformModes(h_plus_memory)
+    h_with_memory = MTS(h) + J_E(h, start_time=start_time)
+    return WaveformModes(h_with_memory)
