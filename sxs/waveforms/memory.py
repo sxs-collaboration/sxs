@@ -1,9 +1,23 @@
+"""Compute contributions to memory in asymptotic waveforms
+
+This code is based on the paper "Adding Gravitational Memory to Waveform
+Catalogs using BMS Balance Laws" by Mitman et al.  The main result of that
+paper is encapsulated in the `add_memory` function.  Basic usage looks like
+this:
+
+```python
+h = sxs.load("SXS:BBH:0123/Lev/rhOverM", extrapolation_order=3)
+h_with_memory = sxs.waveforms.memory.add_memory(h)
+```
+
+"""
+
 import numpy as np
 import spherical
 from . import WaveformModes
 
 
-class ModesTimeSeries(WaveformModes):
+class _ModesTimeSeries(WaveformModes):
 
     @property
     def s(self):
@@ -47,7 +61,7 @@ class ModesTimeSeries(WaveformModes):
 
 def MTS(*args, **kwargs):
     kwargs.setdefault('multiplication_truncator', max)
-    return ModesTimeSeries(*args, **kwargs)
+    return _ModesTimeSeries(*args, **kwargs)
 
 
 def 𝔇(h_mts):
@@ -169,8 +183,8 @@ def J_E(h, start_time=None):
     J_ℰ = 0.5 * 𝔇inverse(0.25 * (hdot * hdot.bar).int).ethbar.ethbar
 
     if start_time is not None:
-        start_time_idx = np.argmin(abs(h.t - start_time))
-        J_ℰ -= J_ℰ[start_time_idx, :]
+        start_time_index = np.argmin(abs(h.t - start_time))
+        J_ℰ -= J_ℰ[start_time_index, :]
 
     return J_ℰ
 
@@ -260,4 +274,5 @@ def add_memory(h, start_time=None):
         WaveformModes object corresponding to the strain with electric memory
 
     """
-    return h + J_E(h, start_time=start_time)
+    h_plus_memory = MTS(h) + J_E(h, start_time=start_time)
+    return WaveformModes(h_plus_memory)
