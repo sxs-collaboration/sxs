@@ -1,3 +1,8 @@
+"""Interface to Zenodo or similar Invenio-backed repositories
+
+"""
+
+
 from .api import Login, Deposit, Records
 from . import catalog, simannex, surrogatemodeling
 
