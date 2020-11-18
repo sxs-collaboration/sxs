@@ -1,3 +1,10 @@
+"""Class encapsulating "record" objects on Zenodo
+
+These are the published versions of "deposits".  In particular, if a record is publicly available,
+no Login object is required.
+
+"""
+
 
 class Records(object):
 

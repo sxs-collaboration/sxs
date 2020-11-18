@@ -1,3 +1,7 @@
+"""Functions for syncing the SimAnnex to Zenodo
+
+"""
+
 def sync(annex_dir='./', lock_file_path='~/.sxs/zenodo_simannex_sync.lock', verbosity=0,
          directories_and_permissions=[['Public', 'open'], ['Private', 'closed']]):
     """Sync the SimAnnex with zenodo

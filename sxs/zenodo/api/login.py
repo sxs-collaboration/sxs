@@ -1,3 +1,11 @@
+"""Class encapsulating interactions with Zenodo
+
+This class handles requests through the Zenodo web API.  In particular, it manages authorization,
+and retries any failed requests automatically.
+
+"""
+
+
 class Login(object):
 
     def __init__(self, sandbox=False, access_token=None, access_token_path=None,

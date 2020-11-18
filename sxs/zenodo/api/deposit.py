@@ -1,3 +1,10 @@
+"""Class encapsulating "deposit" objects on Zenodo
+
+Also called "depositions", these are only accessible to the user who creates
+them.  Thus, you need the correct login information to access a deposit.
+
+"""
+
 class Deposit(object):
 
     def __init__(self, login, deposition_id=None, ignore_deletion=False):

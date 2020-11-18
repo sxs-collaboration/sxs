@@ -1,3 +1,7 @@
+"""Functions for syncing the SurrogateModeling data to Zenodo
+
+"""
+
 def sync(annex_dir='./', exclude=None, publish='if_pending',
          sandbox=False, access_token_path=None, skip_checksums='if_file_is_older'):
     """Sync the SurrogateModeling annex to Zenodo
