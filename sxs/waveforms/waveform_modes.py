@@ -256,6 +256,157 @@ class WaveformModes(WaveformMixin, TimeSeries):
         """
         return TimeSeries(np.linalg.norm(self, axis=self.modes_axis), self.time)
 
+    @property
+    def bar(self):
+        """Return waveform modes of function representing conjugate of this function
+
+        N.B.: This property is different from the `.conjugate` method; see below.
+
+        See Also
+        --------
+        re : Return modes of function representing the real part of this function
+        im : Return modes of function representing the imaginary part of this function
+
+        Notes
+        -----
+        This property is different from the `.conjugate` (or `.conj`) method, in that
+        `.conjugate` returns the conjugate of the mode weights of the function, whereas
+        this property returns the mode weights of the conjugate of the function.  That
+        is, `.conjugate` treats the data as a generic numpy array, and simply returns
+        the complex conjugate of the raw data without considering what the data
+        actually represents.  This property treats the data as a function represented
+        by its mode weights.
+
+        The resulting function has the negative spin weight of the input function.
+
+        We have
+
+            conjugate(f){s, l, m} = (-1)**(s+m) * conjugate(f{-s, l, -m})
+
+        """
+        return spherical.SWSH_modes.algebra.bar(self)
+
+    @property
+    def re(self):
+        """Return waveform modes of function representing real part of this function
+
+        N.B.: This property is different from the `.real` method; see below.
+
+        See Also
+        --------
+        im : Equivalent method for the imaginary part
+        bar : Return modes of function representing the conjugate of this function
+
+        Notes
+        -----
+        This property is different from the `.real` method, in that `.real` returns the
+        real part of the mode weights of the function, whereas this property returns
+        the mode weights of the real part of the function.  That is, `.real` treats the
+        data as a generic numpy array, and simply returns the real part of the raw data
+        without considering what the data actually represents.  This property treats
+        the data as a function represented by its mode weights.
+
+        Note that this only makes sense for functions of spin weight zero; taking the
+        real part of functions with nonzero spin weight will depend too sensitively on
+        the orientation of the coordinate system to make sense.  Therefore, this
+        property raises a ValueError for other spins.
+
+        The condition that a function `f` be real is that its modes satisfy
+
+            f{l, m} = conjugate(f){l, m} = (-1)**(m) * conjugate(f{l, -m})
+
+        [Note that conjugate(f){l, m} != conjugate(f{l, m}).]  As usual, we enforce
+        that condition by essentially averaging the two modes:
+
+            f{l, m} = (f{l, m} + (-1)**m * conjugate(f{l, -m})) / 2
+
+        """
+        return spherical.SWSH_modes.algebra._real_func(self, False)
+
+    @property
+    def im(self):
+        """Return waveform modes of function representing imaginary part of this function
+
+        N.B.: This property is different from the `.imag` method; see below.
+
+        See Also
+        --------
+        re : Equivalent method for the real part
+        bar : Return modes of function representing the conjugate of this function
+
+        Notes
+        -----
+        This property is different from the `.imag` method, in that `.imag` returns the
+        imaginary part of the mode weights of the function, whereas this property
+        returns the mode weights of the imaginary part of the function.  That is,
+        `.imag` treats the data as a generic numpy array, and simply returns the
+        imaginary part of the raw data without considering what the data actually
+        represents.  This property treats the data as a function represented by its
+        mode weights.
+
+        Note that this only makes sense for functions of spin weight zero; taking the
+        imaginary part of functions with nonzero spin weight will depend too
+        sensitively on the orientation of the coordinate system to make sense.
+        Therefore, this property raises a ValueError for other spins.
+
+        The condition that a function `f` be imaginary is that its modes satisfy
+
+            f{l, m} = -conjugate(f){l, m} = (-1)**(m+1) * conjugate(f{l, -m})
+
+        [Note that conjugate(f){l, m} != conjugate(f{l, m}).]  As usual, we enforce
+        that condition by essentially averaging the two modes:
+
+            f{l, m} = (f{l, m} + (-1)**(m+1) * conjugate(f{l, -m})) / 2
+
+        """
+        return spherical.SWSH_modes.algebra._imag_func(self, False)
+
+    from spherical.SWSH_modes.derivatives import (
+        Lsquared, Lz, Lplus, Lminus,
+        Rsquared, Rz, Rplus, Rminus,
+        eth, ethbar
+    )
+
+    @property
+    def eth_GHP(self):
+        """Spin-raising derivative operator defined by Geroch-Held-Penrose
+
+        The operator ð is defined in https://dx.doi.org/10.1063/1.1666410
+
+        See Also
+        --------
+        eth : Related operator in the Newman-Penrose convention
+        ethbar : Similar operator in the Newman-Penrose convention
+        ethbar_GHP : Conjugate of this operator
+
+        Notes
+        -----
+        We assume that the Ricci rotation coefficients satisfy β=β'=0, meaning that
+        this operator equals the Newman-Penrose operator ð multiplied by 1/√2.
+
+        """
+        return self.eth / np.sqrt(2)
+
+    @property
+    def ethbar_GHP(self):
+        """Spin-lowering derivative operator defined by Geroch-Held-Penrose
+
+        The operator ð̄ is defined in https://dx.doi.org/10.1063/1.1666410
+
+        See Also
+        --------
+        eth : Related operator in the Newman-Penrose convention
+        ethbar : Similar operator in the Newman-Penrose convention
+        eth_GHP : Conjugate of this operator
+
+        Notes
+        -----
+        We assume that the Ricci rotation coefficients satisfy β=β'=0, meaning that
+        this operator equals the Newman-Penrose operator ð̄ multiplied by 1/√2.
+
+        """
+        return self.ethbar / np.sqrt(2)
+
     def max_norm_index(self, skip_fraction_of_data=4):
         """Index of time step with largest norm
 
