@@ -130,7 +130,7 @@ class Login(object):
 
         # Note that some requests require different choices for 'Accept' and 'Content-Type'; these
         # are altered in the corresponding methods below.
-        default_headers= {
+        default_headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
         }
