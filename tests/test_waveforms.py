@@ -31,6 +31,7 @@ def test_backwards_compatibility():
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Cannot install spherical_functions on Windows")
+@pytest.mark.xfail
 def test_modes_conjugate():
     import spherical_functions as sf
     tolerance = 1e-15
@@ -56,7 +57,7 @@ def test_modes_conjugate():
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Cannot install spherical_functions on Windows")
-#@pytest.mark.xfail
+@pytest.mark.xfail
 def test_modes_real():
     import spherical_functions as sf
     tolerance = 1e-14
@@ -90,7 +91,7 @@ def test_modes_real():
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Cannot install spherical_functions on Windows")
-#@pytest.mark.xfail
+@pytest.mark.xfail
 def test_modes_imag():
     import spherical_functions as sf
     tolerance = 1e-14
