@@ -49,8 +49,6 @@ feedparser = "^6.0.1"
 [tool.poetry.dev-dependencies]
 pytest = "^6.0"
 pytest-cov = ">=2.10.1"
-spherical-functions = {version = ">=2020.8.18", markers = "sys_platform != 'win32'"}
-spinsfast = {version = "^104.2020.8", markers = "sys_platform != 'win32'"}
 
 [tool.poetry.extras]
 mkdocs = ["mkdocs"]
