@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Simplify main branch
         env:
-          SIMPLIFY: ${{ github.ref }} == 'refs/heads/main' && ${{ matrix.os }} == 'ubuntu-latest' && ${{ matrix.python-version }} == '3.8'
+          SIMPLIFY: ${{ github.ref  == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8' }}
         run: |
           echo "SIMPLIFY=${SIMPLIFY}"
           echo "skip_build_and_test_replicates=${SIMPLIFY}" >> $GITHUB_ENV
