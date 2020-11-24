@@ -29,31 +29,31 @@ jobs:
           echo "skip_build_and_test_replicates=${SIMPLIFY}" >> $GITHUB_ENV
 
       - name: Check out code
-        if: ${{ env.skip_build_and_test_replicates == true }}
+        if: ${{ env.skip_build_and_test_replicates == 'true' }}
         uses: actions/checkout@v2
 
       - name: Set up python ${{ matrix.python-version }}
-        if: ${{ env.skip_build_and_test_replicates == true }}
+        if: ${{ env.skip_build_and_test_replicates == 'true' }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install poetry
-        if: ${{ env.skip_build_and_test_replicates == true }}
+        if: ${{ env.skip_build_and_test_replicates == 'true' }}
         run: |
           echo "skip_build_and_test_replicates=${{ env.skip_build_and_test_replicates }}"
           python -m pip install --upgrade pip
           python -m pip install poetry  # Only install poetry like this in containers
 
       - name: Build and install with poetry
-        if: ${{ env.skip_build_and_test_replicates == true }}
+        if: ${{ env.skip_build_and_test_replicates == 'true' }}
         run: |
           rm poetry.lock
           python -m poetry build
           python -m poetry install
 
       - name: Run tests
-        if: ${{ env.skip_build_and_test_replicates == true }}
+        if: ${{ env.skip_build_and_test_replicates == 'true' }}
         run: |
           python -m poetry run pytest -s --cov=sxs --cov-branch --cov-report=xml
 
