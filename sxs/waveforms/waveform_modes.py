@@ -256,6 +256,157 @@ class WaveformModes(WaveformMixin, TimeSeries):
         """
         return TimeSeries(np.linalg.norm(self, axis=self.modes_axis), self.time)
 
+    @property
+    def bar(self):
+        """Return waveform modes of function representing conjugate of this function
+
+        N.B.: This property is different from the `.conjugate` method; see below.
+
+        See Also
+        --------
+        re : Return modes of function representing the real part of this function
+        im : Return modes of function representing the imaginary part of this function
+
+        Notes
+        -----
+        This property is different from the `.conjugate` (or `.conj`) method, in that
+        `.conjugate` returns the conjugate of the mode weights of the function, whereas
+        this property returns the mode weights of the conjugate of the function.  That
+        is, `.conjugate` treats the data as a generic numpy array, and simply returns
+        the complex conjugate of the raw data without considering what the data
+        actually represents.  This property treats the data as a function represented
+        by its mode weights.
+
+        The resulting function has the negative spin weight of the input function.
+
+        We have
+
+            conjugate(f){s, l, m} = (-1)**(s+m) * conjugate(f{-s, l, -m})
+
+        """
+        return spherical.SWSH_modes.algebra.bar(self)
+
+    @property
+    def re(self):
+        """Return waveform modes of function representing real part of this function
+
+        N.B.: This property is different from the `.real` method; see below.
+
+        See Also
+        --------
+        im : Equivalent method for the imaginary part
+        bar : Return modes of function representing the conjugate of this function
+
+        Notes
+        -----
+        This property is different from the `.real` method, in that `.real` returns the
+        real part of the mode weights of the function, whereas this property returns
+        the mode weights of the real part of the function.  That is, `.real` treats the
+        data as a generic numpy array, and simply returns the real part of the raw data
+        without considering what the data actually represents.  This property treats
+        the data as a function represented by its mode weights.
+
+        Note that this only makes sense for functions of spin weight zero; taking the
+        real part of functions with nonzero spin weight will depend too sensitively on
+        the orientation of the coordinate system to make sense.  Therefore, this
+        property raises a ValueError for other spins.
+
+        The condition that a function `f` be real is that its modes satisfy
+
+            f{l, m} = conjugate(f){l, m} = (-1)**(m) * conjugate(f{l, -m})
+
+        [Note that conjugate(f){l, m} != conjugate(f{l, m}).]  As usual, we enforce
+        that condition by essentially averaging the two modes:
+
+            f{l, m} = (f{l, m} + (-1)**m * conjugate(f{l, -m})) / 2
+
+        """
+        return spherical.SWSH_modes.algebra._real_func(self, False)
+
+    @property
+    def im(self):
+        """Return waveform modes of function representing imaginary part of this function
+
+        N.B.: This property is different from the `.imag` method; see below.
+
+        See Also
+        --------
+        re : Equivalent method for the real part
+        bar : Return modes of function representing the conjugate of this function
+
+        Notes
+        -----
+        This property is different from the `.imag` method, in that `.imag` returns the
+        imaginary part of the mode weights of the function, whereas this property
+        returns the mode weights of the imaginary part of the function.  That is,
+        `.imag` treats the data as a generic numpy array, and simply returns the
+        imaginary part of the raw data without considering what the data actually
+        represents.  This property treats the data as a function represented by its
+        mode weights.
+
+        Note that this only makes sense for functions of spin weight zero; taking the
+        imaginary part of functions with nonzero spin weight will depend too
+        sensitively on the orientation of the coordinate system to make sense.
+        Therefore, this property raises a ValueError for other spins.
+
+        The condition that a function `f` be imaginary is that its modes satisfy
+
+            f{l, m} = -conjugate(f){l, m} = (-1)**(m+1) * conjugate(f{l, -m})
+
+        [Note that conjugate(f){l, m} != conjugate(f{l, m}).]  As usual, we enforce
+        that condition by essentially averaging the two modes:
+
+            f{l, m} = (f{l, m} + (-1)**(m+1) * conjugate(f{l, -m})) / 2
+
+        """
+        return spherical.SWSH_modes.algebra._imag_func(self, False)
+
+    from spherical.SWSH_modes.derivatives import (
+        Lsquared, Lz, Lplus, Lminus,
+        Rsquared, Rz, Rplus, Rminus,
+        eth, ethbar
+    )
+
+    @property
+    def eth_GHP(self):
+        """Spin-raising derivative operator defined by Geroch-Held-Penrose
+
+        The operator ð is defined in https://dx.doi.org/10.1063/1.1666410
+
+        See Also
+        --------
+        eth : Related operator in the Newman-Penrose convention
+        ethbar : Similar operator in the Newman-Penrose convention
+        ethbar_GHP : Conjugate of this operator
+
+        Notes
+        -----
+        We assume that the Ricci rotation coefficients satisfy β=β'=0, meaning that
+        this operator equals the Newman-Penrose operator ð multiplied by 1/√2.
+
+        """
+        return self.eth / np.sqrt(2)
+
+    @property
+    def ethbar_GHP(self):
+        """Spin-lowering derivative operator defined by Geroch-Held-Penrose
+
+        The operator ð̄ is defined in https://dx.doi.org/10.1063/1.1666410
+
+        See Also
+        --------
+        eth : Related operator in the Newman-Penrose convention
+        ethbar : Similar operator in the Newman-Penrose convention
+        eth_GHP : Conjugate of this operator
+
+        Notes
+        -----
+        We assume that the Ricci rotation coefficients satisfy β=β'=0, meaning that
+        this operator equals the Newman-Penrose operator ð̄ multiplied by 1/√2.
+
+        """
+        return self.ethbar / np.sqrt(2)
+
     def max_norm_index(self, skip_fraction_of_data=4):
         """Index of time step with largest norm
 
@@ -389,11 +540,13 @@ class WaveformModes(WaveformMixin, TimeSeries):
         Parameters
         ----------
         directions : array_like
-            Directions are specified using the usual spherical coordinates, and an
-            optional polarization angle (see Notes below).  These can be expressed as 2
-            or 3 floats (where the third is the polarization angle), or as an array
-            with final dimension of size 2 or 3.  Input arrays can have multiple
-            leading dimensions; the final dimension is always considered to hold the
+            Directions of the observer relative to the source may be specified using
+            the usual spherical coordinates, and an optional polarization angle (see
+            Notes below).  These can be expressed as 2 or 3 floats (where the third is
+            the polarization angle), or as an array with final dimension of size 2 or
+            3.  Alternatively, the input may be a `quaternionic.array` (see Notes and
+            arxiv.org/abs/1604.08140).  Input arrays can have multiple leading
+            dimensions; the final dimension is always considered to hold the
             directions, and the other dimensions are retained in the output.
 
         Returns
@@ -405,16 +558,23 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         Notes
         -----
-        Here, we assume that the reference basis is the basis defining the
-        spin-weighted spherical harmonics used to decompose the waveform into modes.
-        Then, we define the spherical coordinates (θ, ϕ) such that θ is the polar angle
+        To evaluate mode weights and obtain values, we need to evaluate spin-weighted
+        spherical harmonics (SWSHs).  Though usually treated as functions of just the
+        angles (θ, ϕ), a mathematically correct treatment (arxiv.org/abs/1604.08140)
+        defines SWSHs as functions of the rotation needed to rotate the basis (x̂, ŷ, ẑ)
+        onto the usual spherical-coordinate basis (θ̂, ϕ̂, n̂).  This function can take
+        quaternionic arrays representing such a rotation directly, or the (θ, ϕ)
+        coordinates themselves, and optionally the polarization angle ψ, which are
+        automatically converted to quaternionic arrays.
+
+        We define the spherical coordinates (θ, ϕ) such that θ is the polar angle
         (angle between the z axis and the point) and ϕ is the azimuthal angle (angle
         between x axis and orthogonal projection of the point into the x-y plane).
         This gives rise to the standard unit tangent vectors (θ̂, ϕ̂).
 
-        We also define the polarization angle ψ as the rotation through which we must
-        rotate the vector θ̂) in a positive sense about n̂ to line up with the vector
-        defining the legs of the detector
+        We also define the polarization angle ψ as the angle through which we must
+        rotate the vector θ̂ in a positive sense about n̂ to line up with the vector
+        defining the legs of the detector.  If not given, this angle is treated as 0.
 
         Examples
         --------
@@ -446,14 +606,18 @@ class WaveformModes(WaveformMixin, TimeSeries):
         import string
         if len(directions) == 1:
             directions = directions[0]
-        directions = np.asarray(directions, dtype=float)
-        if directions.shape[-1] == 2:
-            R = quaternionic.array.from_spherical_coordinates(directions)
-            #R = quaternionic.array.from_spherical_coordinates(directions[..., 0], directions[..., 1])
-        elif directions.shape[-1] == 3:
-            R = quaternionic.array.from_euler_angles(directions[..., 1], directions[..., 0], directions[..., 2])
-        else:
-            raise ValueError(f"Final dimension of input directions must have size 2 or 3, not {directions.shape[-1]}")
+        if not isinstance(directions, quaternionic.array):
+            directions = np.asarray(directions, dtype=float)
+            if directions.shape[-1] == 2:
+                R = quaternionic.array.from_spherical_coordinates(directions)
+                #R = quaternionic.array.from_spherical_coordinates(directions[..., 0], directions[..., 1])
+            elif directions.shape[-1] == 3:
+                R = quaternionic.array.from_euler_angles(directions[..., 1], directions[..., 0], directions[..., 2])
+            else:
+                raise ValueError(
+                    f"Input `directions` array must be quaternionic, or "
+                    f"final dimension of must have size 2 or 3, not {directions.shape[-1]}"
+                )
         # R.shape == directions.shape[:-1] + (4,)
         if self.frame == np.atleast_2d(quaternionic.one):
             sYlm = spherical.SWSH_grid(R, self.spin_weight, self.ell_max)
