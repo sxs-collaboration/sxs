@@ -1,4 +1,5 @@
 import contextlib
+import sys
 import pathlib
 import tempfile
 import numpy as np
@@ -29,7 +30,9 @@ def test_backwards_compatibility():
                     assert np.array_equal(f[group], h[group])
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Cannot install spherical_functions on Windows")
 def test_modes_conjugate():
+    import spherical_functions as sf
     tolerance = 1e-15
     np.random.seed(1234)
     for inplace in [False, True]:
@@ -52,8 +55,10 @@ def test_modes_conjugate():
             assert np.allclose(g, np.conjugate(gbar), rtol=tolerance, atol=tolerance)
 
 
-@pytest.mark.xfail
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Cannot install spherical_functions on Windows")
+#@pytest.mark.xfail
 def test_modes_real():
+    import spherical_functions as sf
     tolerance = 1e-14
     np.random.seed(1234)
     for inplace in [False, True]:
@@ -84,8 +89,10 @@ def test_modes_real():
                 mreal = m._real_func(inplace)
 
 
-@pytest.mark.xfail
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Cannot install spherical_functions on Windows")
+#@pytest.mark.xfail
 def test_modes_imag():
+    import spherical_functions as sf
     tolerance = 1e-14
     np.random.seed(1234)
     for inplace in [False, True]:
@@ -125,6 +132,7 @@ def test_modes_imag():
 
 
 def test_modes_squared_angular_momenta():
+    import spherical as sf
     tolerance = 1e-13
     np.random.seed(1234)
     L2 = sf.Modes.Lsquared
@@ -158,6 +166,7 @@ def test_modes_squared_angular_momenta():
 
 
 def test_modes_derivative_commutators():
+    import spherical as sf
     tolerance = 1e-13
     np.random.seed(1234)
     # Note that post-fix operators are in the opposite order compared
