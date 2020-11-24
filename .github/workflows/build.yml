@@ -23,12 +23,13 @@ jobs:
     steps:
       - name: Simplify main branch
         env:
-          SIMPLIFY: ${{ ${{ github.ref }} == 'refs/heads/main' && ${{ matrix.os }} == 'ubuntu-latest' && ${{ matrix.python-version }} == '3.8' }}
+          SIMPLIFY: ${{ github.ref }} == 'refs/heads/main' && ${{ matrix.os }} == 'ubuntu-latest' && ${{ matrix.python-version }} == '3.8'
         run: |
           echo "SIMPLIFY=${SIMPLIFY}"
           echo "skip_build_and_test_replicates=${SIMPLIFY}" >> $GITHUB_ENV
-      
+
       - name: Check out code
+        if: ${{ env.skip_build_and_test_replicates }}
         uses: actions/checkout@v2
 
       - name: Set up python ${{ matrix.python-version }}
@@ -40,6 +41,7 @@ jobs:
       - name: Install poetry
         if: ${{ env.skip_build_and_test_replicates }}
         run: |
+          echo "skip_build_and_test_replicates=${{ env.skip_build_and_test_replicates }}"
           python -m pip install --upgrade pip
           python -m pip install poetry  # Only install poetry like this in containers
 
