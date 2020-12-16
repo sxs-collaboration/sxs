@@ -30,6 +30,16 @@ def test_backwards_compatibility():
                     assert np.array_equal(f[group], h[group])
 
 
+def test_boost():
+    with contextlib.redirect_stdout(None):
+        h = sxs.load(shortest_h_com_file, extrapolation_order=3)
+    ell_max = 2*h.ell_max
+    hprime = h.boost(np.array([0.01, 0.02, 0.03]), ell_max=ell_max)
+    assert h.spin_weight == hprime.spin_weight
+    assert h.data_type == hprime.data_type
+    assert hprime.ell_max == ell_max
+
+
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Cannot install spherical_functions on Windows")
 @pytest.mark.xfail
 def test_modes_conjugate():
