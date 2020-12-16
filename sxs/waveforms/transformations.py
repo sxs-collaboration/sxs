@@ -1,3 +1,16 @@
+"""Functions to enable BMS transformations of waveforms
+
+BMS transformations include the usual Poincaré group — time and space
+translations, rotations, and boosts — as well as "supertranslations", which are
+a more general form of translations.  Essentially, a supertranslation is a
+direction-dependent time translation.
+
+See https://arxiv.org/abs/1509.00862 for a review of BMS transformations and
+their computation.
+
+"""
+
+
 def uprime_generator(u, β):
     """Return u' such that each time step is the smallest in the input time series
 
