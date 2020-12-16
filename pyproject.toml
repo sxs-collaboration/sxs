@@ -28,7 +28,7 @@ pandas = "^1.1.2"
 mkdocs = {version = ">=1.1.2", optional = true, markers = "implementation_name == 'cpython'"}
 black = {version = ">=20.8b1", optional = true, markers = "implementation_name == 'cpython'"}
 pymdown-extensions = {version = "^8", optional = true, markers = "implementation_name == 'cpython'"}
-spinsfast = {version = "^104", markers = "sys_platform != 'win32' and sys_platform != 'cygwin'"}
+spinsfast = {version = "^104", markers = "sys_platform == 'linux'"}
 ipywidgets = {version = "^7.5.1", optional = true}
 ipykernel = {version = "^5.3.4", optional = true}
 jupyter_contrib_nbextensions = {version = "^0.5.1", optional = true}
@@ -45,7 +45,6 @@ spherical-functions = {version = ">=2020.8.18", optional = true}
 scri = {version = "^2020.8.18", optional = true}
 pylatexenc = "^2.7"
 feedparser = "^6.0.1"
-pyFFTW = "^0.12.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.0"

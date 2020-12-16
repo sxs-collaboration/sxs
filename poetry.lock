@@ -1083,21 +1083,6 @@ optional = true
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
-name = "pyfftw"
-version = "0.12.0"
-description = "A pythonic wrapper around FFTW, the FFT library, presenting a unified interface for all the supported transforms."
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.dependencies]
-numpy = ">=1.10,<2.0"
-
-[package.extras]
-dask = ["numpy (>=1.10,<2.0)", "dask[array] (>=0.15.0)"]
-scipy = ["scipy (>=0.12.0)"]
-
-[[package]]
 name = "pygments"
 version = "2.7.3"
 description = "Pygments is a syntax highlighting package written in Python."
@@ -1585,7 +1570,7 @@ pymdown-extensions = ["pymdown-extensions"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6.1"
-content-hash = "1a75ba7bf08ebdbbce6aeb38b21425b11ce6a57545abf038e73abfc1540e4a8d"
+content-hash = "7af3b59022d4f0a6a5ddcbe41ba86482787898b057ce46317f878b1f3842b10b"
 
 [metadata.files]
 appdirs = [
@@ -2300,25 +2285,6 @@ py = [
 pycparser = [
     {file = "pycparser-2.20-py2.py3-none-any.whl", hash = "sha256:7582ad22678f0fcd81102833f60ef8d0e57288b6b5fb00323d101be910e35705"},
     {file = "pycparser-2.20.tar.gz", hash = "sha256:2d475327684562c3a96cc71adf7dc8c4f0565175cf86b6d7a404ff4c771f15f0"},
-]
-pyfftw = [
-    {file = "pyFFTW-0.12.0-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:3246897d64edb4c7245acb939a6abe2b1b3ff893f27216693f201b44dddc9356"},
-    {file = "pyFFTW-0.12.0-cp27-cp27m-manylinux1_x86_64.whl", hash = "sha256:1097bab97bd8d8543bac898fa08c932eca0c88118111e6b25b69e2725499cdf5"},
-    {file = "pyFFTW-0.12.0-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:d1f8f2177e064679b42a4801e2437a79c44f7d153e68baae6bace30a13df21d0"},
-    {file = "pyFFTW-0.12.0-cp27-none-win_amd64.whl", hash = "sha256:1e2c975eb9a8a58c0d892ff8114792e3ea86903601deda6a5c3673c9d78699ed"},
-    {file = "pyFFTW-0.12.0-cp35-cp35m-macosx_10_6_intel.whl", hash = "sha256:5cbebd395eb1300bc7ff1d344272c0773363892ba0c3ec366df99685deec6d2c"},
-    {file = "pyFFTW-0.12.0-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:e6554dfc5bb530155f9e43f51d7b29fad63e5c763a6cb4cdc0358f1b86894d50"},
-    {file = "pyFFTW-0.12.0-cp35-cp35m-win_amd64.whl", hash = "sha256:dccfb3947f39cec0398cfdfc11ac28b59462c7ff12b77e3f8a72362f988bbad0"},
-    {file = "pyFFTW-0.12.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:2d7f6f75775e7b77d66e3a438a87a65b40b64305bec9122cdcabe8ee027dc14a"},
-    {file = "pyFFTW-0.12.0-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:a8f38e9760cab07550b86422e95f236ea827423fcd910a4d43ae777d4c4181f3"},
-    {file = "pyFFTW-0.12.0-cp36-cp36m-win_amd64.whl", hash = "sha256:73eae7d3a20c89d25f992d513e0ac43053893cadd024694f45be682fc5bacdff"},
-    {file = "pyFFTW-0.12.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:dc353776c1ffa9559b274a6d260711aabde2d6275b1bfbdeffab362352f12cc3"},
-    {file = "pyFFTW-0.12.0-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:8545681c9033ab7ec54aad89f975bb349d2cbad9663c112f77a25006b1c3b277"},
-    {file = "pyFFTW-0.12.0-cp37-cp37m-win_amd64.whl", hash = "sha256:ec71f5df19927e92bf8e7a899ad4951176c4f8b009d5eb18673d3c1eb0dc5ef2"},
-    {file = "pyFFTW-0.12.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:ef29711258f319225c2332aabc2cd055c6e3f0b26696237dfb4d920503ae4d1d"},
-    {file = "pyFFTW-0.12.0-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:5571e118a2b07ce2b3ea2bf0edbe6ac7ec1407d6690d20676af4feb0ba738623"},
-    {file = "pyFFTW-0.12.0-cp38-cp38-win_amd64.whl", hash = "sha256:c1206e43ba2cb188e76e480e7f38108d8660e789260c2486305b43005d62e484"},
-    {file = "pyFFTW-0.12.0.tar.gz", hash = "sha256:60988e823ca75808a26fd79d88dbae1de3699e72a293f812aa4534f8a0a58cb0"},
 ]
 pygments = [
     {file = "Pygments-2.7.3-py3-none-any.whl", hash = "sha256:f275b6c0909e5dafd2d6269a656aa90fa58ebf4a74f8fcf9053195d226b24a08"},
