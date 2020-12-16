@@ -657,6 +657,8 @@ class WaveformModes(WaveformMixin, TimeSeries):
     # to_mode_frame
     # corotating_frame
 
+    from .transformations import boost
+
     def rotate(self, quat):
         """Rotate decomposition basis of modes represented by this waveform
 
