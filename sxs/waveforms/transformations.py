@@ -66,7 +66,7 @@ def uprime_generator(u, β):
 def Bprime(v⃗, n̂prime):
     """Rotor of aberration spin-weighted fields under boosts
 
-    Implements Equation (2) of https://arxiv.org/abs/1509.00862
+    Implements Equation (2) of arxiv.org/abs/1509.00862
 
     Parameters
     ----------
@@ -104,7 +104,7 @@ def Bprime(v⃗, n̂prime):
 def boost(w, v⃗, ell_max):
     """Find modes of waveform boosted by velocity v⃗
 
-    Implements Equation (21) of https://arxiv.org/abs/1509.00862
+    Implements Equation (21) of arxiv.org/abs/1509.00862
 
     Parameters
     ----------
@@ -133,6 +133,16 @@ def boost(w, v⃗, ell_max):
     waveform that are not completely represented in the input.  Thus, the times of
     the output waveform will not just be the Lorentz-transformed times of the input
     waveform.
+
+    Depending on the magnitude β=|v⃗|, a very large value of `ell_max` may be
+    needed.  The dominant factor is the translation that builds up over time:
+    `β*T`, where `T` is the largest time found in the waveform.  For example, if
+    β*T ≈ 1000M, we might need `ell_max=64` to maintain a comparable accuracy as in
+    the input data.
+
+    Because of the `β*T` effects, it is usually best to set t=0 at the merger time
+    — best approximated as `self.max_norm_time()`.  The largest translation is then
+    found early in the waveform, when the waveform is changing slowly.
 
     """
     import numpy as np
