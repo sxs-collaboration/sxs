@@ -606,7 +606,9 @@ class WaveformModes(WaveformMixin, TimeSeries):
         import string
         if len(directions) == 1:
             directions = directions[0]
-        if not isinstance(directions, quaternionic.array):
+        if isinstance(directions, quaternionic.array):
+            R = directions
+        else:
             directions = np.asarray(directions, dtype=float)
             if directions.shape[-1] == 2:
                 R = quaternionic.array.from_spherical_coordinates(directions)
