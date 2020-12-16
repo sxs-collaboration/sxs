@@ -606,7 +606,9 @@ class WaveformModes(WaveformMixin, TimeSeries):
         import string
         if len(directions) == 1:
             directions = directions[0]
-        if not isinstance(directions, quaternionic.array):
+        if isinstance(directions, quaternionic.array):
+            R = directions
+        else:
             directions = np.asarray(directions, dtype=float)
             if directions.shape[-1] == 2:
                 R = quaternionic.array.from_spherical_coordinates(directions)
@@ -654,6 +656,51 @@ class WaveformModes(WaveformMixin, TimeSeries):
     # mode_frame : Minimally rotating O'Shaughnessy et al. frame
     # to_mode_frame
     # corotating_frame
+
+    def boost(self, v⃗, ell_max):
+        """Find modes of waveform boosted by velocity v⃗
+
+        Implements Equation (21) of arxiv.org/abs/1509.00862
+
+        Parameters
+        ----------
+        v⃗ : array_like
+            Three-vector representing the velocity of the boosted frame relative to the
+            inertial frame, in units where the speed of light is 1
+        ell_max : int
+            Maximum value of `ell` to use while computing the transformation, and to
+            provide in the returned object.  See Notes, below.
+
+        Returns
+        -------
+        wprime : WaveformModes
+            Modes of waveform measured in boosted frame or of modes from boosted source
+            measured in original frame.  This should have the same properties as the
+            input waveform, except with (1) different time data [see Notes, below], (2)
+            a minimum `ell` value of 0 even for spin weight other than 0, and (3) a
+            maximum `ell` value of `ell_max`.
+
+        Notes
+        -----
+        Due to the nature of the transformation, some of the information in the input
+        waveform must be discarded, because it corresponds to slices of the output
+        waveform that are not completely represented in the input.  Thus, the times of
+        the output waveform will not just be the Lorentz-transformed times of the input
+        waveform.
+
+        Depending on the magnitude β=|v⃗|, a very large value of `ell_max` may be
+        needed.  The dominant factor is the translation that builds up over time:
+        `β*T`, where `T` is the largest time found in the waveform.  For example, if
+        β*T ≈ 1000M, we might need `ell_max=64` to maintain a comparable accuracy as in
+        the input data.
+
+        Because of the `β*T` effects, it is usually best to set t=0 at the merger time
+        — best approximated as `self.max_norm_time()`.  The largest translation is then
+        found early in the waveform, when the waveform is changing slowly.
+
+        """
+        from .transformations import boost
+        return boost(self, v⃗, ell_max)
 
     def rotate(self, quat):
         """Rotate decomposition basis of modes represented by this waveform

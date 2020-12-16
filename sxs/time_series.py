@@ -304,7 +304,11 @@ class TimeSeries(np.ndarray):
             Index such that abs(self.time[idx]-t) is as small as possible
 
         """
-        return np.argmin(np.abs(self.t - t))
+        idx = min(np.searchsorted(self.t, t), self.n_times-1)
+        if idx > 0:
+            if abs(self.t[idx]-t) > abs(self.t[idx-1]-t):
+                idx -= 1
+        return idx
 
     @property
     def n_times(self):
