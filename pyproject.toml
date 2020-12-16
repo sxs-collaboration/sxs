@@ -45,6 +45,7 @@ spherical-functions = {version = ">=2020.8.18", optional = true}
 scri = {version = "^2020.8.18", optional = true}
 pylatexenc = "^2.7"
 feedparser = "^6.0.1"
+pyFFTW = "^0.12.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.0"
