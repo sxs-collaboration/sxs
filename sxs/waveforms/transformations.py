@@ -72,7 +72,7 @@ def Bprime(v⃗, n̂prime):
     ----------
     v⃗ : (3,) array_like
         Three-vector representing the velocity of the boosted frame relative to the
-        inertial frame
+        inertial frame, in units where the speed of light is 1
     n̂prime : (..., 3) array_like
         Three-vectors representing the directions in the boosted frame
 
@@ -112,7 +112,7 @@ def boost(w, v⃗, ell_max):
         Modes of waveform measured in original frame
     v⃗ : array_like
         Three-vector representing the velocity of the boosted frame relative to the
-        inertial frame
+        inertial frame, in units where the speed of light is 1
     ell_max : int
         Maximum value of `ell` to use while computing the transformation, and to
         provide in the returned object
@@ -143,7 +143,12 @@ def boost(w, v⃗, ell_max):
     if w.data_type.lower() not in ['h', 'psi4']:
         raise NotImplementedError(f"Input waveform `w` has type {w.data_type}, which is not yet implemented")
 
+    ϵ = 1e-15
     β = np.linalg.norm(v⃗)
+
+    if β < ϵ:
+        return w.copy()
+
     γ = 1 / np.sqrt(1 - β**2)
     φ = np.arctanh(β)
     v̂ = v⃗ / β
