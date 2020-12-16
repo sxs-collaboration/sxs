@@ -30,6 +30,7 @@ def test_backwards_compatibility():
                     assert np.array_equal(f[group], h[group])
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Cannot install spinsfast on Windows")
 def test_boost():
     with contextlib.redirect_stdout(None):
         h = sxs.load(shortest_h_com_file, extrapolation_order=3)
