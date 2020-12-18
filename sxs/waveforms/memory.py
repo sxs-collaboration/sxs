@@ -133,7 +133,7 @@ def mass_aspect(Psi2, h):
 def J_m(h, Psi2):
     """Bondi mass aspect contribution to electric part of strain
 
-    Calculated according to Eq. (16a) of 'Adding Gravitational Memory to Waveform
+    Calculated according to Eq. (17a) of 'Adding Gravitational Memory to Waveform
     Catalogs using BMS Balance Laws'
 
     Parameters
@@ -160,7 +160,7 @@ def J_m(h, Psi2):
 def J_E(h, start_time=None):
     """Energy flux contribution to electric part of strain
 
-    Calculated according to Eq. (16b) of 'Adding Gravitational Memory to Waveform
+    Calculated according to Eq. (17b) of 'Adding Gravitational Memory to Waveform
     Catalogs using BMS Balance Laws'
 
     Parameters
@@ -192,7 +192,7 @@ def J_E(h, start_time=None):
 def J_Nhat(h, Psi2):
     """Angular momentum aspect contribution to magnetic part of strain
 
-    Calculated according to Eq. (16c) of 'Adding Gravitational Memory to Waveform
+    Calculated according to Eq. (17c) of 'Adding Gravitational Memory to Waveform
     Catalogs using BMS Balance Laws'
 
     Parameters
@@ -231,7 +231,7 @@ def J_Nhat(h, Psi2):
 def J_J(h):
     """Angular momentum flux contribution to magnetic part of strain
 
-    Calculated according to Eq. (16d) of 'Adding Gravitational Memory to Waveform
+    Calculated according to Eq. (17d) of 'Adding Gravitational Memory to Waveform
     Catalogs using BMS Balance Laws'
 
     Parameters
