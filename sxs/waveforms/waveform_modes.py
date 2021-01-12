@@ -91,8 +91,8 @@ class WaveformModes(WaveformMixin, TimeSeries):
             if key == "History.txt":
                 return self._metadata.get("history", "")
             # Assume we're asking for Y_l2_m2.dat or something
-            if self.data.shape != (self.n_times, self.n_modes):
-                raise ValueError(f"Data has shape {self.data.shape}, which is incompatible with NRAR format")
+            if self.ndarray.shape != (self.n_times, self.n_modes):
+                raise ValueError(f"Data has shape {self.ndarray.shape}, which is incompatible with NRAR format")
             match = NRAR_mode_regex.match(key)
             if not match:
                 raise ValueError(f"Key '{key}' did not match mode format")
@@ -102,7 +102,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
             if abs(m) > ell:
                 raise ValueError(f"Key '{key}' requested (ell, m)=({ell}, {m}) value does not make sense")
             index = self.index(ell, m)
-            data = np.take(self.data, index, axis=self.modes_axis).view(float).reshape((-1, 2))
+            data = np.take(self.ndarray, index, axis=self.modes_axis).view(float).reshape((-1, 2))
             return np.hstack((self.time[:, np.newaxis], data))
         obj, time_key = self._slice(key)
         if time_key is None:
@@ -629,10 +629,10 @@ class WaveformModes(WaveformMixin, TimeSeries):
         )
 
         # For now, we'll keep the new dimensions flat
-        Rflat = R.reshape(-1, 4)
+        Rflat = R.ndarray.reshape(-1, 4)
         signal_shape = list(self.shape)
         signal_shape[modes_axis] = Rflat.shape[0]
-        signal = np.empty(tuple(signal_shape), dtype=complex)
+        signal = np.zeros(tuple(signal_shape), dtype=complex)
 
         # Now, loop through, evaluating for each input R value
         wigner = spherical.Wigner(self.ell_max, ell_min=self.ell_min, mp_max=abs(self.spin_weight))
@@ -640,18 +640,21 @@ class WaveformModes(WaveformMixin, TimeSeries):
         slices = [slice(None) for _ in range(signal.ndim)]
         if np.array_equal(self.frame, np.atleast_2d(quaternionic.one)):  # frame is time-independent
             for i_R in range(Rflat.shape[0]):
-                slices[modes_axis] = i_R  # slice(i_R, i_R+1)
+                slices[modes_axis] = i_R
                 wigner.sYlm(self.spin_weight, Rflat[i_R], out=sYlm)
-                signal[tuple(slices)] = np.dot(self.data, sYlm)
+                signal[tuple(slices)] = np.dot(self.ndarray, sYlm)
         else:  # Need to account for time-dependent frame
+            data_slices = [slice(None) for _ in range(self.ndarray.ndim)]
             time_axis = self.time_axis
             for i_t in range(self.n_times):
                 slices[time_axis] = i_t
+                data_slices[time_axis] = i_t
                 R_t = self.frame[i_t].inverse * Rflat
-                for i_R, R_i in enumerate(Rflat):
+                for i_R in range(Rflat.shape[0]):
+                    R_i = Rflat[i_R]
                     slices[modes_axis] = i_R
                     wigner.sYlm(self.spin_weight, R_i, out=sYlm)
-                    signal[tuple(slices)] = np.dot(np.take(self.data, i_t, axis=time_axis), sYlm)
+                    signal[tuple(slices)] = np.dot(self.ndarray[tuple(data_slices)], sYlm)
 
         return TimeSeries(signal.reshape(out_shape), self.time)
 
@@ -726,7 +729,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         if quat.shape != (self.n_times, 4):
             raise ValueError(f"Quaternionic array shape {quat.shape} not understood; expected {(self.n_times, 4)}")
         D = np.empty((spherical.WignerD._total_size_D_matrices(self.ell_min, self.ell_max),), dtype=complex)
-        new_data = self.data.copy()
+        new_data = self.ndarray.copy()
         quat2spinor = quat.two_spinor
         _rotate_decomposition_basis(new_data, quat2spinor.a, quat2spinor.b, self.ell_min, self.ell_max, D)
         new_metadata = self._metadata.copy()
