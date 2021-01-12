@@ -250,7 +250,6 @@ def test_select_by_path_component():
     )
 
 
-#@pytest.mark.skipif(sys.platform.startswith("win"), reason="does not run on windows")
 @pytest.mark.parametrize("truncation_tol", (True, None, 1e-9))
 def test_lvcnr_format(truncation_tol):
     import shutil

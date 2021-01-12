@@ -27,36 +27,18 @@ class _ModesTimeSeries(WaveformModes):
     def u(self):
         return self.time
 
-    from spherical.SWSH_modes.algebra import (
+    from spherical.modes.algebra import (
         conjugate, bar, _real_func, real, _imag_func, imag, norm,
         add, subtract, multiply, divide
     )
 
     conj = conjugate
-    re = real
-    im = imag
 
-    from spherical.SWSH_modes.derivatives import (
-        Lsquared, Lz, Lplus, Lminus,
-        Rsquared, Rz, Rplus, Rminus,
-        eth, ethbar
-    )
-
-    @property
-    def eth_GHP(self):
-        """Raise spin-weight with GHP convention"""
-        return self.eth / np.sqrt(2)
-
-    @property
-    def ethbar_GHP(self):
-        """Lower spin-weight with GHP convention"""
-        return self.ethbar / np.sqrt(2)
-
-    from spherical.SWSH_modes.utilities import (
+    from spherical.modes.utilities import (
         truncate_ell, _check_broadcasting
     )
 
-    from spherical.SWSH_modes.ufuncs import __array_ufunc__
+    from spherical.modes.ufuncs import __array_ufunc__
 
 
 def MTS(*args, **kwargs):

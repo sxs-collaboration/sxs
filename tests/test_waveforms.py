@@ -10,6 +10,12 @@ import sxs
 # see test_utilities.py for explanation
 shortest_h_com_file = "SXS:BBH:0156v1/Lev5/rhOverM_Asymptotic_GeometricUnits_CoM.h5"
 
+try:
+    import spinsfast
+    requires_spinsfast = lambda f: f
+except:
+    requires_spinsfast = pytest.mark.skip(reason="spinsfast is missing")
+
 
 def test_backwards_compatibility():
     path = sxs.sxs_directory("cache") / sxs.utilities.sxs_path_to_system_path(shortest_h_com_file)
@@ -30,7 +36,7 @@ def test_backwards_compatibility():
                     assert np.array_equal(f[group], h[group])
 
 
-@pytest.mark.skipif(not sys.platform=="linux", reason="Cannot install spinsfast on Windows; pip sucks on mac")
+@requires_spinsfast
 def test_boost():
     with contextlib.redirect_stdout(None):
         h = sxs.load(shortest_h_com_file, extrapolation_order=3)
@@ -41,8 +47,8 @@ def test_boost():
     assert hprime.ell_max == ell_max
 
 
-@pytest.mark.skipif(sys.platform.startswith("win"), reason="Cannot install spherical_functions on Windows")
-@pytest.mark.xfail
+#@pytest.mark.xfail
+@requires_spinsfast
 def test_modes_conjugate():
     import spherical_functions as sf
     tolerance = 1e-15
@@ -51,7 +57,7 @@ def test_modes_conjugate():
         for s in range(-2, 2 + 1):
             ell_min = abs(s)
             ell_max = 8
-            a = np.random.rand(3, 7, sf.LM_total_size(ell_min, ell_max)*2).view(complex)
+            a = np.random.rand(3, 7, sf.Ysize(ell_min, ell_max)*2).view(complex)
             m = sf.Modes(a, spin_weight=s, ell_min=ell_min, ell_max=ell_max)
             g = m.grid()
             s = m.s
@@ -67,8 +73,8 @@ def test_modes_conjugate():
             assert np.allclose(g, np.conjugate(gbar), rtol=tolerance, atol=tolerance)
 
 
-@pytest.mark.skipif(sys.platform.startswith("win"), reason="Cannot install spherical_functions on Windows")
-@pytest.mark.xfail
+#@pytest.mark.xfail
+@requires_spinsfast
 def test_modes_real():
     import spherical_functions as sf
     tolerance = 1e-14
@@ -77,7 +83,7 @@ def test_modes_real():
         s = 0
         ell_min = abs(s)
         ell_max = 8
-        a = np.random.rand(3, 7, sf.LM_total_size(ell_min, ell_max)*2).view(complex)
+        a = np.random.rand(3, 7, sf.Ysize(ell_min, ell_max)*2).view(complex)
         # Test success with spin_weight==0
         m = sf.Modes(a, spin_weight=s, ell_min=ell_min, ell_max=ell_max)
         g = m.grid()
@@ -101,8 +107,8 @@ def test_modes_real():
                 mreal = m._real_func(inplace)
 
 
-@pytest.mark.skipif(sys.platform.startswith("win"), reason="Cannot install spherical_functions on Windows")
-@pytest.mark.xfail
+#@pytest.mark.xfail
+@requires_spinsfast
 def test_modes_imag():
     import spherical_functions as sf
     tolerance = 1e-14
@@ -111,7 +117,7 @@ def test_modes_imag():
         s = 0
         ell_min = abs(s)
         ell_max = 8
-        a = np.random.rand(3, 7, sf.LM_total_size(ell_min, ell_max)*2).view(complex)
+        a = np.random.rand(3, 7, sf.Ysize(ell_min, ell_max)*2).view(complex)
         # Test success with spin_weight==0
         m = sf.Modes(a, spin_weight=s, ell_min=ell_min, ell_max=ell_max)
         g = m.grid()
@@ -158,7 +164,7 @@ def test_modes_squared_angular_momenta():
     for s in range(-2, 2+1):
         ell_min = abs(s)
         ell_max = 8
-        a = np.random.rand(3, 7, sf.LM_total_size(ell_min, ell_max)*2).view(complex)
+        a = np.random.rand(3, 7, sf.Ysize(ell_min, ell_max)*2).view(complex)
         m = sf.Modes(a, spin_weight=s, ell_min=ell_min, ell_max=ell_max)
 
         # Test L^2 = 0.5(L+L- + L-L+) + LzLz
@@ -198,7 +204,7 @@ def test_modes_derivative_commutators():
     for s in range(-2, 2+1):
         ell_min = abs(s)
         ell_max = 8
-        a = np.random.rand(3, 7, sf.LM_total_size(ell_min, ell_max)*2).view(complex)
+        a = np.random.rand(3, 7, sf.Ysize(ell_min, ell_max)*2).view(complex)
         m = sf.Modes(a, spin_weight=s, ell_min=ell_min, ell_max=ell_max)
         # Test [Ri, Lj] = 0
         for R in [Rz, Rp, Rm]:

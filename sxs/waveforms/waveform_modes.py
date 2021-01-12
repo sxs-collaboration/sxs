@@ -170,7 +170,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
             Index such that self.LM[idx] == [ell, m]
 
         """
-        return spherical.LM_index(ell, m, self.ell_min)
+        return spherical.Yindex(ell, m, self.ell_min)
 
     @property
     def abs(self):
@@ -284,7 +284,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
             conjugate(f){s, l, m} = (-1)**(s+m) * conjugate(f{-s, l, -m})
 
         """
-        return spherical.SWSH_modes.algebra.bar(self)
+        return spherical.modes.algebra.bar(self)
 
     @property
     def re(self):
@@ -321,7 +321,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
             f{l, m} = (f{l, m} + (-1)**m * conjugate(f{l, -m})) / 2
 
         """
-        return spherical.SWSH_modes.algebra._real_func(self, False)
+        return spherical.modes.algebra._real_func(self, False)
 
     @property
     def im(self):
@@ -359,9 +359,9 @@ class WaveformModes(WaveformMixin, TimeSeries):
             f{l, m} = (f{l, m} + (-1)**(m+1) * conjugate(f{l, -m})) / 2
 
         """
-        return spherical.SWSH_modes.algebra._imag_func(self, False)
+        return spherical.modes.algebra._imag_func(self, False)
 
-    from spherical.SWSH_modes.derivatives import (
+    from spherical.modes.derivatives import (
         Lsquared, Lz, Lplus, Lminus,
         Rsquared, Rz, Rplus, Rminus,
         eth, ethbar
@@ -603,7 +603,6 @@ class WaveformModes(WaveformMixin, TimeSeries):
         >>> w.evaluate(equiangular)
 
         """
-        import string
         if len(directions) == 1:
             directions = directions[0]
         if isinstance(directions, quaternionic.array):
@@ -620,31 +619,141 @@ class WaveformModes(WaveformMixin, TimeSeries):
                     f"Input `directions` array must be quaternionic, or "
                     f"final dimension of must have size 2 or 3, not {directions.shape[-1]}"
                 )
-        # R.shape == directions.shape[:-1] + (4,)
-        if self.frame == np.atleast_2d(quaternionic.one):
-            sYlm = spherical.SWSH_grid(R, self.spin_weight, self.ell_max)
-            sYlm = sYlm[..., spherical.LM_index(self.ell_min, -self.ell_min, 0):]  # Chop off leading zeros
-            # sYlm.shape == directions.shape[:-1] + (self.n_modes,)
-            result = np.tensordot(self.data, sYlm, axes=[[self.modes_axis], [-1]])
-        else:
-            # We have to account for a rotating frame
-            frame = self.frame.reshape((self.frame.shape[0],) + (1,)*(R.ndim-1) + (4,))
-            R = frame.inverse * R[np.newaxis]
-            sYlm = spherical.SWSH_grid(R, self.spin_weight, self.ell_max)
-            sYlm = sYlm[..., spherical.LM_index(self.ell_min, -self.ell_min, 0):]  # Chop off leading zeros
-            # sYlm.shape == frame.shape[:1] + directions.shape[:-1] + (self.n_modes,)
-            self_indices = list(string.ascii_letters[:self.ndim])
-            self_indices[self.time_axis] = "y"
-            self_indices[self.modes_axis] = "z"
-            self_indices = ''.join(self_indices)
-            sYlm_indices = list(string.ascii_letters[self.ndim:self.ndim+sYlm.ndim])
-            sYlm_indices[0] = "y"
-            sYlm_indices[-1] = "z"
-            sYlm_indices = ''.join(sYlm_indices)
-            result_indices = self_indices.replace("z", "") + sYlm_indices.replace("y", "").replace("z", "")
-            subscripts = f"{self_indices},{sYlm_indices}->{result_indices}"
-            result = np.einsum(subscripts, self.data, sYlm)
-        return TimeSeries(result, self.time)
+
+        # Compute the shape of the output
+        modes_axis = self.modes_axis
+        out_shape = (
+            self.shape[:modes_axis]
+            + R.shape[:-1]
+            + tuple() if (modes_axis % self.ndim) == (-1 % self.ndim) else self.shape[modes_axis+1:]
+        )
+
+        # For now, we'll keep the new dimensions flat
+        Rflat = R.reshape(-1, 4)
+        signal_shape = list(self.shape)
+        signal_shape[modes_axis] = Rflat.shape[0]
+        signal = np.empty(tuple(signal_shape), dtype=complex)
+
+        # Now, loop through, evaluating for each input R value
+        wigner = spherical.Wigner(self.ell_max, ell_min=self.ell_min, mp_max=abs(self.spin_weight))
+        sYlm = np.empty(wigner.Ysize, dtype=complex)
+        slices = [slice(None) for _ in range(signal.ndim)]
+        if np.array_equal(self.frame, np.atleast_2d(quaternionic.one)):  # frame is time-independent
+            for i_R in range(Rflat.shape[0]):
+                slices[modes_axis] = i_R  # slice(i_R, i_R+1)
+                wigner.sYlm(self.spin_weight, Rflat[i_R], out=sYlm)
+                signal[tuple(slices)] = np.dot(self.data, sYlm)
+        else:  # Need to account for time-dependent frame
+            time_axis = self.time_axis
+            for i_t in range(self.n_times):
+                slices[time_axis] = slice(i_t, i_t+1)
+                R_t = self.frame[i_t].inverse * Rflat
+                for i_R, R_i in enumerate(Rflat):
+                    slices[modes_axis] = slice(i_R, i_R+1)
+                    wigner.sYlm(self.spin_weight, R_i, out=sYlm)
+                    signal[tuple(slices)] = np.dot(np.take(self.data, [i_t,], axis=time_axis), sYlm)
+
+        return TimeSeries(signal.reshape(out_shape), self.time)
+
+
+        # # Version 3
+
+        # # We'll just make views to work with, where the axes rearranged for simplicity
+        # modes = np.moveaxis(self.ndarray, self.modes_axis, -1)
+        # result = np.moveaxis(signal, self.modes_axis, -1)
+
+        # # Now, loop through, evaluating for each input R value
+        # wigner = spherical.Wigner(self.ell_max, ell_min=self.ell_min, mp_max=abs(self.spin_weight))
+        # sYlm = np.empty(wigner.Ysize, dtype=complex)
+        # if np.array_equal(self.frame, np.atleast_2d(quaternionic.one)):  # frame is time-independent
+        #     for i_R in range(Rflat.shape[0]):
+        #         wigner.sYlm(self.spin_weight, Rflat[i_R], out=sYlm)
+        #         # np.dot(modes, sYlm, out=result[..., i_R])
+        #         np.einsum(modes, sYlm, out=result[..., i_R])
+        # else:  # Need to account for time-dependent frame
+        #     time_axis = self.time_axis if self.time_axis < self.modes_axis else self.time_axis - 1
+        #     modes = np.moveaxis(modes, time_axis, 0)
+        #     result = np.moveaxis(result, time_axis, 0)
+        #     for i_R in range(Rflat.shape[0]):
+        #         R_i = Rflat[i_R]
+        #         for i_t in range(self.n_times):
+        #             R_t = self.frame[i_t].inverse * R_i
+        #             wigner.sYlm(self.spin_weight, R_t, out=sYlm)
+        #             np.dot(modes, sYlm, out=result[i_t, ..., i_R])
+
+        # return TimeSeries(signal.reshape(out_shape), self.time)
+
+
+
+        # # Version 2
+
+        # # We'll replace the "modes axis" with all of the directions
+        # out_shape1 = self.shape[:self.modes_axis]
+        # out_shape2 = R.shape[:-1]
+        # out_shape3 = (,) if self.modes_axis == -1 % self.ndim else self.shape[self.modes_axis+1:]
+        # out_shape = out_shape1 + out_shape2 + out_shape3
+        # out_slice1 = np.index_exp[:] * len(out_shape1)
+        # out_slice3 = np.index_exp[:] * len(out_shape3)
+        # out_slice = out_slice1 + np.index_exp[:] + out_slice3
+
+        # # For now, we'll keep the new dimensions flat
+        # Rflat = R.reshape(-1, 4)
+        # result_shape = 
+        # result = np.empty(out_shape1 + Rflat.shape[:-1] + out_shape3, dtype=complex)
+
+        # # Now, loop through, evaluating for each input R value
+        # wigner = spherical.Wigner(self.ell_max, ell_min=self.ell_min, mp_max=abs(self.spin_weight))
+        # sYlm = np.empty(wigner.Ysize, dtype=complex)
+        # if np.array_equal(self.frame, np.atleast_2d(quaternionic.one)):  # frame is time-independent
+        #     for i_R in range(Rflat.shape[0]):
+        #         wigner.sYlm(self.spin_weight, Rflat[i_R], out=sYlm)
+        #         result[out_slice1, i_R, out_slice3] = np.tensordot(self.data, sYlm, axes=(self.modes_axis, 0))
+        # else:  # Need to account for time-dependent frame
+        #     new_modes_axis = self.modes_axis if self.modes_axis > self.time_axis else self.modes_axis + 1
+        #     input_data = np.moveaxis(self.data, self.time_axis, 0)
+        #     output_data = np.moveaxis(result, self.time_axis, 0)
+        #     for i_R in range(Rflat.shape[0]):
+        #         R_i = Rflat[i_R]
+        #         for i_t in range(self.n_times):
+        #             R_t = self.frame[i_t].inverse * R_i
+        #             wigner.sYlm(self.spin_weight, R_t, out=sYlm)
+        #             result[out_slice1, i_R, out_slice3] = np.tensordot(
+        #                 np.take(self.data, [i_t,], axis=self.time_axis),
+        #                 sYlm,
+        #                 axes=(self.modes_axis, 0)
+        #             )
+
+        # return TimeSeries(result.reshape(out_shape), self.time)
+
+
+        # # Version 1
+
+        # import string
+
+        # if np.array_equal(self.frame, np.atleast_2d(quaternionic.one)):
+        #     # sYlm = spherical.Grid(R, self.spin_weight, self.ell_max)
+        #     # sYlm = sYlm[..., spherical.Yindex(self.ell_min, -self.ell_min, 0):]  # Chop off leading zeros
+        #     # # sYlm.shape == directions.shape[:-1] + (self.n_modes,)
+        #     result = np.tensordot(self.data, sYlm, axes=[[self.modes_axis], [-1]])
+        # else:
+        #     # We have to account for a rotating frame
+        #     frame = self.frame.reshape((self.frame.shape[0],) + (1,)*(R.ndim-1) + (4,))
+        #     R = frame.inverse * R[np.newaxis]
+        #     sYlm = wigner.sYlm(self.spin_weight, R)
+        #     # sYlm = sYlm[..., spherical.Yindex(self.ell_min, -self.ell_min, 0):]  # Chop off leading zeros
+        #     # # sYlm.shape == frame.shape[:1] + directions.shape[:-1] + (self.n_modes,)
+        #     self_indices = list(string.ascii_letters[:self.ndim])
+        #     self_indices[self.time_axis] = "y"
+        #     self_indices[self.modes_axis] = "z"
+        #     self_indices = ''.join(self_indices)
+        #     sYlm_indices = list(string.ascii_letters[self.ndim:self.ndim+sYlm.ndim])
+        #     sYlm_indices[0] = "y"
+        #     sYlm_indices[-1] = "z"
+        #     sYlm_indices = ''.join(sYlm_indices)
+        #     result_indices = self_indices.replace("z", "") + sYlm_indices.replace("y", "").replace("z", "")
+        #     subscripts = f"{self_indices},{sYlm_indices}->{result_indices}"
+        #     result = np.einsum(subscripts, self.data, sYlm)
+        # return TimeSeries(result, self.time)
 
     # TODO:
     # expectation_value_LL
@@ -805,16 +914,18 @@ def _rotate_decomposition_basis(data, R_basis_a, R_basis_b, ell_min, ell_max, D)
     matrix is overwritten with the new sums.
 
     """
-    for i_t in range(data.shape[0]):
-        spherical._Wigner_D_matrices(R_basis_a[i_t], R_basis_b[i_t], ell_min, ell_max, D)
-        for ell in range(ell_min, ell_max + 1):
-            i_data = ell ** 2 - ell_min ** 2
-            i_D = spherical._linear_matrix_offset(ell, ell_min)
+    raise NotImplementedError()
+    # for i_t in range(data.shape[0]):
+    #     spherical._Wigner_D_matrices(R_basis_a[i_t], R_basis_b[i_t], ell_min, ell_max, D)
+    #     for ell in range(ell_min, ell_max + 1):
+    #         i_data = ell ** 2 - ell_min ** 2
+    #         # i_D = spherical._linear_matrix_offset(ell, ell_min)
+    #         i_D = spherical.WignerDsize(ell_min, 0, ell-1)
 
-            for i_m in range(2 * ell + 1):
-                new_data_mp = 0j
-                for i_mp in range(2 * ell + 1):
-                    new_data_mp += data[i_t, i_data + i_mp] * D[i_D + i_m + (2 * ell + 1) * i_mp]
-                D[i_D + i_m] = new_data_mp
-            for i_m in range(2 * ell + 1):
-                data[i_t, i_data + i_m] = D[i_D + i_m]
+    #         for i_m in range(2 * ell + 1):
+    #             new_data_mp = 0j
+    #             for i_mp in range(2 * ell + 1):
+    #                 new_data_mp += data[i_t, i_data + i_mp] * D[i_D + i_m + (2 * ell + 1) * i_mp]
+    #             D[i_D + i_m] = new_data_mp
+    #         for i_m in range(2 * ell + 1):
+    #             data[i_t, i_data + i_m] = D[i_D + i_m]

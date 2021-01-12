@@ -291,7 +291,7 @@ python-versions = "*"
 
 [[package]]
 name = "ipykernel"
-version = "5.4.2"
+version = "5.4.3"
 description = "IPython Kernel for Jupyter"
 category = "main"
 optional = true
@@ -305,7 +305,7 @@ tornado = ">=4.2"
 traitlets = ">=4.1.0"
 
 [package.extras]
-test = ["pytest (!=5.3.4)", "pytest-cov", "flaky", "nose"]
+test = ["pytest (!=5.3.4)", "pytest-cov", "flaky", "nose", "jedi (<=0.17.2)"]
 
 [[package]]
 name = "ipython"
@@ -1388,7 +1388,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
 name = "spherical"
-version = "0.1.4"
+version = "1.0.1"
 description = "Evaluate and transform D matrices, 3-j symbols, and (scalar or spin-weighted) spherical harmonics"
 category = "main"
 optional = false
@@ -1401,6 +1401,7 @@ numba = {version = ">=0.50", markers = "implementation_name == \"cpython\""}
 numpy = ">=1.13,<2.0"
 quaternionic = ">=0.2.0,<0.3.0"
 scipy = ">=1.0,<2.0"
+spinsfast = {version = ">=104.2020.8,<105.0.0", markers = "sys_platform != \"win32\""}
 
 [package.extras]
 mkdocs = ["mkdocs (>=1.1.2)"]
@@ -1480,7 +1481,7 @@ python-versions = ">= 3.5"
 
 [[package]]
 name = "tqdm"
-version = "4.55.2"
+version = "4.56.0"
 description = "Fast, Extensible Progress Meter"
 category = "main"
 optional = false
@@ -1583,7 +1584,7 @@ pymdown-extensions = ["pymdown-extensions"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6.1"
-content-hash = "ed5a77ce43c300abcf5de1bddbceea7ced0a8e0ea122763a91ae6b1d2de6b8f2"
+content-hash = "b6c043174a448efe116110565b1c10b15f60f2bab831cbac81d90c43225a1f00"
 
 [metadata.files]
 appdirs = [
@@ -1817,8 +1818,8 @@ iniconfig = [
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
 ]
 ipykernel = [
-    {file = "ipykernel-5.4.2-py3-none-any.whl", hash = "sha256:63b4b96c513e1138874934e3e783a8e5e13c02b9036e37107bfe042ac8955005"},
-    {file = "ipykernel-5.4.2.tar.gz", hash = "sha256:e20ceb7e52cb4d250452e1230be76e0b2323f33bd46c6b2bc7abb6601740e182"},
+    {file = "ipykernel-5.4.3-py3-none-any.whl", hash = "sha256:4ed205700001a83b5832d4821c46a5733f1bf4b1c55744314ae3c756be6b6095"},
+    {file = "ipykernel-5.4.3.tar.gz", hash = "sha256:697103d218e9a8828025af7986e033c89e0b36e2b6eb84a5bda4739b9a27f3cb"},
 ]
 ipython = [
     {file = "ipython-7.16.1-py3-none-any.whl", hash = "sha256:2dbcc8c27ca7d3cfe4fcdff7f45b27f9a8d3edfa70ff8024a71c7a8eb5f09d64"},
@@ -2552,8 +2553,8 @@ six = [
     {file = "six-1.15.0.tar.gz", hash = "sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259"},
 ]
 spherical = [
-    {file = "spherical-0.1.4-py3-none-any.whl", hash = "sha256:c62ce31d8a58f624c0ed7d31bf5f7d8d44642038b8b43005afc13063484f4f3a"},
-    {file = "spherical-0.1.4.tar.gz", hash = "sha256:192406bf058fb15185f2786b85282990fa2543bc639d69318efaceb5b2819ea0"},
+    {file = "spherical-1.0.1-py3-none-any.whl", hash = "sha256:49b1ebf30d0850ce18e43cd8aece9a62a7c62bff5e8905258186f402f1121a19"},
+    {file = "spherical-1.0.1.tar.gz", hash = "sha256:2fb1e6c4245230484047108cf65ea89161ac7ed91835fc98fcefd8423ad26ff7"},
 ]
 spherical-functions = [
     {file = "spherical-functions-2020.8.18.15.37.20.tar.gz", hash = "sha256:775408f6b535151c99f4eb49c2d568298f4503b9c212bb574740b4178ca82043"},
@@ -2633,8 +2634,8 @@ tornado = [
     {file = "tornado-6.1.tar.gz", hash = "sha256:33c6e81d7bd55b468d2e793517c909b139960b6c790a60b7991b9b6b76fb9791"},
 ]
 tqdm = [
-    {file = "tqdm-4.55.2-py2.py3-none-any.whl", hash = "sha256:54985cecd51071f3faa2a07a862c24be1426f925353d82b3dde03f7609d63248"},
-    {file = "tqdm-4.55.2.tar.gz", hash = "sha256:86ca00c4942c3b3dc7ed31bae44cd2db38ef85ca05a7920f6a6c52ad7fcac904"},
+    {file = "tqdm-4.56.0-py2.py3-none-any.whl", hash = "sha256:4621f6823bab46a9cc33d48105753ccbea671b68bab2c50a9f0be23d4065cb5a"},
+    {file = "tqdm-4.56.0.tar.gz", hash = "sha256:fe3d08dd00a526850568d542ff9de9bbc2a09a791da3c334f3213d8d0bbbca65"},
 ]
 traitlets = [
     {file = "traitlets-4.3.3-py2.py3-none-any.whl", hash = "sha256:70b4c6a1d9019d7b4f6846832288f86998aa3b9207c6821f3578a6a6a467fe44"},
