@@ -2,7 +2,10 @@ import contextlib
 import sys
 import pathlib
 import tempfile
+
 import numpy as np
+import quaternionic
+import spherical
 import h5py
 import pytest
 import sxs
@@ -230,3 +233,32 @@ def test_modes_derivative_commutators():
         assert np.allclose(Rp(Rm(m)) - Rm(Rp(m)), 2 * Rz(m), rtol=tolerance, atol=tolerance)
         # Test [ethbar, eth] = 2s
         assert np.allclose(ethbar(eth(m)) - eth(ethbar(m)), 2 * m.s * m, rtol=tolerance, atol=tolerance)
+
+
+def test_modes_evaluate(eps):
+    import time
+
+    with contextlib.redirect_stdout(None):
+        h = sxs.load(shortest_h_com_file, extrapolation_order=3)
+
+    ell_max = h.ell_max
+    ϵ = 5 * (2 * ell_max + 1) * 2 * eps
+
+    m1 = h[:1000].copy()
+    m2 = h[:1000].copy()
+    m2._metadata["frame_type"] = "corotating"
+    m2._metadata["frame"] = quaternionic.one * np.ones_like(h.t)
+
+    equiangular_grid = spherical.theta_phi(2 * ell_max + 1, 2 * ell_max + 1)
+
+    t0 = time.perf_counter()
+    g1 = m1.evaluate(equiangular_grid)
+    t1 = time.perf_counter()
+    g2 = m2.evaluate(equiangular_grid)
+    t2 = time.perf_counter()
+
+    print()
+    print(f"\tTime for inertial frame: {t1-t0:.4f} seconds")
+    print(f"\tTime for 'rotating' frame: {t2-t1:.4f} seconds")
+
+    assert np.allclose(g1, g2, rtol=ϵ, atol=ϵ), f"max|g1-g2|={np.max(np.abs(g1-g2))}"

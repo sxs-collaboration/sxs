@@ -611,7 +611,6 @@ class WaveformModes(WaveformMixin, TimeSeries):
             directions = np.asarray(directions, dtype=float)
             if directions.shape[-1] == 2:
                 R = quaternionic.array.from_spherical_coordinates(directions)
-                #R = quaternionic.array.from_spherical_coordinates(directions[..., 0], directions[..., 1])
             elif directions.shape[-1] == 3:
                 R = quaternionic.array.from_euler_angles(directions[..., 1], directions[..., 0], directions[..., 2])
             else:
@@ -650,8 +649,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 slices[time_axis] = i_t
                 data_slices[time_axis] = i_t
                 R_t = self.frame[i_t].inverse * Rflat
-                for i_R in range(Rflat.shape[0]):
-                    R_i = Rflat[i_R]
+                for i_R, R_i in enumerate(Rflat):
                     slices[modes_axis] = i_R
                     wigner.sYlm(self.spin_weight, R_i, out=sYlm)
                     signal[tuple(slices)] = np.dot(self.ndarray[tuple(data_slices)], sYlm)
