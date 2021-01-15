@@ -720,20 +720,56 @@ class WaveformModes(WaveformMixin, TimeSeries):
         Parameters
         ----------
         quat : quaternionic.array
-            This must have the same number of quaternions as the number of times in the
-            waveform.
+            This must have one quaternion or the same number of quaternions as the
+            number of times in the waveform.
 
         """
-        if quat.shape != (self.n_times, 4):
-            raise ValueError(f"Quaternionic array shape {quat.shape} not understood; expected {(self.n_times, 4)}")
-        D = np.empty((spherical.WignerD._total_size_D_matrices(self.ell_min, self.ell_max),), dtype=complex)
-        new_data = self.ndarray.copy()
-        quat2spinor = quat.two_spinor
-        _rotate_decomposition_basis(new_data, quat2spinor.a, quat2spinor.b, self.ell_min, self.ell_max, D)
+        from spherical.wigner import _rotate
+
+        R = quaternionic.array(quat)
+        wigner = spherical.Wigner(self.ell_max, ell_min=self.ell_min)  #, mp_max=abs(self.spin_weight))
+        D = np.zeros(wigner.Dsize, dtype=complex)
+        mode_weights = self.ndarray
+        rotated_mode_weights = np.zeros_like(mode_weights)
+        mode_weights = np.moveaxis(mode_weights, self.modes_axis, -1)
+        rotated_mode_weights = np.moveaxis(rotated_mode_weights, self.modes_axis, -1)
+        shape = rotated_mode_weights.shape
+        if quat.shape == (4,) or quat.shape == (1, 4):
+            wigner.D(R, out=D)
+            mode_weights = mode_weights.reshape(-1, mode_weights.shape[-1])
+            rotated_mode_weights = rotated_mode_weights.reshape(-1, mode_weights.shape[-1])
+            _rotate(
+                mode_weights, rotated_mode_weights,
+                wigner.ell_min, wigner.ell_max, wigner.mp_max,
+                self.ell_min, self.ell_max, self.spin_weight,
+                D
+            )
+        elif quat.shape == (self.n_times, 4):
+            slices = [slice(None) for _ in range(self.ndim)]
+            time_axis = self.time_axis if self.time_axis < self.modes_axis else self.time_axis - 1
+            for i_t in range(self.n_times):
+                wigner.D(R[i_t], out=D)
+                slices[time_axis] = i_t
+                s = tuple(slices)
+                m = mode_weights[s]
+                r = rotated_mode_weights[s]
+                m = m.reshape(-1, m.shape[-1])
+                r = r.reshape(-1, r.shape[-1])
+                _rotate(
+                    m, r,
+                    wigner.ell_min, wigner.ell_max, wigner.mp_max,
+                    self.ell_min, self.ell_max, self.spin_weight,
+                    D
+                )
+        else:
+            raise ValueError(
+                f"Quaternionic array shape {R.shape} not understood; expected {(4,)}, {(1, 4)}, or {(self.n_times, 4)}"
+            )
+        rotated_mode_weights = rotated_mode_weights.reshape(shape)
+        rotated_mode_weights = np.moveaxis(rotated_mode_weights, -1, self.modes_axis)
         new_metadata = self._metadata.copy()
-        new_metadata.pop("frame")
-        w = type(self)(new_data, **new_metadata)
-        return w
+        new_metadata.pop("frame", None)
+        return type(self)(rotated_mode_weights, **new_metadata)
 
     def to_inertial_frame(self):
         """Return a copy of this waveform in the inertial frame"""
@@ -803,30 +839,3 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 return (w, log_frame)
             else:
                 return w
-
-
-@jit("void(c16[:,:], c16[:], c16[:], i8, i8, c16[:])")
-def _rotate_decomposition_basis(data, R_basis_a, R_basis_b, ell_min, ell_max, D):
-    """Rotate data by a different rotor at each point in time
-
-    `D` is just a workspace, which holds the Wigner D matrices.
-    During the summation, it is also used as temporary storage to hold
-    the results for each item of data, where the first row in the
-    matrix is overwritten with the new sums.
-
-    """
-    raise NotImplementedError()
-    # for i_t in range(data.shape[0]):
-    #     spherical._Wigner_D_matrices(R_basis_a[i_t], R_basis_b[i_t], ell_min, ell_max, D)
-    #     for ell in range(ell_min, ell_max + 1):
-    #         i_data = ell ** 2 - ell_min ** 2
-    #         # i_D = spherical._linear_matrix_offset(ell, ell_min)
-    #         i_D = spherical.WignerDsize(ell_min, 0, ell-1)
-
-    #         for i_m in range(2 * ell + 1):
-    #             new_data_mp = 0j
-    #             for i_mp in range(2 * ell + 1):
-    #                 new_data_mp += data[i_t, i_data + i_mp] * D[i_D + i_m + (2 * ell + 1) * i_mp]
-    #             D[i_D + i_m] = new_data_mp
-    #         for i_m in range(2 * ell + 1):
-    #             data[i_t, i_data + i_m] = D[i_D + i_m]

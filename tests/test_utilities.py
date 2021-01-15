@@ -5,16 +5,7 @@ import tempfile
 import pytest
 import sxs
 
-# catalog = sxs.load("catalog")
-# com_files = [
-#     f for f in catalog.files.values()
-#     if "rhOverM_Asymptotic_GeometricUnits_CoM.h5" in f['filename']
-#     and "SXS:BBH:1111v" not in f['truepath']
-# ]
-# min(com_files, key=lambda f: f['filesize'])
-shortest_h_com_file = "SXS:BBH:0156v1/Lev5/rhOverM_Asymptotic_GeometricUnits_CoM.h5"
-shortest_horizons = "SXS:BBH:0156v1/Lev5/Horizons.h5"
-shortest_metadata = "SXS:BBH:0156v5/Lev5/metadata.json"
+from .conftest import shortest_h_com_file, shortest_horizons, shortest_metadata
 
 
 if sys.platform.startswith("win"):

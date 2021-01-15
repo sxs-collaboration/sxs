@@ -6,8 +6,7 @@ import pytest
 import json
 import sxs
 
-shortest_metadata = "SXS:BBH:0156v5/Lev5/metadata.json"
-shortest_metadata_txt = "SXS:BBH:0156v5/Lev5/metadata.txt"
+from .conftest import shortest_metadata, shortest_metadata_txt
 
 
 def test_json_conversion():

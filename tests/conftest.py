@@ -1,4 +1,5 @@
 import os
+import functools
 import pytest
 import numpy as np
 import quaternionic
@@ -149,3 +150,30 @@ def Rs():
     rs = [[w, x, y, z] for w in ones for x in ones for y in ones for z in ones][1:]
     rs = rs + [r for r in [quaternionic.array(np.random.uniform(-1, 1, size=4)) for _ in range(20)]]
     return quaternionic.array(rs).normalized
+
+
+# catalog = sxs.load("catalog")
+# com_files = [
+#     f for f in catalog.files.values()
+#     if "rhOverM_Asymptotic_GeometricUnits_CoM.h5" in f['filename']
+#     and "SXS:BBH:1111v" not in f['truepath']
+# ]
+# min(com_files, key=lambda f: f['filesize'])
+shortest_h_com_file = "SXS:BBH:0156v1/Lev5/rhOverM_Asymptotic_GeometricUnits_CoM.h5"
+shortest_horizons = "SXS:BBH:0156v1/Lev5/Horizons.h5"
+shortest_metadata = "SXS:BBH:0156v5/Lev5/metadata.json"
+shortest_metadata_txt = "SXS:BBH:0156v5/Lev5/metadata.txt"
+
+
+@functools.lru_cache
+def get_h():
+    import contextlib
+    import sxs
+    with contextlib.redirect_stdout(None):
+        h = sxs.load(shortest_h_com_file, extrapolation_order=3)
+    return h
+
+
+@pytest.fixture
+def h():
+    return get_h().copy()

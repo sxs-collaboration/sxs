@@ -9,7 +9,6 @@ def save(w, file_name=None, L2norm_fractional_tolerance=1e-10, log_frame=None, s
     w.to_corotating_frame
     w.boost_velocity, w.space_translation
     """)
-    1
 
     # Make sure that we can understand the file_name and create the directory
     if file_name is None:

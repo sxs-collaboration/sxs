@@ -10,8 +10,7 @@ import h5py
 import pytest
 import sxs
 
-# see test_utilities.py for explanation
-shortest_h_com_file = "SXS:BBH:0156v1/Lev5/rhOverM_Asymptotic_GeometricUnits_CoM.h5"
+from .conftest import shortest_h_com_file
 
 try:
     import spinsfast
@@ -40,9 +39,7 @@ def test_backwards_compatibility():
 
 
 @requires_spinsfast
-def test_boost():
-    with contextlib.redirect_stdout(None):
-        h = sxs.load(shortest_h_com_file, extrapolation_order=3)
+def test_boost(h):
     ell_max = 2*h.ell_max
     hprime = h.boost(np.array([0.01, 0.02, 0.03]), ell_max=ell_max)
     assert h.spin_weight == hprime.spin_weight
@@ -235,11 +232,8 @@ def test_modes_derivative_commutators():
         assert np.allclose(ethbar(eth(m)) - eth(ethbar(m)), 2 * m.s * m, rtol=tolerance, atol=tolerance)
 
 
-def test_modes_evaluate(eps):
+def test_modes_evaluate(h, eps):
     import time
-
-    with contextlib.redirect_stdout(None):
-        h = sxs.load(shortest_h_com_file, extrapolation_order=3)
 
     ell_max = h.ell_max
     ϵ = 5 * (2 * ell_max + 1) * 2 * eps
@@ -262,3 +256,45 @@ def test_modes_evaluate(eps):
     print(f"\tTime for 'rotating' frame: {t2-t1:.4f} seconds")
 
     assert np.allclose(g1, g2, rtol=ϵ, atol=ϵ), f"max|g1-g2|={np.max(np.abs(g1-g2))}"
+
+
+def test_modes_rotate(h, eps):
+    import time
+
+    ϵ = 5 * (2 * h.ell_max + 1) * 2 * eps
+
+    print()
+    for i, R in enumerate([quaternionic.one, quaternionic.one * np.ones_like(h.t)]):
+        t1 = time.perf_counter()
+        hprm = h.rotate(R)
+        t2 = time.perf_counter()
+        print(f"\tRotation {i+1} took {t2-t1:.4f} seconds")
+        assert type(h) == type(hprm)
+        assert np.array_equal(h.t, hprm.t)
+        assert np.allclose(h.ndarray, hprm.ndarray, rtol=ϵ, atol=ϵ)
+
+        metadata = h._metadata.copy()
+        metadataprm = hprm._metadata.copy()
+        for d in [metadata, metadataprm]:
+            for key in ['time', 'frame']:
+                d.pop(key, None)
+            for key in ['space_translation', 'boost_velocity']:
+                d[key] = d[key].tolist()
+        assert metadata == metadataprm
+
+
+def test_modes_rotate_evaluate(h, Rs, eps):
+    """Test that evaluating modes at rotated points == evaluating rotated modes at points"""
+    import time
+
+    ell_max = h.ell_max
+    ϵ = (2 * h.ell_max + 1) * 2 * eps
+
+    equiangular_grid = spherical.theta_phi(2 * ell_max + 1, 2 * ell_max + 1)
+    Rθϕ = quaternionic.array.from_spherical_coordinates(equiangular_grid)
+
+    for i, R in enumerate(Rs):
+        hprm = h.copy().rotate(R)  # hprm = h @ 𝔇(R)
+        m1 = hprm.evaluate(Rθϕ)  # m1 = hprm @ 𝔇(Rθϕ) √...
+        m2 = h.evaluate(R * Rθϕ)  # m2 = h @ 𝔇(R * Rθϕ) √...
+        assert np.allclose(m1, m2, rtol=ϵ, atol=ϵ)
