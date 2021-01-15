@@ -734,7 +734,7 @@ python-versions = "*"
 
 [[package]]
 name = "mkapi"
-version = "1.0.14"
+version = "1.0.13"
 description = "An Auto API Documentation tool."
 category = "main"
 optional = true
@@ -1584,7 +1584,7 @@ pymdown-extensions = ["pymdown-extensions"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6.1"
-content-hash = "d41a2cce3dbe90472fc0ea4be4c4459dc5613b582c330c1fffeda47f86d8251f"
+content-hash = "f94a14b38d365e6a0c9863f462bb0c8c97ce177ab07dcc5df9130452dd450a1a"
 
 [metadata.files]
 appdirs = [
@@ -2085,8 +2085,8 @@ mistune = [
     {file = "mistune-0.8.4.tar.gz", hash = "sha256:59a3429db53c50b5c6bcc8a07f8848cb00d7dc8bdb431a4ab41920d201d4756e"},
 ]
 mkapi = [
-    {file = "mkapi-1.0.14-py3-none-any.whl", hash = "sha256:88bff6a183f09a5c80acf3c9edfc32e0ff3e2585589a9b6a962aae0467a79a12"},
-    {file = "mkapi-1.0.14.tar.gz", hash = "sha256:b9b75ffeeeb6c29843ca703abf30464acac76c0867ca3ca66e3a825c0f258bb1"},
+    {file = "mkapi-1.0.13-py3-none-any.whl", hash = "sha256:1e4cd05d51556f2cb82eb04e8b1400ef2e620e0c20e905a6db1c464904d3a847"},
+    {file = "mkapi-1.0.13.tar.gz", hash = "sha256:f696a29d15f162a57d7c2242a18f95eefb7d9d45a76ecbf7217cd4b68e7dfe24"},
 ]
 mkdocs = [
     {file = "mkdocs-1.1.2-py3-none-any.whl", hash = "sha256:096f52ff52c02c7e90332d2e53da862fde5c062086e1b5356a6e392d5d60f5e9"},

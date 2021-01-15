@@ -14,7 +14,7 @@ importlib-metadata = {version = "^1.0", python = "<3.8"}
 numpy = "^1.15"
 scipy = "^1.0"
 numba = {version = ">=0.50", markers = "implementation_name == 'cpython'"}
-mkapi = {version = "^1", optional = true, python = ">=3.7"}
+mkapi = {version = "1.0.13", optional = true, python = ">=3.7"}
 quaternionic = ">=0.1.16"
 spherical = "^1"
 h5py = "^2.10.0"
