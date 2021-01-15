@@ -174,7 +174,7 @@ def boost(w, v⃗, ell_max):
 
     uprime = uprime_generator(w.t, β)
     time_axis, modes_axis = 0, 1
-    Hprime = np.zeros((uprime.size, spherical.LM_total_size(0, ell_max)), dtype=complex)
+    Hprime = np.zeros((uprime.size, spherical.Ysize(0, ell_max)), dtype=complex)
 
     # Step through the waveform in segments, so that each segment is small enough to fit
     # comfortably into memory, but large enough to minimize re-computation of SWSHs

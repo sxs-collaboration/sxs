@@ -9,7 +9,6 @@ def save(w, file_name=None, L2norm_fractional_tolerance=1e-10, log_frame=None, s
     w.to_corotating_frame
     w.boost_velocity, w.space_translation
     """)
-    1
 
     # Make sure that we can understand the file_name and create the directory
     if file_name is None:
@@ -163,7 +162,7 @@ def save(w, file_name=None, L2norm_fractional_tolerance=1e-10, log_frame=None, s
     return w, log_frame
 
 
-def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertial=True):
+def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertial=True, **kwargs):
     import warnings
     import pathlib
     import bz2
@@ -192,9 +191,9 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
 
     if not json_path.exists():
         invalid(f'\nJSON file "{json_path}" cannot be found, but is expected for this data format.')
-        json_data = {}
-        data_type = "unknown"
-        spin_weight = None
+        data_type = kwargs.pop("data_type", "unknown")
+        spin_weight = kwargs.pop('spin_weight', None)
+        json_data = kwargs.copy()
     else:
         with open(json_path) as f:
             json_data = json.load(f)

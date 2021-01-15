@@ -318,7 +318,7 @@ def load(file, **kwargs):
                 )
             )
             ell_min, ell_max = min(LM[:, 0]), max(LM[:, 0])
-            if not np.array_equal(LM, spherical.LM_range(ell_min, ell_max)):
+            if not np.array_equal(LM, spherical.Yrange(ell_min, ell_max)):
                 raise ValueError(f"Input [ell,m] modes are not complete.  Found modes:\n{LM}\n")
             n_modes = len(LM)
 
