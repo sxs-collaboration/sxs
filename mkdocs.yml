@@ -5,11 +5,6 @@ repo_url: https://github.com/sxs-collaboration/sxs
 plugins:
   - search
   - mkapi
-  # - mktheapidocs:
-  #     modules:
-  #       sxs:
-  #         section: api
-  #         source_repo: "https://github.com/sxs-collaboration/sxs/blob/main"
 
 nav:
     - Home: 'index.md'

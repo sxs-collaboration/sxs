@@ -1584,7 +1584,7 @@ pymdown-extensions = ["pymdown-extensions"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6.1"
-content-hash = "b6c043174a448efe116110565b1c10b15f60f2bab831cbac81d90c43225a1f00"
+content-hash = "edc45876cdeb7d67714bb536524a56485a6eb0a97f3488f4d384052c51b366ed"
 
 [metadata.files]
 appdirs = [
