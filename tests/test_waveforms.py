@@ -48,9 +48,9 @@ def test_boost(h):
 
 
 #@pytest.mark.xfail
-@requires_spinsfast
+# @requires_spinsfast
 def test_modes_conjugate():
-    import spherical_functions as sf
+    import spherical as sf
     tolerance = 1e-15
     np.random.seed(1234)
     for inplace in [False, True]:
@@ -74,9 +74,9 @@ def test_modes_conjugate():
 
 
 #@pytest.mark.xfail
-@requires_spinsfast
+# @requires_spinsfast
 def test_modes_real():
-    import spherical_functions as sf
+    import spherical as sf
     tolerance = 1e-14
     np.random.seed(1234)
     for inplace in [False, True]:
@@ -108,9 +108,9 @@ def test_modes_real():
 
 
 #@pytest.mark.xfail
-@requires_spinsfast
+# @requires_spinsfast
 def test_modes_imag():
-    import spherical_functions as sf
+    import spherical as sf
     tolerance = 1e-14
     np.random.seed(1234)
     for inplace in [False, True]:
