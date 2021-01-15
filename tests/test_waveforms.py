@@ -47,11 +47,9 @@ def test_boost(h):
     assert hprime.ell_max == ell_max
 
 
-#@pytest.mark.xfail
-# @requires_spinsfast
 def test_modes_conjugate():
     import spherical as sf
-    tolerance = 1e-15
+    tolerance = 1e-14
     np.random.seed(1234)
     for inplace in [False, True]:
         for s in range(-2, 2 + 1):
@@ -70,11 +68,11 @@ def test_modes_conjugate():
             assert ell_min == mbar.ell_min
             assert ell_max == mbar.ell_max
             assert shape == mbar.shape
-            assert np.allclose(g, np.conjugate(gbar), rtol=tolerance, atol=tolerance)
+            assert np.allclose(g, np.conjugate(gbar), rtol=tolerance, atol=tolerance), (
+                f"max|g-ḡ.bar| = {np.max(np.abs(g - np.conjugate(gbar)))}"
+            )
 
 
-#@pytest.mark.xfail
-# @requires_spinsfast
 def test_modes_real():
     import spherical as sf
     tolerance = 1e-14
@@ -107,8 +105,6 @@ def test_modes_real():
                 mreal = m._real_func(inplace)
 
 
-#@pytest.mark.xfail
-# @requires_spinsfast
 def test_modes_imag():
     import spherical as sf
     tolerance = 1e-14
