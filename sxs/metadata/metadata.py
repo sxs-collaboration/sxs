@@ -524,10 +524,10 @@ class Metadata(collections.OrderedDict):
             new[key] = self[key]
         return new
 
-    @classmethod
-    def fromkeys(cls, iterable):
-        iterable = [(_valid_identifier(k), v) for k, v in iterable]
-        return super(Metadata, cls).fromkeys(iterable)
+    # @classmethod
+    # def fromkeys(cls, iterable):
+    #     iterable = [(_valid_identifier(k), v) for k, v in iterable]
+    #     return super(Metadata, cls).fromkeys(iterable)
 
     @property
     def resolution(self):
