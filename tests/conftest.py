@@ -165,7 +165,7 @@ shortest_metadata = "SXS:BBH:0156v5/Lev5/metadata.json"
 shortest_metadata_txt = "SXS:BBH:0156v5/Lev5/metadata.txt"
 
 
-@functools.lru_cache
+@functools.lru_cache()
 def get_h():
     import contextlib
     import sxs
