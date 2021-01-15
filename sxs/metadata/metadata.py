@@ -1,4 +1,4 @@
-#"""Container for metadata of individual simulations"""
+"""Container for metadata of individual simulations"""
 
 import re
 import collections

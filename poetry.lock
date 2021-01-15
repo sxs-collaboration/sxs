@@ -1576,7 +1576,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pytest-cov", "jaraco.test (>=3.2.0)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [extras]
-ecosystem = ["ipywidgets", "ipykernel", "jupyter_contrib_nbextensions", "jupyterlab", "line_profiler", "memory_profiler", "matplotlib", "sympy", "corner", "qgrid", "rise", "quaternion", "spherical-functions", "scri"]
+ecosystem = ["ipywidgets", "ipykernel", "jupyter_contrib_nbextensions", "jupyterlab", "line_profiler", "memory_profiler", "matplotlib", "sympy", "corner", "qgrid", "rise", "quaternion", "scri"]
 mkapi = ["mkapi"]
 mkdocs = ["mkdocs"]
 pymdown-extensions = ["pymdown-extensions"]
@@ -1584,7 +1584,7 @@ pymdown-extensions = ["pymdown-extensions"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6.1"
-content-hash = "edc45876cdeb7d67714bb536524a56485a6eb0a97f3488f4d384052c51b366ed"
+content-hash = "d41a2cce3dbe90472fc0ea4be4c4459dc5613b582c330c1fffeda47f86d8251f"
 
 [metadata.files]
 appdirs = [
