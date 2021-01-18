@@ -9,7 +9,7 @@ from .waveform_modes import WaveformModes
 # from .waveform_grid import WaveformGrid
 # from .waveform_signal import WaveformSignal
 
-from . import nrar, rotating_paired_xor_multishuffle_bzip2, memory #, corotating_paired_xor
+from . import nrar, rotating_paired_xor_multishuffle_bzip2, memory, transformations #, corotating_paired_xor
 
 formats = {
     None: nrar,
