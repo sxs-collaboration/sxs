@@ -44,12 +44,17 @@ def uprime_generator(u, β):
     import numpy as np
     from scipy.interpolate import CubicSpline
     # uprime = u / (γ * (1 - v⃗ · n̂))
-    # uprime_min = max(min(u) / (γ * (1 - v⃗ · n̂))) = min(u) / min(γ * (1 - v⃗ · n̂)) = min(u) / (γ * (1 - |v⃗|))
-    # uprime_max = min(max(u) / (γ * (1 - v⃗ · n̂))) = max(u) / max(γ * (1 - v⃗ · n̂)) = max(u) / (γ * (1 + |v⃗|))
+    # uprime_min = max(min(u) / (γ * (1 - v⃗ · n̂)))
+    # uprime_max = min(max(u) / (γ * (1 - v⃗ · n̂)))
 
     γ = 1 / np.sqrt(1 - β**2)
-    uprime_min = min(u) / (γ * (1 - β))
-    uprime_max = max(u) / (γ * (1 + β))
+    uprime_min = max(min(u) / (γ * (1 - β)), min(u) / (γ * (1 + β)))
+    uprime_max = min(max(u) / (γ * (1 - β)), max(u) / (γ * (1 + β)))
+    if uprime_max < uprime_min:
+        raise ValueError(
+            f"\n\tThere are no complete slices in the u' coordinate system for u ∈ [{min(u)}, {max(u)}] and β = {β}."
+            f"\n\tYou may wish to decrease β or move the origin of the time coordinate closer to (u[0] + u[-1]) / 2."
+        )
     uprime = [uprime_min,]
     δuprime_plus = CubicSpline(u[1:], np.diff(u / (γ * (1 + β))), extrapolate=True)
     δuprime_minus = CubicSpline(u[1:], np.diff(u / (γ * (1 - β))), extrapolate=True)
