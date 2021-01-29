@@ -10,7 +10,7 @@ import h5py
 import pytest
 import sxs
 
-from .conftest import shortest_h_com_file
+from .conftest import shortest_h_com_file, constant_waveform
 
 try:
     import spinsfast
@@ -294,3 +294,41 @@ def test_modes_rotate_evaluate(h, Rs, eps):
         m1 = hprm.evaluate(Rθϕ)  # m1 = hprm @ 𝔇(Rθϕ) √...
         m2 = h.evaluate(R * Rθϕ)  # m2 = h @ 𝔇(R * Rθϕ) √...
         assert np.allclose(m1, m2, rtol=ϵ, atol=ϵ)
+
+
+def test_zero_angular_velocity():
+    w = constant_waveform(end=10.0, n_times=10000)
+    ω = w.angular_velocity
+    assert np.allclose(ω, np.zeros_like(ω), atol=1e-15, rtol=0.0)
+
+
+def test_z_angular_velocity():
+    w = constant_waveform(end=10.0, n_times=10000)
+    ω = 2 * np.pi / 5.0
+    R = np.exp(quaternionic.array.from_vector_part([0, 0, ω / 2]) * w.t)
+    w = w.rotate(~R)
+    ω_out = w.angular_velocity
+    ω_in = np.zeros_like(ω_out)
+    ω_in[:, 2] = ω
+    assert np.allclose(ω_in, ω_out, atol=1e-12, rtol=2e-8), (
+        f"\nω_in = np.array({ω_in.tolist()})\n"
+        f"\nω_out = np.array({ω_out.tolist()})\n"
+    )
+
+
+def test_rotated_angular_velocity():
+    w = constant_waveform(end=10.0, n_times=10000)
+    ω = 2 * np.pi / 5.0
+    R0 = quaternionic.array(1, 2, 3, 4).normalized
+    R = R0 * np.exp(quaternionic.array.from_vector_part([0, 0, ω / 2]) * w.t)
+    w = w.rotate(~R)
+    ω = R0 * quaternionic.array.from_vector_part([0, 0, ω]) * R0.inverse
+    ω_out = w.angular_velocity
+    ω_in = np.zeros_like(ω_out)
+    ω_in[:, 0] = ω.x
+    ω_in[:, 1] = ω.y
+    ω_in[:, 2] = ω.z
+    assert np.allclose(ω_in, ω_out, atol=1e-12, rtol=2e-8), (
+        f"\nω_in = np.array({ω_in.tolist()})\n"
+        f"\nω_out = np.array({ω_out.tolist()})\n"
+    )

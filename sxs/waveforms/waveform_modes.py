@@ -4,8 +4,9 @@ import re
 import numpy as np
 import quaternionic
 import spherical
-from .. import TimeSeries, jit
+from .. import TimeSeries
 from . import WaveformMixin
+from .mode_utilities import _expectation_value_LL, _expectation_value_Ldt
 
 NRAR_mode_regex = re.compile(r"""Y_l(?P<L>[0-9]+)_m(?P<M>[-+0-9]+)\.dat""")
 
@@ -657,15 +658,95 @@ class WaveformModes(WaveformMixin, TimeSeries):
         return TimeSeries(signal.reshape(out_shape), self.time)
 
     # TODO:
-    # expectation_value_LL
-    # expectation_value_Ldt
-    # angular_velocity
     # expectation_value_L
-    # inner_product
     # # Don't bother with inner_product_LL, as it doesn't appear to be used; maybe a more general version?
+    # inner_product
     # mode_frame : Minimally rotating O'Shaughnessy et al. frame
     # to_mode_frame
     # corotating_frame
+
+    @property
+    def expectation_value_LL(self):
+        """Compute the matrix expectation value ⟨w|LᵃLᵇ|w⟩
+
+        Here, Lᵃ is the usual angular-momentum operator familiar from quantum physics,
+        and
+
+            ⟨w|LᵃLᵇ|w⟩ = ℜ{Σₗₘₙ w̄ˡᵐ ⟨l,m|LᵃLᵇ|l,n⟩ wˡⁿ}
+
+        This quantity is important for computing the angular velocity of a waveform.
+
+        See Also
+        --------
+        expectation_value_Ldt
+        angular_velocity
+
+        """
+        mode_weights = np.moveaxis(self.ndarray, self.modes_axis, -1)
+        output_shape = mode_weights.shape[:-1] + (3, 3)
+        mode_weights = mode_weights.reshape(-1, mode_weights.shape[-1])
+        LL = np.zeros((mode_weights.shape[0], 3, 3), dtype=float)
+        _expectation_value_LL(mode_weights, self.LM, LL)
+        return LL.reshape(output_shape)
+
+    @property
+    def expectation_value_Ldt(self):
+        """Compute the matrix expectation value ⟨w|Lᵃ∂ₜ|w⟩
+
+        Here, Lᵃ is the usual angular-momentum operator familiar from quantum physics,
+        ∂ₜ is the partial derivative with respect to time, and
+
+            ⟨w|Lᵃ∂ₜ|w⟩ = ℑ{Σₗₘₙ w̄ˡᵐ ⟨l,m|Lᵃ|l,n⟩ ∂ₜwˡⁿ}
+
+        This quantity is important for computing the angular velocity of a waveform.
+
+        See Also
+        --------
+        expectation_value_LL
+        angular_velocity
+
+        """
+        mode_weights = np.moveaxis(self.ndarray, self.modes_axis, -1)
+        output_shape = mode_weights.shape[:-1] + (3,)
+        mode_weights = mode_weights.reshape(-1, mode_weights.shape[-1])
+        mode_weights_dot = np.moveaxis(self.dot.ndarray, self.modes_axis, -1)
+        mode_weights_dot = mode_weights_dot.reshape(-1, mode_weights_dot.shape[-1])
+        Ldt = np.zeros((mode_weights.shape[0], 3), dtype=float)
+        _expectation_value_Ldt(mode_weights, mode_weights_dot, self.LM, Ldt)
+        return Ldt.reshape(output_shape)
+
+    @property
+    def angular_velocity(self):
+        """Angular velocity of waveform
+
+        This function calculates the angular velocity of a WaveformModes object from
+        its modes — essentially, the angular velocity of the rotating frame in which
+        the time dependence of the modes is minimized.  This was introduced in Sec. II
+        of "Angular velocity of gravitational radiation and the corotating frame"
+        <http://arxiv.org/abs/1302.2919>.
+
+        It can be calculated in terms of the expectation values ⟨w|Lᵃ∂ₜ|w⟩ and
+        ⟨w|LᵃLᵇ|w⟩ according to the relation
+
+            ⟨w|LᵇLᵃ|w⟩ ωₐ = -⟨w|Lᵇ∂ₜ|w⟩
+
+        For each set of modes (e.g., at each instant of time), this is a simple linear
+        equation in 3 dimensions to be solved for ω.
+
+        See Also
+        --------
+        expectation_value_LL
+        expectation_value_Ldt
+
+        """
+        # Calculate the <L∂ₜ> vector and <LL> matrix at each instant
+        ldt = self.expectation_value_Ldt
+        ll = self.expectation_value_LL
+
+        # Solve ⟨w|LᵇLᵃ|w⟩ ωₐ = -⟨w|Lᵇ∂ₜ|w⟩ for ω
+        ω = -np.linalg.solve(ll, ldt)
+
+        return ω
 
     def boost(self, v⃗, ell_max):
         """Find modes of waveform boosted by velocity v⃗
