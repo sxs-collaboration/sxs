@@ -23,6 +23,7 @@ jobs:
       - name: Skip replicates on main branch
         env:
           skip_replicates: ${{ github.ref == 'refs/heads/main' && (matrix.os != 'ubuntu-latest' || matrix.python-version != '3.9') }}
+        shell: bash
         run: |
           echo "skipping_build_and_test_replicate=${skip_replicates}" >> $GITHUB_ENV
           # echo "skipping_build_and_test_replicate='false'" >> $GITHUB_ENV
