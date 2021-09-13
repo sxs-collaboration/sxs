@@ -81,46 +81,46 @@ def sxs_directory(directory_type, persistent=True):
     # noinspection SpellCheckingInspection
     """Return the SXS directory location, creating it if necessary
 
-        Parameters
-        ----------
-        directory_type : {"cache", "config"}
-            The type of user directory to be found.
-        persistent : bool
-            If True (the default) try to return a persistent directory; otherwise,
-            return a temporary directory that will be deleted when the calling python
-            process exits (via the standard-library function `atexit.register`).
+    Parameters
+    ----------
+    directory_type : {"cache", "config"}
+        The type of user directory to be found.
+    persistent : bool
+        If True (the default) try to return a persistent directory; otherwise,
+        return a temporary directory that will be deleted when the calling python
+        process exits (via the standard-library function `atexit.register`).
 
-        Returns
-        -------
-        directory : pathlib.Path
-            The full path to the config or cache directory.  The directory is created
-            if it does not exist, and it is checked to make sure it can be written to.
+    Returns
+    -------
+    directory : pathlib.Path
+        The full path to the config or cache directory.  The directory is created
+        if it does not exist, and it is checked to make sure it can be written to.
 
-        Notes
-        -----
-        This function's return value is cached after the first call in a given python
-        session.  To clear that cache, execute `sxs_directory.cache_clear()`.
+    Notes
+    -----
+    This function's return value is cached after the first call in a given python
+    session.  To clear that cache, execute `sxs_directory.cache_clear()`.
 
-        In order of priority, if `persistent` is True, this function will choose one of
-        these directories:
+    In order of priority, if `persistent` is True, this function will choose one of
+    these directories:
 
-          1) The value found by `read_config("cache_directory")` if `directory_type` is
-             "cache"
-          2) Environment variable 'SXSCACHEDIR' or 'SXSCONFIGDIR'
-          3) On 'linux' or 'freebsd' platforms
-             a) Environment variable 'XDG_CACHE_HOME' or 'XDG_CONFIG_HOME'
-             b) The '.cache/sxs' or '.config/sxs' directory in the user's home directory
-          4) The '.sxs' directory in the user's home directory
+      1) The value found by `read_config("cache_directory")` if `directory_type` is
+         "cache"
+      2) Environment variable 'SXSCACHEDIR' or 'SXSCONFIGDIR'
+      3) On 'linux' or 'freebsd' platforms
+         a) Environment variable 'XDG_CACHE_HOME' or 'XDG_CONFIG_HOME'
+         b) The '.cache/sxs' or '.config/sxs' directory in the user's home directory
+      4) The '.sxs' directory in the user's home directory
 
-        Whichever directory is chosen, this function will try to create the directory
-        if necessary, and then check that it can be accessed and written to.  If that
-        check fails, or if `persistent` is False, the function will create and return
+    Whichever directory is chosen, this function will try to create the directory
+    if necessary, and then check that it can be accessed and written to.  If that
+    check fails, or if `persistent` is False, the function will create and return
 
-          5) A temporary directory that will be removed when python exits
+      5) A temporary directory that will be removed when python exits
 
-        This is based on matplotlib._get_config_or_cache_dir.
+    This is based on matplotlib._get_config_or_cache_dir.
 
-        """
+    """
     import warnings
     import sys
     import os
