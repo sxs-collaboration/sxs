@@ -173,7 +173,7 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
     from ..utilities import md5checksum, xor, multishuffle
     from . import WaveformModes
 
-    sxs_formats = {"rotating_paired_xor_multishuffle_bzip2"}
+    sxs_formats = {"rotating_paired_xor_multishuffle_bzip2", "rpxmb", "rpxm", "RPXMB", "RPXM"}
 
     def invalid(message):
         if ignore_validation:
@@ -182,6 +182,12 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
             warnings.warn(message)
         else:
             raise ValueError(message)
+
+    group = None
+    if ".h5" in file_name and not file_name.endswith(".h5"):
+        file_name, group = file_name.split(".h5")
+    if group == "/":
+        group = None
 
     h5_path = pathlib.Path(file_name).expanduser().resolve().with_suffix(".h5")
     json_path = h5_path.with_suffix(".json")
@@ -192,11 +198,13 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
     if not json_path.exists():
         invalid(f'\nJSON file "{json_path}" cannot be found, but is expected for this data format.')
         data_type = kwargs.pop("data_type", "unknown")
-        spin_weight = kwargs.pop('spin_weight', None)
+        spin_weight = kwargs.pop("spin_weight", None)
         json_data = kwargs.copy()
     else:
         with open(json_path) as f:
             json_data = json.load(f)
+        if group is not None:
+            json_data = json_data[group]
 
         data_type = json_data.get("data_info", {}).get("data_type", "unknown")
         spin_weight = json_data.get("data_info", {}).get("spin_weight", None)
@@ -206,35 +214,41 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
         if sxs_format not in sxs_formats:
             invalid(
                 f"\nThe `sxs_format` found in JSON file is '{sxs_format}';\n"
-                f"it should be one of {sxs_formats}."
+                f"it should be one of\n"
+                f"    {sxs_formats}."
             )
 
-        # Make sure the expected H5 file size matches the observed value
-        json_h5_file_size = json_data.get("validation", {}).get("h5_file_size", 0)
-        if json_h5_file_size != h5_size:
-            invalid(
-                f"\nMismatch between `validation/h5_file_size` key in JSON file ({json_h5_file_size}) "
-                f'and observed file size ({h5_size}) of "{h5_path}".'
-            )
+        if group is None:
+            # Make sure the expected H5 file size matches the observed value
+            json_h5_file_size = json_data.get("validation", {}).get("h5_file_size", 0)
+            if json_h5_file_size != h5_size:
+                invalid(
+                    f"\nMismatch between `validation/h5_file_size` key in JSON file ({json_h5_file_size}) "
+                    f'and observed file size ({h5_size}) of "{h5_path}".'
+                )
 
-        # Make sure the expected H5 file hash matches the observed value
-        if check_md5:
-            md5sum = md5checksum(h5_path)
-            json_md5sum = json_data.get("validation", {}).get("md5sum", "")
-            if json_md5sum != md5sum:
-                invalid(f"\nMismatch between `validation/md5sum` key in JSON file and observed MD5 checksum.")
+            # Make sure the expected H5 file hash matches the observed value
+            if check_md5:
+                md5sum = md5checksum(h5_path)
+                json_md5sum = json_data.get("validation", {}).get("md5sum", "")
+                if json_md5sum != md5sum:
+                    invalid(f"\nMismatch between `validation/md5sum` key in JSON file and observed MD5 checksum.")
 
     with h5py.File(h5_path, "r") as f:
+        if group is not None:
+            g = f[group]
+        else:
+            g = f
         # Make sure this is our format
-        sxs_format = f.attrs["sxs_format"]
+        sxs_format = g.attrs["sxs_format"]
         if sxs_format not in sxs_formats:
             raise ValueError(
-                f"\nThe `sxs_format` found in H5 file is '{sxs_format}';"
-                f"it should be one of {sxs_formats}."
+                f'The `sxs_format` found in H5 file is "{sxs_format}"; it should be one of\n'
+                f"    {sxs_formats}."
             )
 
         # Ensure that the 'validation' keys from the JSON file are the same as in this file
-        n_times = f.attrs["n_times"]
+        n_times = g.attrs["n_times"]
         json_n_times = json_data.get("validation", {}).get("n_times", 0)
         if json_n_times != n_times:
             invalid(
@@ -245,16 +259,16 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
         # Read the raw data
         sizeof_float = 8
         sizeof_complex = 2 * sizeof_float
-        ell_min = f.attrs["ell_min"]
-        ell_max = f.attrs["ell_max"]
-        spin_weight = f.attrs.get("spin_weight", spin_weight)
-        data_type = f.attrs.get("data_type", data_type)
-        shuffle_widths = tuple(f.attrs["shuffle_widths"])
+        ell_min = g.attrs["ell_min"]
+        ell_max = g.attrs["ell_max"]
+        spin_weight = g.attrs.get("spin_weight", spin_weight)
+        data_type = g.attrs.get("data_type", data_type)
+        shuffle_widths = tuple(g.attrs["shuffle_widths"])
         unshuffle = multishuffle(shuffle_widths, forward=False)
         n_modes = ell_max * (ell_max + 2) - ell_min ** 2 + 1
         i1 = n_times * sizeof_float
         i2 = i1 + n_times * sizeof_complex * n_modes
-        uncompressed_data = bz2.decompress(f["data"][...])
+        uncompressed_data = bz2.decompress(g["data"][...])
         t = np.frombuffer(uncompressed_data[:i1], dtype=np.uint64)
         data_tmp = np.frombuffer(uncompressed_data[i1:i2], dtype=np.uint64)
         log_frame = np.frombuffer(uncompressed_data[i2:], dtype=np.uint64)

@@ -16,5 +16,7 @@ formats = {
     "": nrar,
     "nrar": nrar,
     "rotating_paired_xor_multishuffle_bzip2": rotating_paired_xor_multishuffle_bzip2,
+    "rpxm": rotating_paired_xor_multishuffle_bzip2,
+    "rpxmb": rotating_paired_xor_multishuffle_bzip2,
     # "corotating_paired_xor": corotating_paired_xor,
 }
