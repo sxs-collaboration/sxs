@@ -135,65 +135,87 @@ def sxs_directory(directory_type, persistent=True):
     suffix = Path("cache") if directory_type == "cache" else Path()
 
     if persistent:
-
+        print("persistent")
         # Try to read config file first
         if directory_type == "cache":
+            print("cache")
             sxs_dir = read_config("cache_directory")
+            print(1, sxs_dir)
             if sxs_dir is not None:
                 sxs_dir = Path(sxs_dir).expanduser().resolve()
+                print(2, sxs_dir)
                 try:
                     sxs_dir.mkdir(parents=True, exist_ok=True)
                 except OSError:
+                    print("OSError1")
                     pass
                 else:
                     if os.access(str(sxs_dir), os.W_OK) and sxs_dir.is_dir():
+                        print("returning", sxs_dir)
                         return sxs_dir
                 message = (
                     f"\nThe `sxs` module failed to find or create a writable directory at {sxs_dir},\n"
                     f"even though {sxs_directory('config')} specified that directory for the cache."
                 )
                 warnings.warn(message)
+                print("warn 1")
 
         # Use SXSCONFIGDIR or SXSCACHEDIR if they are set
         sxs_dir = os.getenv(f'SXS{directory_type.upper()}DIR', default=False)
+        print(3, sxs_dir)
         if sxs_dir:
+            print(4, sxs_dir)
             sxs_dir = Path(sxs_dir).expanduser().resolve()
+            print(5, sxs_dir)
 
         # On linux/freebsd
         #     a) Use ${XDG_CONFIG_HOME}/sxs or ${XDG_CACHE_HOME}/sxs if they are set
         #     b) Default to ~/.config/sxs or ~/.cache/sxs
         elif sys.platform.startswith(('linux', 'freebsd')):
+            print('linux')
             xdg_base = os.environ.get(f'XDG_{directory_type.upper()}_HOME')
+            print(1, "xdg_base", xdg_base)
             if xdg_base is None:
                 xdg_base = Path.home() / f".{directory_type}"
+                print(2, "xdg_base", xdg_base)
             sxs_dir = Path(xdg_base).expanduser().resolve() / "sxs"
+            print(6, sxs_dir)
 
         # Elsewhere, default to ~/.sxs ~/.sxs/cache
         else:
             sxs_dir = Path.home() / ".sxs" / suffix
+            print(7, sxs_dir)
 
         # Ensure that we have a writable directory
         try:
             sxs_dir.mkdir(parents=True, exist_ok=True)
+            print(8, sxs_dir)
         except OSError:
+            print("OSError2")
             pass
         else:
             if os.access(str(sxs_dir), os.W_OK) and sxs_dir.is_dir():
+                print(9, sxs_dir)
                 return sxs_dir
 
         unwritable_dir = sxs_dir
+        print(10, sxs_dir)
 
     # We've fallen through to creating a temporary directory.  We want the cache directory to be a
     # subdirectory of the main directory, so we fetch it through the lru_cache.  We can't do this
     # above, because it should be possible to get different results for certain settings.
     if directory_type == "cache":
         sxs_dir = sxs_directory("config", persistent=persistent) / "cache"
+        print(11, sxs_dir)
         try:
             sxs_dir.mkdir(exist_ok=True)
+            print(12, sxs_dir)
         except OSError:
+            print("OSError3")
             pass
         else:
             if os.access(str(sxs_dir), os.W_OK) and sxs_dir.is_dir():
+                print(13, sxs_dir)
                 return sxs_dir
 
     # If the config or cache directory cannot be created or is not a writable
@@ -201,6 +223,7 @@ def sxs_directory(directory_type, persistent=True):
     tmpdir = os.environ[f'SXS{directory_type.upper()}DIR'] = tempfile.mkdtemp(prefix="sxs-")
     atexit.register(shutil.rmtree, tmpdir)
     sxs_dir = Path(tmpdir) / suffix
+    print(14, sxs_dir)
     if persistent:
         # noinspection PyUnboundLocalVariable
         message = (
@@ -210,8 +233,11 @@ def sxs_directory(directory_type, persistent=True):
             f"variable to a writable directory to enable caching of downloaded waveforms."
         )
         warnings.warn(message)
+        print("warning persistent")
     if directory_type == "cache":
         sxs_dir.mkdir(exist_ok=True)
+        print(15, sxs_dir)
+    print(16, sxs_dir)
     return sxs_dir
 
 
