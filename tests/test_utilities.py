@@ -96,7 +96,7 @@ def test_sxs_directory_linux(directory_type, platform, tmp_path, monkeypatch):
         pytest.param("cache", id="cache"),
     ),
 )
-@forked
+# @forked
 def test_sxs_directory_unwritable(directory_type, tmp_path, monkeypatch):
     import time
     import os
@@ -110,6 +110,9 @@ def test_sxs_directory_unwritable(directory_type, tmp_path, monkeypatch):
     assert stat.filemode(d.stat().st_mode) == "d---------"
     assert not os.access(str(d), os.W_OK)
 
+    print()
+    print(f"About to ask for {directory_type} directory with home {Path.home()} and SXS*DIR {str(d)}")
+
     with monkeypatch.context() as mp:
         mp.setattr(Path, "home", lambda: d)
         mp.setenv(f"SXS{directory_type.upper()}DIR", str(d))
@@ -120,6 +123,8 @@ def test_sxs_directory_unwritable(directory_type, tmp_path, monkeypatch):
             sxs_dir = sxs.utilities.sxs_directory(directory_type, persistent=True)
             print(f"sxs_dir = {sxs_dir}")
             print("filemode =", stat.filemode(Path(sxs_dir).stat().st_mode))
+            print("access:", os.access(str(d), os.W_OK))
+            print()
         assert ".sxs" not in str(sxs_dir), (str(sxs_dir), str(d))
         sxs_config_dir = sxs.utilities.sxs_directory("config", persistent=True)
         assert str(sxs_config_dir) in str(sxs_dir)
