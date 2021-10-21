@@ -175,7 +175,7 @@ def sxs_directory(directory_type, persistent=True):
         elif sys.platform.startswith(('linux', 'freebsd')):
             print('linux')
             xdg_base = os.environ.get(f'XDG_{directory_type.upper()}_HOME')
-            print(1, "xdg_base", xdg_base)
+            print(1, f'XDG_{directory_type.upper()}_HOME', xdg_base)
             if xdg_base is None:
                 xdg_base = Path.home() / f".{directory_type}"
                 print(2, "xdg_base", xdg_base)

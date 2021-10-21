@@ -96,7 +96,7 @@ def test_sxs_directory_linux(directory_type, platform, tmp_path, monkeypatch):
         pytest.param("cache", id="cache"),
     ),
 )
-@forked
+#@forked
 def test_sxs_directory_unwritable(directory_type, tmp_path, monkeypatch):
     import time
     import os
