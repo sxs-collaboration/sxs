@@ -134,6 +134,7 @@ def sxs_directory(directory_type, persistent=True):
 
     suffix = Path("cache") if directory_type == "cache" else Path()
 
+    print('\n\n\nStarting:')
     if persistent:
         print("persistent")
         # Try to read config file first
