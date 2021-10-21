@@ -336,7 +336,7 @@ def load(file, **kwargs):
                         f"The number of time steps in this dataset should be {n_times}; "
                         + "it is {} in '{}'.".format(f[DataSet].shape[0], DataSet)
                     )
-                w_attributes["data"][:, m] = f[DataSet][:, 1:3].view(dtype=np.complex)[monotonic, 0]
+                w_attributes["data"][:, m] = f[DataSet][:, 1:3].view(dtype=complex)[monotonic, 0]
 
             # Now that the data is set, we can set these
             w_attributes["ells"] = ell_min, ell_max
