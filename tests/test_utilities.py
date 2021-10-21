@@ -115,7 +115,11 @@ def test_sxs_directory_unwritable(directory_type, tmp_path, monkeypatch):
         mp.setenv(f"SXS{directory_type.upper()}DIR", str(d))
         sxs.utilities.sxs_directory.cache_clear()
         with pytest.warns(UserWarning):
+            print()
+            print(f"About to ask for {directory_type} directory with home {Path.home()} and SXS*DIR {str(d)}")
             sxs_dir = sxs.utilities.sxs_directory(directory_type, persistent=True)
+            print(f"sxs_dir = {sxs_dir}")
+            print("filemode =", stat.filemode(Path(sxs_dir).stat().st_mode))
         assert ".sxs" not in str(sxs_dir), (str(sxs_dir), str(d))
         sxs_config_dir = sxs.utilities.sxs_directory("config", persistent=True)
         assert str(sxs_config_dir) in str(sxs_dir)
