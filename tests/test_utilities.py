@@ -90,13 +90,9 @@ def test_sxs_directory_linux(directory_type, platform, tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    ("directory_type",),
-    (
-        pytest.param("config", id="config"),
-        pytest.param("cache", id="cache"),
-    ),
+    ("directory_type",), (pytest.param(dt, id=dt) for dt in ["config", "cache"]),
 )
-#@forked
+@forked
 def test_sxs_directory_unwritable(directory_type, tmp_path, monkeypatch):
     import time
     import os
@@ -113,9 +109,8 @@ def test_sxs_directory_unwritable(directory_type, tmp_path, monkeypatch):
     with monkeypatch.context() as mp:
         mp.setattr(Path, "home", lambda: d)
         mp.setenv(f"SXS{directory_type.upper()}DIR", str(d))
-        mp.delenv(f'XDG_CONFIG_HOME', raising=False)
-        mp.delenv(f'XDG_CACHE_HOME', raising=False)
-        mp.delenv(f'XDG_{directory_type.upper()}_HOME', raising=False)
+        for dir_type in ["config", "cache"]:
+            mp.delenv(f'XDG_{dir_type.upper()}_HOME', raising=False)
         sxs.utilities.sxs_directory.cache_clear()
         with pytest.warns(UserWarning):
             sxs_dir = sxs.utilities.sxs_directory(directory_type, persistent=True)
