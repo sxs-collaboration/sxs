@@ -135,7 +135,6 @@ def sxs_directory(directory_type, persistent=True):
     suffix = Path("cache") if directory_type == "cache" else Path()
 
     if persistent:
-
         # Try to read config file first
         if directory_type == "cache":
             sxs_dir = read_config("cache_directory")

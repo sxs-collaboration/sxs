@@ -111,6 +111,8 @@ catalog_private_metadata.json
 Pipfile.lock
 .idea
 tmp
+.envrc
+
 # conda smithy ci-skeleton start
 *.pyc
 

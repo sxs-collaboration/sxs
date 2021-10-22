@@ -19,7 +19,7 @@ def test_table():
                 continue
             if dtype == np.float64:
                 table[table[name] > 1e-7]
-            elif dtype == np.object:
+            elif dtype == object:
                 for i, vec in enumerate(table[name]):
                     assert isinstance(vec, np.ndarray), f"table.iloc[{i}][{name}] = {vec}"
                     assert vec.dtype == np.float64, f"table.iloc[{i}][{name}] = {vec}"
