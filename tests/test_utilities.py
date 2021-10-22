@@ -113,6 +113,8 @@ def test_sxs_directory_unwritable(directory_type, tmp_path, monkeypatch):
     with monkeypatch.context() as mp:
         mp.setattr(Path, "home", lambda: d)
         mp.setenv(f"SXS{directory_type.upper()}DIR", str(d))
+        mp.delenv(f'XDG_CONFIG_HOME', raising=False)
+        mp.delenv(f'XDG_CACHE_HOME', raising=False)
         mp.delenv(f'XDG_{directory_type.upper()}_HOME', raising=False)
         sxs.utilities.sxs_directory.cache_clear()
         with pytest.warns(UserWarning):
