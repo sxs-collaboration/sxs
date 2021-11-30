@@ -11,11 +11,6 @@ class WaveformMixin(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def t(self):  # Handy alias for backwards compatibility
-        return self.time
-
-    @property
-    @abc.abstractmethod
     def data(self):  # Handy alias for backwards compatibility
         return self.ndarray
 

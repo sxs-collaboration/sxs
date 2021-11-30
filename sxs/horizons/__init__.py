@@ -325,3 +325,113 @@ class Horizons(object):
         v_i = 6 * (com_0 * (-t_f - t_i) + 2 * com_1) / (t_f - t_i) ** 3
 
         return x_i, v_i, t_i, t_f
+
+    @property
+    def n⃗(self):
+        """Vector pointing from horizon A to horizon B
+
+        This function can be spelled `n⃗`, `nvec`, or `separation`, interchangeably.
+
+        Returns
+        -------
+        n⃗ : ndarray
+            This has shape (self.A.n_times, 3), representing the components of the
+            vector as a function of time.
+
+        See Also
+        --------
+        n̂, nhat : Normalized version of this vector
+        λ̂, lambdahat : Normalized time-derivative of n̂
+        ℓ̂, ellhat : Normalized angular-velocity vector of n̂
+
+        """
+        return self.B.coord_center_inertial - self.A.coord_center_inertial
+
+    nvec = n⃗
+    separation = n⃗
+
+    @property
+    def n̂(self):
+        """Unit vector pointing from horizon A to horizon B
+
+        This function can be spelled `n̂` or `nhat`, interchangeably.
+
+        Returns
+        -------
+        n̂ : ndarray
+            This has shape (self.A.n_times, 3), representing the components of the
+            vector as a function of time.
+
+        See Also
+        --------
+        n⃗, nvec, separation : Non-normalized version of this vector
+        λ̂, lambdahat : Normalized time-derivative of n̂
+        ℓ̂, ellhat : Normalized angular-velocity vector
+
+        Notes
+        -----
+        Note that (n̂, λ̂, ℓ̂) forms a right-handed frame, which is commonly used in
+        post-Newtonian theory and similar treatments.
+
+        """
+        n⃗ = self.separation
+        return n⃗ / np.linalg.norm(n⃗, axis=1)[:, np.newaxis]
+
+    nhat = n̂
+
+    @property
+    def λ̂(self):
+        """Time-derivative of normalized separation vector
+
+        This function can be spelled `λ̂` or `lambdahat`, interchangeably.
+
+        Returns
+        -------
+        λ̂ : ndarray
+            This has shape (self.A.n_times, 3), representing the components of the
+            vector as a function of time.
+
+        See Also
+        --------
+        n⃗, nvec, separation : (Non-normalized) separation vector between two horizons
+        n̂, nhat : Normalized separation vector
+        ℓ̂, ellhat : Normalized angular-velocity vector
+
+        Notes
+        -----
+        Note that (n̂, λ̂, ℓ̂) forms a right-handed frame, which is commonly used in
+        post-Newtonian theory and similar treatments.
+
+        """
+        λ⃗ = self.n̂.dot
+        return λ⃗ / np.linalg.norm(λ⃗, axis=1)[:, np.newaxis]
+
+    lambdahat = λ̂
+
+    @property
+    def ℓ̂(self):
+        """Normalized angular-velocity vector
+
+        This function can be spelled `ℓ̂` or `ellhat`, interchangeably.
+
+        Returns
+        -------
+        ℓ̂ : ndarray
+            This has shape (self.A.n_times, 3), representing the components of the
+            vector as a function of time.
+
+        See Also
+        --------
+        n⃗, nvec, separation : (Non-normalized) separation vector between two horizons
+        n̂, nhat : Normalized separation vector
+        λ̂, lambdahat : Normalized time-derivative of n̂
+
+        Notes
+        -----
+        Note that (n̂, λ̂, ℓ̂) forms a right-handed frame, which is commonly used in
+        post-Newtonian theory and similar treatments.
+
+        """
+        return sxs.TimeSeries(np.cross(self.n̂, self.λ̂), time=self.n̂.time)
+
+    ellhat = ℓ̂

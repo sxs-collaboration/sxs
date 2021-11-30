@@ -289,6 +289,28 @@ class TimeSeries(np.ndarray):
         """Array of the time steps corresponding to the data"""
         return self._metadata["time"]
 
+    @time.setter
+    def time(self, tprime):
+        tprime = np.asarray(tprime)
+        if np.issubdtype(tprime.dtype, np.complexfloating):
+            raise ValueError("Input `tprime` must contain real values; it has complex type.")
+        if not np.issubdtype(tprime.dtype, np.number):
+            raise ValueError("Input `tprime` must contain numbers; its dtype is '{tprime.dtype}'.")
+        tprime = tprime.astype(float)
+        if tprime.ndim != 1:
+            raise ValueError(f"Input `tprime` array must have exactly 1 dimension; it has {tprime.ndim}.")
+        if not np.all(np.isfinite(tprime)):
+            raise ValueError("Input `tprime` must contain only finite values.")
+        if np.any(np.diff(tprime) <= 0):
+            raise ValueError("Input `tprime` must be strictly increasing sequence.")
+        if self._metadata["time"] is not None:
+            if tprime.shape != self._metadata["time"].shape:
+                raise ValueError(
+                    f"Input `tprime` must have same shape as original; they are {tprime.shape} "
+                    f"and {self._metadata['time'].shape}"
+                )
+        self._metadata["time"] = tprime
+
     t = time
 
     def index_closest_to(self, t):
