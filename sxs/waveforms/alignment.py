@@ -220,10 +220,7 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     
     δt_δϕ_brute_force = np.array(np.meshgrid(δt_brute_force, δϕ_brute_force)).T.reshape(-1,2)
 
-    # Times at which the differences will be evaluated;
-    # choose a `dt` to prevent aliasing
-    dt = max(max(np.diff(wa.t[(wa.t>=t1)&(wa.t<=t2)])), max(np.diff(wb.t[(wb.t>=t1)&(wb.t<=t2)])))
-    t_reference = np.linspace(t1, t2, int((t2 - t1)/dt), endpoint=True)
+    t_reference = wa.t[np.argmin(abs(wa.t - t1)):np.argmin(abs(wa.t - t2)) + 1]
 
     # Remove M = 0 modes, if requested
     ell_max = min(wa.ell_max, wb.ell_max)
@@ -260,7 +257,7 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     # Optimize explicitly
     optimum = least_squares(cost, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2*np.pi)])
 
-    wa_prime = sxs.WaveformModes(input_array=modes_A(wa.t) * np.exp(1j * optimum.x[1]) ** δϕ_factor,\
+    wa_prime = sxs.WaveformModes(input_array=modes_A(wa.t + optimum.x[0]) * np.exp(1j * optimum.x[1]) ** δϕ_factor,\
                                  time=wa.t + optimum.x[0],\
                                  time_axis=0,\
                                  modes_axis=1,\
