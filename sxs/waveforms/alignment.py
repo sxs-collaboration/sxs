@@ -1,6 +1,9 @@
 import numpy as np
 import scipy
 
+import sxs
+from spherical_functions import LM_index as LM
+
 def align1d(wa, wb, t1, t2, n_brute_force=None):
     """Align waveforms by shifting in time
 
@@ -161,6 +164,13 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     no_M0_modes: bool, optional
         Whether or not to include the m = 0 modes in the L² norm.
 
+    Returns
+    -------
+    optimum: OptimizeResult
+        Result of scipy.optimize.least_squares
+    wa_prime: WaveformModes
+        Resulting waveform after transforming `wa` using `optimum`
+
     Notes
     -----
     Choosing the time interval is usually the most difficult choice to make when
@@ -202,11 +212,11 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     # points as there are time steps in (t1,t2) in the input waveforms
     if n_brute_force_δt is None:
         n_brute_force_δt = max(sum((wa.t>=t1)&(wa.t<=t2)), sum((wb.t>=t1)&(wb.t<=t2)))
-    δt_brute_force = np.linspace(δt_lower, δt_upper, num=n_brute_force)
+    δt_brute_force = np.linspace(δt_lower, δt_upper, num=n_brute_force_δt)
     
     if n_brute_force_δϕ == None:
         n_brute_force_δϕ = 2*wa.ell_max + 1
-    δϕ_brute_force = np.linspace(0, 2*np.pi, n_phi, endpoint=False)
+    δϕ_brute_force = np.linspace(0, 2*np.pi, n_brute_force_δϕ, endpoint=False)
     
     δt_δϕ_brute_force = np.array(np.meshgrid(δt_brute_force, δϕ_brute_force)).T.reshape(-1,2)
 
@@ -231,10 +241,10 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
                     wb.data[:,LM(L, 0, wb.ell_min)] *= 0
                     
     # Define the cost function
-    modes_A = CubicSpline(wa.t, wa[:,2:ell_max+1].data)
-    modes_B = CubicSpline(wb.t, wb[:,2:ell_max+1].data)(t_reference)
+    modes_A = CubicSpline(wa.t, wa[:,LM(2, -2, wa.ell_min):LM(ell_max+1, -(ell_max+1), wa.ell_min)].data)
+    modes_B = CubicSpline(wb.t, wb[:,LM(2, -2, wb.ell_min):LM(ell_max+1, -(ell_max+1), wb.ell_min)].data)(t_reference)
     
-    normalization = trapezoid(CubicSpline(wb.t, wb[:,2:ell_max + 1].norm())(t_reference), t_reference)
+    normalization = trapezoid(CubicSpline(wb.t, wb[:,2:ell_max + 1].norm)(t_reference), t_reference)
     
     δϕ_factor = np.array([M for L in range(wa.ell_min, wa.ell_max + 1) for M in range(-L, L + 1)])
     def cost(δt_δϕ):
@@ -250,8 +260,11 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     # Optimize explicitly
     optimum = least_squares(cost, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2*np.pi)])
 
-    wa_prime = wa.copy()
-    wa_prime.t = h_NR_prime.t + optimum.x[0]
-    wa_prime.data = modes_A(wa_prime.t) * np.exp(1j * optimum.x[1]) ** δϕ_factor
+    wa_prime = sxs.WaveformModes(input_array=modes_A(wa.t) * np.exp(1j * optimum.x[1]) ** δϕ_factor,\
+                                 time=wa.t + optimum.x[0],\
+                                 time_axis=0,\
+                                 modes_axis=1,\
+                                 ell_min=2,\
+                                 ell_max=ell_max)
     
     return optimum, wa_prime
