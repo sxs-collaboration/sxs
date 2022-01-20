@@ -115,7 +115,7 @@ def align1d(wa, wb, t1, t2, n_brute_force=None):
 
     return optimum.x[0]
 
-def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, include_modes=None, no_M0_modes=False):
+def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, include_modes=None):
     """Align waveforms by shifting in time and phase
 
     This function determines the optimal time and phase offset to apply to `wa` by minimizing
@@ -161,8 +161,6 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         as just using 5, which is much faster.
     include_modes: list, optional
         A list containing the (ell, m) modes to be included in the L² norm.
-    no_M0_modes: bool, optional
-        Whether or not to include the m = 0 modes in the L² norm.
 
     Returns
     -------
@@ -221,15 +219,9 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     δt_δϕ_brute_force = np.array(np.meshgrid(δt_brute_force, δϕ_brute_force)).T.reshape(-1,2)
 
     t_reference = wa.t[np.argmin(abs(wa.t - t1)):np.argmin(abs(wa.t - t2)) + 1]
-
-    # Remove M = 0 modes, if requested
-    ell_max = min(wa.ell_max, wb.ell_max)
-    if no_M0_modes:
-        for L in range(2, ell_max + 1):
-            wa.data[:,LM(L, 0, wa.ell_min)] *= 0
-            wb.data[:,LM(L, 0, wb.ell_min)] *= 0
             
     # Remove certain modes, if requested
+    ell_max = min(wa.ell_max, wb.ell_max)
     if include_modes != None:
         for L in range(2, ell_max + 1):
             for M in range(-L, L + 1):
