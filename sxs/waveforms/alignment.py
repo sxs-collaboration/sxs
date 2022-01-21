@@ -226,8 +226,8 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         for L in range(2, ell_max + 1):
             for M in range(-L, L + 1):
                 if not (L, M) in include_modes: 
-                    wa_copy.data[:,LM(L, 0, wa_copy.ell_min)] *= 0
-                    wb_copy.data[:,LM(L, 0, wb_copy.ell_min)] *= 0
+                    wa_copy.data[:,LM(L, M, wa_copy.ell_min)] *= 0
+                    wb_copy.data[:,LM(L, M, wb_copy.ell_min)] *= 0
                     
     # Define the cost function
     modes_A = CubicSpline(wa_copy.t, wa_copy[:,LM(2, -2, wa_copy.ell_min):LM(ell_max+1, -(ell_max+1), wa_copy.ell_min)].data)
