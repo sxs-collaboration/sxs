@@ -249,8 +249,8 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     # Optimize explicitly
     optimum = least_squares(cost, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2*np.pi)])
 
-    wa_prime = sxs.WaveformModes(input_array=CubicSpline(wa.t, wa[:,LM(2, -2, wa.ell_min):LM(ell_max+1, -(ell_max+1), wa.ell_min)].data)(wa.t + optimum.x[0]) * np.exp(1j * optimum.x[1]) ** δϕ_factor,\
-                                 time=wa.t + optimum.x[0],\
+    wa_prime = sxs.WaveformModes(input_array=wa[:,LM(2, -2, wa.ell_min):LM(ell_max+1, -(ell_max+1), wa.ell_min)].data * np.exp(1j * optimum.x[1]) ** δϕ_factor,\
+                                 time=wa.t - optimum.x[0],\
                                  time_axis=0,\
                                  modes_axis=1,\
                                  ell_min=2,\
