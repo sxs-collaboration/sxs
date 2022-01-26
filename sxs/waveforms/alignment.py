@@ -174,6 +174,7 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         A list containing the (ell, m) modes to be included in the L² norm.
     nprocs: int, optional
         Number of cpus to use. Default is maximum number.
+        If -1 is provided, then no multiprocessing is performed.
 
     Returns
     -------
@@ -258,13 +259,15 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         # Optimize by brute force with multiprocessing
         cost_wrapper = partial(cost, args = [modes_A, modes_B, t_reference, δϕ_factor, δΨ_factor, normalization])
 
-        if nprocs == None:
-            nprocs = mp.cpu_count()
-
-        pool = mp.Pool(processes=nprocs)
-        cost_brute_force = pool.map(cost_wrapper, δt_δϕ_brute_force)
-        pool.close()
-        pool.join()
+        if nprocs != -1:
+            if nprocs == None:
+                nprocs = mp.cpu_count()
+            pool = mp.Pool(processes=nprocs)
+            cost_brute_force = pool.map(cost_wrapper, δt_δϕ_brute_force)
+            pool.close()
+            pool.join()
+        else:
+            cost_brute_force = [cost_wrapper(δt_δϕ_brute_force_item) for δt_δϕ_brute_force_item in δt_δϕ_brute_force]
 
         δt_δϕ = δt_δϕ_brute_force[np.argmin(cost_brute_force)]
 
