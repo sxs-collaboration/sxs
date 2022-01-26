@@ -1,8 +1,11 @@
-import numpy as np
-import scipy
-
 import sxs
+import numpy as np
 from spherical_functions import LM_index as LM
+
+from scipy.integrate import trapezoid
+
+import multiprocessing as mp
+from functools import partial
 
 def align1d(wa, wb, t1, t2, n_brute_force=None):
     """Align waveforms by shifting in time
@@ -115,7 +118,15 @@ def align1d(wa, wb, t1, t2, n_brute_force=None):
 
     return optimum.x[0]
 
-def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, include_modes=None):
+def cost(δt_δϕ, args):
+    modes_A, modes_B, t_reference, δϕ_factor, δΨ_factor, normalization = args
+
+    # Take the sqrt because least_squares squares the inputs...
+    diff = trapezoid(np.sum(abs(modes_A(t_reference + δt_δϕ[0]) * np.exp(1j * δt_δϕ[1]) ** δϕ_factor * δΨ_factor -\
+                                modes_B)**2, axis=1), t_reference)
+    return np.sqrt(diff / normalization)
+
+def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, include_modes=None, nprocs=None):
     """Align waveforms by shifting in time and phase
 
     This function determines the optimal time and phase offset to apply to `wa` by minimizing
@@ -161,13 +172,18 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         as just using 5, which is much faster.
     include_modes: list, optional
         A list containing the (ell, m) modes to be included in the L² norm.
+    nprocs: int, optional
+        Number of cpus to use. Default is maximum number.
 
     Returns
     -------
-    optimum: OptimizeResult
-        Result of scipy.optimize.least_squares
+    error: float
+        Cost of scipy.optimize.least_squares
+        This is 0.5 ||wa - wb||² / ||wb||²
     wa_prime: WaveformModes
         Resulting waveform after transforming `wa` using `optimum`
+    optimum: OptimizeResult
+        Result of scipy.optimize.least_squares
 
     Notes
     -----
@@ -188,7 +204,6 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
 
     """
     from scipy.interpolate import CubicSpline
-    from scipy.integrate import trapezoid
     from scipy.optimize import least_squares
 
     wa_copy = wa.copy()
@@ -236,24 +251,35 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     normalization = trapezoid(CubicSpline(wb_copy.t, wb_copy[:,LM(2, -2, wb_copy.ell_min):LM(ell_max+1, -(ell_max+1), wb_copy.ell_min)].norm)(t_reference), t_reference)
     
     δϕ_factor = np.array([M for L in range(wa_copy.ell_min, wa_copy.ell_max + 1) for M in range(-L, L + 1)])
-    def cost(δt_δϕ):
-        # Take the sqrt because least_squares squares the inputs...
-        diff = trapezoid(np.sum(abs(modes_A(t_reference + δt_δϕ[0]) * np.exp(1j * δt_δϕ[1]) ** δϕ_factor -\
-                                    modes_B)**2, axis=1), t_reference)
-        return np.sqrt(diff / normalization)
-
-    # Optimize by brute force
-    cost_brute_force = [cost([δt, δϕ]) for δt, δϕ in δt_δϕ_brute_force]
-    δt_δϕ = δt_δϕ_brute_force[np.argmin(cost_brute_force)]
-
-    # Optimize explicitly
-    optimum = least_squares(cost, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2*np.pi)])
-
-    wa_prime = sxs.WaveformModes(input_array=wa[:,LM(2, -2, wa.ell_min):LM(ell_max+1, -(ell_max+1), wa.ell_min)].data * np.exp(1j * optimum.x[1]) ** δϕ_factor,\
-                                 time=wa.t - optimum.x[0],\
-                                 time_axis=0,\
-                                 modes_axis=1,\
-                                 ell_min=2,\
-                                 ell_max=ell_max)
     
-    return optimum, wa_prime
+    optimums = []
+    wa_primes = []
+    for δΨ_factor in [-1, +1]:
+        # Optimize by brute force with multiprocessing
+        cost_wrapper = partial(cost, args = [modes_A, modes_B, t_reference, δϕ_factor, δΨ_factor, normalization])
+
+        if nprocs == None:
+            nprocs = mp.cpu_count()
+
+        pool = mp.Pool(processes=nprocs)
+        cost_brute_force = pool.map(cost_wrapper, δt_δϕ_brute_force)
+        pool.close()
+        pool.join()
+
+        δt_δϕ = δt_δϕ_brute_force[np.argmin(cost_brute_force)]
+
+        # Optimize explicitly
+        optimum = least_squares(cost_wrapper, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2*np.pi)], max_nfev=50000)
+        optimums.append(optimum)
+
+        wa_prime = sxs.WaveformModes(input_array=wa[:,LM(2, -2, wa.ell_min):LM(ell_max+1, -(ell_max+1), wa.ell_min)].data * np.exp(1j * optimum.x[1]) ** δϕ_factor * δΨ_factor,\
+                                     time=wa.t - optimum.x[0],\
+                                     time_axis=0,\
+                                     modes_axis=1,\
+                                     ell_min=2,\
+                                     ell_max=ell_max)
+        wa_primes.append(wa_prime)
+
+    idx = np.argmin(abs(np.array([optimum.cost for optimum in optimums])))
+
+    return optimums[idx].cost, wa_primes[idx], optimums[idx]
