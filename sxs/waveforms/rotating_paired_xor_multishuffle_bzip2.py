@@ -134,6 +134,9 @@ def save(w, file_name=None, L2norm_fractional_tolerance=1e-10, log_frame=None, s
                 # see below for 'boost_velocity'
                 # see below for 'space_translation'
             },
+            "memory_correction": {
+                # see below for 'integration_time'
+            },
             "version_info": {
                 "python": sys.version,
                 "numpy": np.__version__,
@@ -154,6 +157,8 @@ def save(w, file_name=None, L2norm_fractional_tolerance=1e-10, log_frame=None, s
             json_data["transformations"]["boost_velocity"] = w.boost_velocity.tolist()
         if hasattr(w, "space_translation"):
             json_data["transformations"]["space_translation"] = w.space_translation.tolist()
+        if hasattr(w, "memory_correction"):
+            json_data["memory_correction"]["integration_time"] = w.memory_integration_time()
         if file_name is not None:
             print(f'Saving JSON to "{json_path}"')
         with json_path.open("w") as f:
@@ -318,6 +323,8 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
     if transform_to_inertial:
         w = w.to_inertial_frame()
 
+    if not "memory_correction" in json_data.keys():
+        json_data["memory_correction"] = {}
     w.json_data = json_data
     w.log_frame = log_frame
 
