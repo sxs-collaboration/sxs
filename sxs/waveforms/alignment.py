@@ -251,7 +251,7 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     
     normalization = trapezoid(CubicSpline(wb_copy.t, wb_copy[:,LM(2, -2, wb_copy.ell_min):LM(ell_max+1, -(ell_max+1), wb_copy.ell_min)].norm)(t_reference), t_reference)
     
-    δϕ_factor = np.array([M for L in range(wa_copy.ell_min, wa_copy.ell_max + 1) for M in range(-L, L + 1)])
+    δϕ_factor = np.array([M for L in range(2, ell_max + 1) for M in range(-L, L + 1)])
     
     optimums = []
     wa_primes = []
