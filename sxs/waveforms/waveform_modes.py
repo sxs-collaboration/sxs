@@ -970,7 +970,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
             i2 = self.index_closest_to(t2)
             rough_direction = ω[max(0, i1 - 10) + 10]
             V̂ = self[i1:i2].dominant_eigenvector_LL(rough_direction=rough_direction, rough_direction_index=0)
-            V̂_corot = (R[i1:i2] * quaternionic.array.from_vector_part(V̂) * R[i1:i2].inverse).vector
+            V̂_corot = (R[i1:i2].inverse * quaternionic.array.from_vector_part(V̂) * R[i1:i2]).vector
             V̂_corot_mean = quaternionic.array.from_vector_part(np.mean(V̂_corot, axis=0)).normalized
             correction_rotor = np.sqrt(-quaternionic.z * V̂_corot_mean).inverse
         R = (R * correction_rotor).normalized
