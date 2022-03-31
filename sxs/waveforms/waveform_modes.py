@@ -480,11 +480,27 @@ class WaveformModes(WaveformMixin, TimeSeries):
         will alter the norm of the Waveform by a fraction `tol` at that instant in
         time.
 
+        Parameters
+        ----------
+        tol : float
+            Fractional tolerance to which the norm of this waveform will be preserved
+
+        Returns
+        -------
+        None
+            This value is returned to serve as a reminder that this function operates
+            in place.
+
+        See also
+        --------
+        TimeSeries.truncate
+
         """
         if tol != 0.0:
             tol_per_mode = tol / np.sqrt(self.n_modes)
             abs_tolerance = np.linalg.norm(self.ndarray, axis=self.modes_axis, keepdims=True) * tol_per_mode
             super().truncate(abs_tolerance)
+        self.register_modification(self.truncate, tol=tol)
 
     def convert_to_conjugate_pairs(self):
         """Convert modes to conjugate-pair format in place

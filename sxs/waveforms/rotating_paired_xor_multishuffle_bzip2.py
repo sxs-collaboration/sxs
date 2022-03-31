@@ -203,11 +203,6 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
                     "ell_min": int(w.ell_min),
                     "ell_max": int(w.ell_max),
                 },
-                "transformations": {
-                    "truncation": L2norm_fractional_tolerance,
-                    # see below for 'boost_velocity'
-                    # see below for 'space_translation'
-                },
                 "version_info": {
                     "python": sys.version,
                     "numpy": np.__version__,
@@ -216,10 +211,13 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
                     "quaternionic": quaternionic.__version__,
                     "spherical": spherical.__version__,
                     "sxs": __version__,
-                    # see below for 'spec_version_hist'
+                    # see below for "spec_version_hist"
                 },
-                # see below for 'validation'
+                # see below for "validation"
+                # see below for "modifications"
             }
+            if hasattr(w, "version_hist"):
+                json_data["version_info"]["spec_version_history"] = w.version_hist
             if group is not None:
                 json_data["validation"] = {
                     "n_times": w.n_times,
@@ -230,12 +228,8 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
                     "n_times": w.n_times,
                     "md5sum": md5sum
                 }
-            if hasattr(w, "boost_velocity"):
-                json_data["transformations"]["boost_velocity"] = w.boost_velocity.tolist()
-            if hasattr(w, "space_translation"):
-                json_data["transformations"]["space_translation"] = w.space_translation.tolist()
-            if hasattr(w, "version_hist"):
-                json_data["version_info"]["spec_version_history"] = w.version_hist
+            if "modifications" in w._metadata:
+                json_data["modifications"] = w._metadata["modifications"]
 
             # Write the corresponding JSON file
             json_path = h5_path.with_suffix(".json")
