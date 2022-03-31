@@ -313,6 +313,34 @@ class TimeSeries(np.ndarray):
 
     t = time
 
+    def register_modification(self, func, **kwargs):
+        """Add a record of a modification to the metadata
+
+        Note that this function does not actually run the modification; it simply
+        records the function name and arguments in this object's metadata.  You are
+        expected to run the function for yourself, with the given keyword arguments.
+
+        Also note that the modifications will most likely be written to JSON, so you
+        should adjust them to be in basic formats suitable for JSON.  For example, if
+        an argument `arr` is ordinarily passed as a numpy array, you should convert to
+        a list, with something like `arr.tolist()`.
+
+        Parameters
+        ----------
+        func : named function
+            The function that will modify (or already has modified) this object.  The
+            function must have a `__name__` attribute, as most functions do.
+
+        Because we cannot know whether `func` modifies `self` in place or not, we
+        cannot design this function to modify the desired result, which is why you must
+        call `func` yourself.
+
+        """
+        if "modifications" not in self._metadata:
+            self._metadata["modifications"] = {}
+        self._metadata["modifications"][func.__name__] = kwargs
+        return self
+
     def index_closest_to(self, t):
         """Time index closest to the given time `t`
 

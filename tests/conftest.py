@@ -3,6 +3,8 @@ import functools
 import pytest
 import numpy as np
 import quaternionic
+import spherical
+import sxs
 
 ell_max_default = 36
 
@@ -145,9 +147,9 @@ def Q_conditions():
 
 @pytest.fixture
 def Rs():
-    np.random.seed(1842)
     ones = [0, -1., 1.]
     rs = [[w, x, y, z] for w in ones for x in ones for y in ones for z in ones][1:]
+    np.random.seed(hash("Rs") % 4294967294)  # Use mod to get in an acceptable range
     rs = rs + [r for r in [quaternionic.array(np.random.uniform(-1, 1, size=4)) for _ in range(20)]]
     return quaternionic.array(rs).normalized
 
@@ -190,8 +192,8 @@ def constant_waveform(begin=-10.0, end=100.0, n_times=1000, ell_min=2, ell_max=8
         data,
         time=t,
         modes_axis=1,
-        ell_min=min(lm[:, 0]),
-        ell_max=max(lm[:, 0]),
+        ell_min=ell_min,
+        ell_max=ell_max,
         frame_type="corotating",
         data_type="h",
         spin_weight=-2,
@@ -207,7 +209,7 @@ def constant_waveform_fixture():
 def linear_waveform(begin=-10.0, end=100.0, n_times=1000, ell_min=2, ell_max=8):
     import sxs
     np.random.seed(hash("linear_waveform") % 4294967294)  # Use mod to get in an acceptable range
-    axis = quaternionic.array.from_vector(np.random.uniform(-1, 1, size=3)).normalized
+    axis = quaternionic.array.from_vector_part(np.random.uniform(-1, 1, size=3)).normalized
     t = np.linspace(begin, end, num=n_times)
     omega = 2 * np.pi * 4 / (t[-1] - t[0])
     frame = np.array([np.exp(axis * (omega * t_i / 2)) for t_i in t])
@@ -221,8 +223,8 @@ def linear_waveform(begin=-10.0, end=100.0, n_times=1000, ell_min=2, ell_max=8):
         data,
         time=t,
         modes_axis=1,
-        ell_min=min(lm[:, 0]),
-        ell_max=max(lm[:, 0]),
+        ell_min=ell_min,
+        ell_max=ell_max,
         frame_type="corotating",
         data_type="h",
         spin_weight=-2,
@@ -236,7 +238,6 @@ def linear_waveform_fixture():
 
 
 def random_waveform(begin=-10.0, end=100.0, n_times=1000, ell_min=None, ell_max=8):
-    import sxs
     np.random.seed(hash("random_waveform") % 4294967294)  # Use mod to get in an acceptable range
     data_type = "h"
     spin_weight = -2
@@ -244,15 +245,17 @@ def random_waveform(begin=-10.0, end=100.0, n_times=1000, ell_min=None, ell_max=
         ell_min = abs(spin_weight)
     n_modes = ell_max * (ell_max + 2) - ell_min ** 2 + 1
     t = np.sort(np.random.uniform(begin, end, size=n_times))
-    frame = quaternionic.array(np.random.uniform(-1, 1, 4*len(t)).reshape(-1, 4)).normalized
+    frame = quaternionic.array.random(len(t), normalize=True)
     data = np.random.normal(size=(n_times, n_modes, 2)).view(complex)[:, :, 0]
+    data[:, :spherical.LM_index(abs(spin_weight), -abs(spin_weight), ell_min)] = 0.0
+    lm = np.array([[ell, m] for ell in range(ell_min, ell_max + 1) for m in range(-ell, ell + 1)])
     W = sxs.WaveformModes(
         data,
         time=t,
         frame=frame,
         modes_axis=1,
-        ell_min=min(lm[:, 0]),
-        ell_max=max(lm[:, 0]),
+        ell_min=ell_min,
+        ell_max=ell_max,
         frame_type="corotating",
         data_type=data_type,
         spin_weight=spin_weight,
@@ -267,11 +270,10 @@ def random_waveform_fixture():
 
 def delta_waveform(ell, m, begin=-10.0, end=100.0, n_times=1000, ell_min=2, ell_max=8):
     """WaveformModes with 1 in selected slot and 0 elsewhere"""
-    import sxs
     n_modes = ell_max * (ell_max + 2) - ell_min ** 2 + 1
     t = np.linspace(begin, end, num=n_times)
     data = np.zeros((n_times, n_modes), dtype=complex)
-    data[:, sf.LM_index(ell, m, ell_min)] = 1.0 + 0.0j
+    data[:, spherical.LM_index(ell, m, ell_min)] = 1.0 + 0.0j
     W = sxs.WaveformModes(
         data,
         time=t,

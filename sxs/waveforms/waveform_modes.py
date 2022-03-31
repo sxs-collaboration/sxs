@@ -480,11 +480,27 @@ class WaveformModes(WaveformMixin, TimeSeries):
         will alter the norm of the Waveform by a fraction `tol` at that instant in
         time.
 
+        Parameters
+        ----------
+        tol : float
+            Fractional tolerance to which the norm of this waveform will be preserved
+
+        Returns
+        -------
+        None
+            This value is returned to serve as a reminder that this function operates
+            in place.
+
+        See also
+        --------
+        TimeSeries.truncate
+
         """
         if tol != 0.0:
             tol_per_mode = tol / np.sqrt(self.n_modes)
             abs_tolerance = np.linalg.norm(self.ndarray, axis=self.modes_axis, keepdims=True) * tol_per_mode
             super().truncate(abs_tolerance)
+        self.register_modification(self.truncate, tol=tol)
 
     def convert_to_conjugate_pairs(self):
         """Convert modes to conjugate-pair format in place
@@ -658,12 +674,10 @@ class WaveformModes(WaveformMixin, TimeSeries):
         return TimeSeries(signal.reshape(out_shape), self.time)
 
     # TODO:
-    # expectation_value_L
     # # Don't bother with inner_product_LL, as it doesn't appear to be used; maybe a more general version?
     # inner_product
-    # mode_frame : Minimally rotating O'Shaughnessy et al. frame
+    # mode_frame (Minimally rotating O'Shaughnessy et al. frame)
     # to_mode_frame
-    # corotating_frame
 
     @property
     def expectation_value_LL(self):
@@ -675,9 +689,12 @@ class WaveformModes(WaveformMixin, TimeSeries):
             ⟨w|LᵃLᵇ|w⟩ = ℜ{Σₗₘₙ w̄ˡᵐ ⟨l,m|LᵃLᵇ|l,n⟩ wˡⁿ}
 
         This quantity is important for computing the angular velocity of a waveform.
+        Its dominant eigenvector can also be used as a good choice for the axis of a
+        decomposition into modes.
 
         See Also
         --------
+        dominant_eigenvector_LL
         expectation_value_Ldt
         angular_velocity
 
@@ -688,6 +705,66 @@ class WaveformModes(WaveformMixin, TimeSeries):
         LL = np.zeros((mode_weights.shape[0], 3, 3), dtype=float)
         _expectation_value_LL(mode_weights, self.LM, LL)
         return LL.reshape(output_shape)
+
+    def dominant_eigenvector_LL(self, rough_direction=None, rough_direction_index=0):
+        """Calculate the principal axis of the matrix expectation value ⟨w|LᵃLᵇ|w⟩
+
+        Parameters
+        ----------
+        rough_direction : array_like, optional
+            Vague guess about the preferred direction as a 3-vector.  Default is the
+            `z` axis.
+        rough_direction_index : int, optional
+            Index at which the `rough_direction` should be more aligned than not with
+            the principal axis.  Default is the first element.
+
+        See also
+        --------
+        WaveformModes.to_corotating_frame
+        quaternionic.array.to_minimal_rotation
+
+        Notes
+        -----
+        The principal axis is the eigenvector corresponding to the largest-magnitude
+        (dominant) eigenvalue.  This direction can be used as a good choice for the
+        axis of a waveform-mode decomposition at any instant
+        <https://arxiv.org/abs/1205.2287>.  Essentially, it maximizes the power in the
+        large-|m| modes.  For example, this can help to ensure that the (ℓ,m) = (2,±2)
+        modes are the largest ℓ=2 modes.
+
+        Note, however, that this only specifies an axis at each instant of time.  This
+        choice can be supplemented with the "minimal-rotation condition"
+        <https://arxiv.org/abs/1110.2965> to fully specify a frame, resulting in the
+        "co-precessing frame".  Or it can be used to determine the constant of
+        integration in finding the "co-rotating frame"
+        <https://arxiv.org/abs/1302.2919>.
+
+        The resulting vector is given in the (possibly rotating) mode frame (X,Y,Z),
+        rather than the inertial frame (x,y,z).
+
+        """
+        if rough_direction is None:
+            rough_direction = np.array([0, 0, 1.])
+
+        # Calculate the LL matrix at each instant
+        LL = self.expectation_value_LL
+
+        # This is the eigensystem
+        eigenvals, eigenvecs = np.linalg.eigh(LL)
+
+        # `eigh` always returns eigenvals in *increasing* order, so element `2` will be
+        # the dominant principal axis
+        dpa = quaternionic.array.from_vector_part(eigenvecs[..., 2])
+
+        # Make the direction vectors continuous
+        dpa = quaternionic.unflip_rotors(dpa, inplace=True).vector
+
+        # Now, just make sure that the result if more parallel than anti-parallel to
+        # the `rough_direction`
+        if np.dot(dpa[rough_direction_index], rough_direction) < 0:
+            dpa *= -1
+
+        return dpa
 
     @property
     def expectation_value_Ldt(self):
@@ -864,6 +941,63 @@ class WaveformModes(WaveformMixin, TimeSeries):
         w._metadata["frame_type"] = "inertial"
         return w
 
+    def corotating_frame(self, R0=quaternionic.one, tolerance=1e-12, z_alignment_region=None, return_omega=False):
+        """Return rotor taking current mode frame into corotating frame
+
+        Parameters
+        ----------
+        R0 : quaternionic, optional
+            Value of the output rotation at the first output instant; defaults to 1
+        tolerance : float, optional
+            Absolute tolerance used in integration; defaults to 1e-12
+        z_alignment_region : None or 2-tuple of floats, optional
+            If not None, the dominant eigenvector of the <LL> matrix is aligned with
+            the z axis, averaging over this portion of the data.  The first and second
+            elements of the input are considered fractions of the inspiral at which to
+            begin and end the average.  For example, (0.1, 0.9) would lead to starting
+            10% of the time from the first time step to the max norm time, and ending
+            at 90% of that time.
+        return_omega: bool, optional
+            If True, return a 2-tuple consisting of the frame (the usual returned
+            object) and the angular-velocity data.  That is frequently also needed, so
+            this is just a more efficient way of getting the data.  Default is `False`.
+
+        Notes
+        -----
+        Essentially, this function evaluates the angular velocity of the waveform, and
+        then integrates it to find the corotating frame itself.  This frame is defined
+        to be the frame in which the time-dependence of the waveform is minimized — at
+        least, to the extent possible with a time-dependent rotation.
+
+        That frame is only unique up to a single overall rotation, which can be
+        specified as the optional `R0` argument to this function.  If it is not
+        specified, the z axis of the rotating frame is aligned with the
+        `dominant_eigenvector_LL`, and chosen to be more parallel than anti-parallel to
+        the angular velocity.
+
+        """
+        ω = self.angular_velocity
+        R = quaternionic.array.from_angular_velocity(ω, self.t, R0=R0, tolerance=tolerance)
+        if z_alignment_region is None:
+            correction_rotor = quaternionic.one
+        else:
+            initial_time = self.t[0]
+            inspiral_time = self.max_norm_time() - initial_time
+            t1 = initial_time + z_alignment_region[0] * inspiral_time
+            t2 = initial_time + z_alignment_region[1] * inspiral_time
+            i1 = self.index_closest_to(t1)
+            i2 = self.index_closest_to(t2)
+            rough_direction = ω[max(0, i1 - 10) + 10]
+            V̂ = self[i1:i2].dominant_eigenvector_LL(rough_direction=rough_direction, rough_direction_index=0)
+            V̂_corot = (R[i1:i2].inverse * quaternionic.array.from_vector_part(V̂) * R[i1:i2]).vector
+            V̂_corot_mean = quaternionic.array.from_vector_part(np.mean(V̂_corot, axis=0)).normalized
+            correction_rotor = np.sqrt(-quaternionic.z * V̂_corot_mean).inverse
+        R = (R * correction_rotor).normalized
+        if return_omega:
+            return (R, ω)
+        else:
+            return R
+
     def to_corotating_frame(
         self, R0=None, tolerance=1e-12, z_alignment_region=None, return_omega=False, truncate_log_frame=False
     ):
@@ -898,16 +1032,14 @@ class WaveformModes(WaveformMixin, TimeSeries):
             returns `log_frame` along with the waveform (and optionally `omega`)
 
         """
-        raise NotImplementedError()
-        frame, omega = corotating_frame(
-            self, R0=R0, tolerance=tolerance, z_alignment_region=z_alignment_region, return_omega=True
+        frame, omega = self.corotating_frame(
+            R0=R0, tolerance=tolerance, z_alignment_region=z_alignment_region, return_omega=True
         )
         if truncate_log_frame:
-            log_frame = np.log(frame).ndarray
-            power_of_2 = 2 ** int(-np.floor(np.log2(2 * tolerance)))
-            log_frame = np.round(log_frame * power_of_2) / power_of_2
+            log_frame = np.log(frame)
+            TimeSeries.truncate(log_frame, tolerance)
             frame = np.exp(quaternionic.array(log_frame))
-        w = self.rotate_decomposition_basis(frame)
+        w = self.rotate(frame)
         w._metadata["frame_type"] = "corotating"
         w._metadata["frame"] = frame
         if return_omega:
