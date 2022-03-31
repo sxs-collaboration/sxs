@@ -706,7 +706,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         _expectation_value_LL(mode_weights, self.LM, LL)
         return LL.reshape(output_shape)
 
-    def dominant_eigenvector_LL(self, rough_direction=np.array([0, 0, 1.]), rough_direction_index=0):
+    def dominant_eigenvector_LL(self, rough_direction=None, rough_direction_index=0):
         """Calculate the principal axis of the matrix expectation value ⟨w|LᵃLᵇ|w⟩
 
         Parameters
@@ -743,6 +743,9 @@ class WaveformModes(WaveformMixin, TimeSeries):
         rather than the inertial frame (x,y,z).
 
         """
+        if rough_direction is None:
+            rough_direction = np.array([0, 0, 1.])
+
         # Calculate the LL matrix at each instant
         LL = self.expectation_value_LL
 
