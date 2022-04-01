@@ -33,10 +33,13 @@ DataNamesLaTeX = [
 ]
 
 
-def translate_date_type_to_spin_weight(d):
+def translate_frame_type_to_sxs_string(f):
+    return ["unknown", "inertial", "coprecessing", "coorbital", "corotating"][f]
+
+def translate_data_type_to_spin_weight(d):
     return [sys.maxsize, 2, 1, 0, -1, -2, 2, -2, -2, -2, sys.maxsize][d]
 
-def translate_date_type_to_sxs_string(d):
+def translate_data_type_to_sxs_string(d):
     return ["unknown", "psi0", "psi1", "psi2", "psi3", "psi4", "sigma", "h", "hdot", "news", "psin"][d]
 
 def translate_data_types_GWFrames_to_waveforms(d):
@@ -226,16 +229,16 @@ def load(file, **kwargs):
 
             # Get the descriptive items
             if "FrameType" in f.attrs:
-                w_attributes["frame_type"] = int(f.attrs["FrameType"])
+                w_attributes["frame_type"] = translate_frame_type_to_sxs_string(int(f.attrs["FrameType"]))
             elif "frame_type" in kwargs:
-                w_attributes["frame_type"] = int(kwargs.pop("frame_type"))
+                w_attributes["frame_type"] = kwargs.pop("frame_type")
             else:
                 warning = (
                     f"\n`frameType` was not found in '{file_str}' or the keyword arguments.\n"
-                    + "Using default value `{}`.  You may want to set it manually.\n\n".format(FrameNames[1])
+                    + "Using default value `inertial`.  You may want to set it manually.\n\n"
                 )
                 warnings.warn(warning)
-                w_attributes["frame_type"] = 1
+                w_attributes["frame_type"] = "inertial"
 
             if "DataType" in f.attrs:
                 w_attributes["data_type"] = translate_data_types_GWFrames_to_waveforms(int(f.attrs["DataType"]))
@@ -259,8 +262,8 @@ def load(file, **kwargs):
                     )
                     warnings.warn(warning)
                     w_attributes["data_type"] = 0
-            w_attributes["spin_weight"] = translate_date_type_to_spin_weight(w_attributes["data_type"])
-            w_attributes["data_type"] = translate_date_type_to_sxs_string(w_attributes["data_type"])
+            w_attributes["spin_weight"] = translate_data_type_to_spin_weight(w_attributes["data_type"])
+            w_attributes["data_type"] = translate_data_type_to_sxs_string(w_attributes["data_type"])
 
             if "RIsScaledOut" in f.attrs:
                 w_attributes["r_is_scaled_out"] = bool(f.attrs["RIsScaledOut"])
