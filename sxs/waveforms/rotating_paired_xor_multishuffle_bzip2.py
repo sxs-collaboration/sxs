@@ -83,6 +83,7 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
         )
         warnings.warn(warning)
     else:
+        file_name = str(file_name)
         if ".h5" in file_name and not file_name.endswith(".h5"):
             file_name, group = file_name.split(".h5")
         h5_path = pathlib.Path(file_name).expanduser().resolve().with_suffix(".h5")
