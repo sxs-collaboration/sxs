@@ -252,3 +252,19 @@ def test_modes_evaluate(h, eps):
     print(f"\tTime for 'rotating' frame: {t2-t1:.4f} seconds")
 
     assert np.allclose(g1, g2, rtol=ϵ, atol=ϵ), f"max|g1-g2|={np.max(np.abs(g1-g2))}"
+
+
+def test_rpxmb():
+    print()
+    w = sxs.load(shortest_h_com_file, extrapolation_order=4)
+    for L2norm_fractional_tolerance in [1e-6, 1e-8, 1e-10, 1e-12, 1e-14]:
+        print(f"# Tolerance {L2norm_fractional_tolerance}")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            file_name = pathlib.Path(temp_dir) / "Strain_N4"
+            h5_file_name = file_name.with_suffix(".h5")
+            sxs.rpxmb.save(w, file_name, L2norm_fractional_tolerance=L2norm_fractional_tolerance)
+            print(f"File size = {h5_file_name.stat().st_size:_}B")
+            w2, _ = sxs.rpxmb.load(file_name)
+        diff_norm = np.linalg.norm(w.data-w2.data, axis=w.modes_axis)
+        print(f"Max difference = {np.max(diff_norm)}")
+        assert np.max(diff_norm) < L2norm_fractional_tolerance, (np.max(diff_norm), "\n", diff_norm)
