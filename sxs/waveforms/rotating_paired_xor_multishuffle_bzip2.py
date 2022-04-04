@@ -58,7 +58,7 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
         is transformed to the corotating frame, or simply taken directly from the
         waveform if it is already corotating.
     shuffle_widths : iterable of ints, optional
-        See `scri.utilities.multishuffle` for details.  The default value is
+        See `sxs.utilities.multishuffle` for details.  The default value is
         `default_shuffle_widths`.  Note that if `L2norm_fractional_tolerance` is
         0.0, this will be ignored and the standard HDF5 shuffle option will be used
         instead.
@@ -71,6 +71,11 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
     log_frame : array of quaternions
         The actual `log_frame` data stored in the file, and used to transform to
         the corotating frame if that was done inside this function.
+
+    Note that the returned data are *as stored in the file*.  Specifically, they
+    are presented as various types of `float` data, but have been XOR-ed, which
+    makes them invalid as floats; you will see many NaNs and other nonsensical
+    values unless you reverse the process.
 
     """
     # Make sure that we can understand the file_name and create the directory
@@ -249,7 +254,7 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
     return w, log_frame
 
 
-def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertial=True, **kwargs):
+def load(file_name, ignore_validation=None, check_md5=True, transform_to_inertial=True, **kwargs):
     """Load a waveform in RPXMB format
 
     Parameters
@@ -261,12 +266,13 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
         a JSON file is expected in the same location, with `.h5` replaced by
         `.json` (and the corresponding data must be stored under the `group` key if
         relevant).
-    ignore_validation : bool, optional
-        If `True`, the JSON file need not be present, and the validation keys
-        (`h5_file_size`, `n_times`, and `md5sum`) will be ignored — though warnings
-        may be issued.  If `False`, these are all required, with the possible
-        exception of `h5_file_size` and `md5sum` if a group is used within the HDF5
-        file, or `md5sum` if `check_md5` is `False`.
+    ignore_validation : bool or None, optional
+        Validation checks the corresponding JSON file for (1) existence, (2) number
+        of time steps, (3) H5 file size, and (4) H5 file MD5 checksum (if
+        `check_md5` is `True`).  If this key is `False`, all of this will be
+        ignored; if `True`, a `ValueError` will be raised if any of these checks
+        fails; if `None`, warnings will be issued, but the function will continue
+        as usual.
     check_md5 : bool, optional
         Default is `True`.  See `ignore_validation` for explanation.
     transform_to_inertial : bool, optional
@@ -276,7 +282,7 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
     Keyword parameters
     ------------------
     data_type : str, optional
-        One of `scri.DataNames`.  Default is "UnknownDataType".
+        Describes the type of data — such as "h" or "psi4".  Default is "unknown".
     m_is_scaled_out : bool, optional
         Default is True
     r_is_scaled_out : bool, optional
@@ -442,4 +448,4 @@ def load(file_name, ignore_validation=True, check_md5=True, transform_to_inertia
     w.json_data = json_data
     w.log_frame = log_frame
 
-    return w, log_frame
+    return w
