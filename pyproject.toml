@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sxs"
-version = "2022.3.0"
+version = "2022.3.1"
 description = "Interface to data produced by the Simulating eXtreme Spacetimes collaboration"
 readme = "README.md"
 license = "MIT"
