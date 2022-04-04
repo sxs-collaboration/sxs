@@ -72,6 +72,11 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
         The actual `log_frame` data stored in the file, and used to transform to
         the corotating frame if that was done inside this function.
 
+    Note that the returned data are *as stored in the file*.  Specifically, they
+    are presented as various types of `float` data, but have been XOR-ed, which
+    makes them invalid as floats; you will see many NaNs and other nonsensical
+    values unless you reverse the process.
+
     """
     # Make sure that we can understand the file_name and create the directory
     group = None
