@@ -22,3 +22,32 @@ from .formats import file_format
 from .pretty_print import fit_to_console
 from .files import md5checksum, lock_file_manager, find_simulation_directories, find_files
 from .dicts import KeyPassingDict
+
+
+def version_info():
+    """Find all relevant package versions
+
+    This function attempts to import each of the various packages relevant to this
+    package — such as numpy, quaternionic, etc. — and returns a dictionary mapping
+    the package names to their version strings.  It attempts to import some
+    packages — like spinsfast and scri — which are not required; if they are not
+    found, they simply are not included in the result.
+
+    """
+    import importlib
+    import sys
+    info = {
+        "python": sys.version,
+    }
+    modules = [
+        "numpy", "scipy", "h5py", "numba",
+        "quaternion", "spherical_functions", "spinsfast", "scri",
+        "quaternionic", "spherical", "sxs"
+    ]
+    for module in modules:
+        try:
+            m = importlib.import_module(module)
+            info[module] = m.__version__
+        except Exception:
+            pass
+    return info
