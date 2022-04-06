@@ -237,10 +237,11 @@ def J_J(h):
     return J_𝒥
 
 
-def add_memory(h, integration_start_time=None):
-    """Add electric component of null memory to strain
+def add_memory(h, integration_start_time=None, psi4=None):
+    """Add electric component of null memory to strain and optionally psi4
 
-    This adds the contribution from the energy flux to the strain.
+    This adds the contribution from the energy flux to the strain, and
+    optionally adds minus the 2nd derivative of this contribution to psi4.
 
     Parameters
     ----------
@@ -249,13 +250,24 @@ def add_memory(h, integration_start_time=None):
     integration_start_time : float, optional
         Time at which the energy flux integral should begin.  The default is
         `h.t[0]`.
+    psi4 : WaveformModes, optional
+        WaveformModes object corresponding to psi4
 
     Returns
     -------
     h_with_memory : WaveformModes
         WaveformModes object corresponding to the strain with electric memory
+    psi4_with_memory : WaveformModes, optional
+        WaveformModes object corresponding to `psi4` with electric memory.  If
+        `psi4` is `None`, then this is absent.
 
     """
-    h_with_memory = WaveformModes(MTS(h) + J_E(h, integration_start_time=integration_start_time))
+    h_memory_correction = J_E(h, integration_start_time=integration_start_time)
+    h_with_memory = WaveformModes(MTS(h) + h_memory_correction)
     h_with_memory.register_modification(add_memory, integration_start_time=integration_start_time)
-    return h_with_memory
+    if psi4 is None:
+        return h_with_memory
+    else:
+        psi4_with_memory = WaveformModes(MTS(psi4) - MTS(h_memory_correction).ddot)
+        psi4_with_memory.register_modification(add_memory, integration_start_time=integration_start_time)
+        return (h_with_memory, psi4_with_memory)
