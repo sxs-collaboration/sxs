@@ -15,7 +15,7 @@ import spherical
 
 from . import WaveformModes
 from .. import __version__
-from ..utilities import default_shuffle_widths, md5checksum, xor, multishuffle
+from ..utilities import default_shuffle_widths, md5checksum, xor, multishuffle, version_info
 
 
 sxs_formats = ["rotating_paired_xor_multishuffle_bzip2", "rpxmb", "rpxm", "RPXMB", "RPXM"]
@@ -209,16 +209,7 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
                     "ell_min": int(w.ell_min),
                     "ell_max": int(w.ell_max),
                 },
-                "version_info": {
-                    "python": sys.version,
-                    "numpy": np.__version__,
-                    "scipy": scipy.__version__,
-                    "h5py": h5py.__version__,
-                    "quaternionic": quaternionic.__version__,
-                    "spherical": spherical.__version__,
-                    "sxs": __version__,
-                    # see below for "spec_version_hist"
-                },
+                "version_info": version_info(),  # see below for "spec_version_hist"
                 # see below for "validation"
                 # see below for "modifications"
             }
