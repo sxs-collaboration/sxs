@@ -256,10 +256,10 @@ def add_memory(h, integration_start_time=None, psi4=None):
     Returns
     -------
     h_with_memory : WaveformModes
-       WaveformModes object corresponding to the strain with electric memory
+        WaveformModes object corresponding to the strain with electric memory
     psi4_with_memory : WaveformModes, optional
-       WaveformModes object corresponding to `psi4` with electric memory.  If 
-       `psi4` is `None`, then this is absent.
+        WaveformModes object corresponding to `psi4` with electric memory.  If
+        `psi4` is `None`, then this is absent.
 
     """
     h_memory_correction = J_E(h, integration_start_time=integration_start_time)
