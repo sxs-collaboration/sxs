@@ -13,7 +13,6 @@ python = ">=3.8,<3.12"
 numpy = "^1.20"
 scipy = "^1.0"
 numba = {version = ">=0.55", markers = "implementation_name == 'cpython'"}
-mkapi = {version = "1.0.13", optional = true, python = ">=3.7"}
 quaternionic = "^1.0"
 spherical = "^1.0"
 h5py = "^3"
@@ -24,9 +23,6 @@ tqdm = "^4.48.2, <4.61.2"
 pytz = "^2020.1"
 urllib3 = "^1.25.10"
 pandas = "^1.1.2"
-mkdocs = {version = ">=1.1.2", optional = true, markers = "implementation_name == 'cpython'"}
-black = {version = ">=22.1", optional = true, markers = "implementation_name == 'cpython'"}
-pymdown-extensions = {version = "^8", optional = true, markers = "implementation_name == 'cpython'"}
 spinsfast = {version = ">=2022", optional = true, markers = "sys_platform != 'win32'"}
 ipywidgets = {version = "^7.5.1", optional = true}
 ipykernel = {version = "^5.3.4", optional = true}
@@ -48,7 +44,10 @@ caltechdata-api = "^0.3.0"
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"
 pytest-cov = ">=2.10.1"
-ipython = "^8.4.0"
+mkdocs = {version = ">=1.1.2", optional = true, markers = "implementation_name == 'cpython'"}
+mkdocstrings = {extras = ["python"], version = "^0.18.1", optional = true, markers = "implementation_name == 'cpython'"}
+black = {version = ">=22.1", optional = true, markers = "implementation_name == 'cpython'"}
+pymdown-extensions = {version = "^8", optional = true, markers = "implementation_name == 'cpython'"}
 
 [tool.poetry.extras]
 mkdocs = ["mkdocs"]

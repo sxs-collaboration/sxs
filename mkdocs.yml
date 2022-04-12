@@ -4,18 +4,27 @@ repo_url: https://github.com/sxs-collaboration/sxs
 
 plugins:
   - search
-  - mkapi
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          selection:
+            docstring_style: numpy
+          rendering:
+            show_source: true
+  # - mkapi
 
 nav:
     - Home: 'index.md'
     - Mathematica: 'mathematica.md'
-    - API: mkapi/api/sxs
+    - API: 'api.md'
+    # - API: mkapi/api/sxs
 
 theme:
-  name: 'readthedocs'
-  highlightjs: true
-  hljs_languages:
-    - mathematica
+  name: 'readthedocs' # 'readthedocs', 'mkdocs', 'material'
+  # highlightjs: true
+  # hljs_languages:
+  #   - mathematica
 
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js
