@@ -213,8 +213,11 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
                 # see below for "validation"
                 # see below for "modifications"
             }
-            if hasattr(w, "version_hist"):
-                json_data["version_info"]["spec_version_history"] = w.version_hist
+
+            version_hist = getattr(w, "version_hist", w._metadata.get("version_hist", None))
+            if version_hist is not None:
+                json_data["version_info"]["spec_version_hist"] = version_hist
+
             if group is not None:
                 json_data["validation"] = {
                     "n_times": w.n_times,
@@ -225,6 +228,7 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
                     "n_times": w.n_times,
                     "md5sum": md5sum
                 }
+
             if "modifications" in w._metadata:
                 json_data["modifications"] = w._metadata["modifications"]
 
