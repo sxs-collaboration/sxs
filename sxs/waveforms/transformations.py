@@ -153,7 +153,10 @@ def boost(w, v⃗, ell_max):
     import numpy as np
     import quaternionic
     import spherical
-    import spinsfast
+    try:
+        import spinsfast
+    except:
+        raise ModuleNotFoundError("You need to install spinsfast manually to use this function")
 
     if w.data_type.lower() not in ['h', 'psi4']:
         raise NotImplementedError(f"Input waveform `w` has type {w.data_type}, which is not yet implemented")

@@ -254,81 +254,17 @@ def test_modes_evaluate(h, eps):
     assert np.allclose(g1, g2, rtol=ϵ, atol=ϵ), f"max|g1-g2|={np.max(np.abs(g1-g2))}"
 
 
-def test_modes_rotate(h, eps):
-    import time
-
-    ϵ = 5 * (2 * h.ell_max + 1) * 2 * eps
-
+def test_rpxmb():
     print()
-    for i, R in enumerate([quaternionic.one, quaternionic.one * np.ones_like(h.t)]):
-        t1 = time.perf_counter()
-        hprm = h.rotate(R)
-        t2 = time.perf_counter()
-        print(f"\tRotation {i+1} took {t2-t1:.4f} seconds")
-        assert type(h) == type(hprm)
-        assert np.array_equal(h.t, hprm.t)
-        assert np.allclose(h.ndarray, hprm.ndarray, rtol=ϵ, atol=ϵ)
-
-        metadata = h._metadata.copy()
-        metadataprm = hprm._metadata.copy()
-        for d in [metadata, metadataprm]:
-            for key in ['time', 'frame']:
-                d.pop(key, None)
-            for key in ['space_translation', 'boost_velocity']:
-                d[key] = d[key].tolist()
-        assert metadata == metadataprm
-
-
-def test_modes_rotate_evaluate(h, Rs, eps):
-    """Test that evaluating modes at rotated points == evaluating rotated modes at points"""
-    import time
-
-    ell_max = h.ell_max
-    ϵ = (2 * h.ell_max + 1) * 2 * eps
-
-    equiangular_grid = spherical.theta_phi(2 * ell_max + 1, 2 * ell_max + 1)
-    Rθϕ = quaternionic.array.from_spherical_coordinates(equiangular_grid)
-
-    for i, R in enumerate(Rs):
-        hprm = h.copy().rotate(R)  # hprm = h @ 𝔇(R)
-        m1 = hprm.evaluate(Rθϕ)  # m1 = hprm @ 𝔇(Rθϕ) √...
-        m2 = h.evaluate(R * Rθϕ)  # m2 = h @ 𝔇(R * Rθϕ) √...
-        assert np.allclose(m1, m2, rtol=ϵ, atol=ϵ)
-
-
-def test_zero_angular_velocity():
-    w = constant_waveform(end=10.0, n_times=10000)
-    ω = w.angular_velocity
-    assert np.allclose(ω, np.zeros_like(ω), atol=1e-15, rtol=0.0)
-
-
-def test_z_angular_velocity():
-    w = constant_waveform(end=10.0, n_times=10000)
-    ω = 2 * np.pi / 5.0
-    R = np.exp(quaternionic.array.from_vector_part([0, 0, ω / 2]) * w.t)
-    w = w.rotate(~R)
-    ω_out = w.angular_velocity
-    ω_in = np.zeros_like(ω_out)
-    ω_in[:, 2] = ω
-    assert np.allclose(ω_in, ω_out, atol=1e-12, rtol=2e-8), (
-        f"\nω_in = np.array({ω_in.tolist()})\n"
-        f"\nω_out = np.array({ω_out.tolist()})\n"
-    )
-
-
-def test_rotated_angular_velocity():
-    w = constant_waveform(end=10.0, n_times=10000)
-    ω = 2 * np.pi / 5.0
-    R0 = quaternionic.array(1, 2, 3, 4).normalized
-    R = R0 * np.exp(quaternionic.array.from_vector_part([0, 0, ω / 2]) * w.t)
-    w = w.rotate(~R)
-    ω = R0 * quaternionic.array.from_vector_part([0, 0, ω]) * R0.inverse
-    ω_out = w.angular_velocity
-    ω_in = np.zeros_like(ω_out)
-    ω_in[:, 0] = ω.x
-    ω_in[:, 1] = ω.y
-    ω_in[:, 2] = ω.z
-    assert np.allclose(ω_in, ω_out, atol=1e-12, rtol=2e-8), (
-        f"\nω_in = np.array({ω_in.tolist()})\n"
-        f"\nω_out = np.array({ω_out.tolist()})\n"
-    )
+    w = sxs.load(shortest_h_com_file, extrapolation_order=4)
+    for L2norm_fractional_tolerance in [1e-6, 1e-8, 1e-10, 1e-12, 1e-14]:
+        print(f"# Tolerance {L2norm_fractional_tolerance}")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            file_name = pathlib.Path(temp_dir) / "Strain_N4"
+            h5_file_name = file_name.with_suffix(".h5")
+            sxs.rpxmb.save(w, file_name, L2norm_fractional_tolerance=L2norm_fractional_tolerance)
+            print(f"File size = {h5_file_name.stat().st_size:_}B")
+            w2 = sxs.rpxmb.load(file_name)
+        diff_norm = np.linalg.norm(w.data-w2.data, axis=w.modes_axis)
+        print(f"Max difference = {np.max(diff_norm)}")
+        assert np.max(diff_norm) < L2norm_fractional_tolerance, (np.max(diff_norm), "\n", diff_norm)
