@@ -24,6 +24,7 @@ from .waveforms import WaveformModes #, WaveformGrid, WaveformSignal
 from .waveforms import rotating_paired_xor_multishuffle_bzip2 as rpxmb
 from . import catalog, metadata, horizons, waveforms, zenodo
 from .handlers import load, loadcontext
+from .PostNewtonian import PostNewtonian
 
 # The speed of light is, of course, defined to be exactly
 speed_of_light = 299_792_458.0  # m/s

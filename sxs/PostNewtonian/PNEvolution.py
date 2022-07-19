@@ -1151,9 +1151,9 @@ class PNEv:
         if PNEv.Vars.v>=1.0 and PNEv.NotForward:
             print("Beyond domain of PN validity, this is a good way to terminate.")
             PNEv.terminal1=False
-        if dydt[0]<1.0e-12 and PNEv.NotForward:
-            print("v is decreasing, which is not an uncommon way to stop.")
-            PNEv.terminal2=False
+        #if dydt[0]<1.0e-12 and PNEv.NotForward:
+        #    print("v is decreasing, which is not an uncommon way to stop.")
+        #    PNEv.terminal2=False
         return dydt
         
     def Evolution(xHat_i, yHat_i, zHat_i, M1_i, M2_i, v_i, S_chi1_i, S_chi2_i, rfrak_frame,
@@ -1219,9 +1219,19 @@ class PNEv:
         time=np.delete(time, -1)
        
         # Integrate
-        yy=solve_ivp(PNEv.Integrand, [time[0],time[-1]], [v_i,0.0,
-            0.0,0.0,0.0,rfrak_frame[0],rfrak_frame[1],rfrak_frame[2]], method='DOP853',
-            t_eval=time, dense_output=True, events=terminate, rtol=tol, atol=tol)           
+        try:############################################################################################
+            yy=solve_ivp(PNEv.Integrand, [time[0],time[-1]], [v_i,0.0,##################################
+                0.0,0.0,0.0,rfrak_frame[0],rfrak_frame[1],rfrak_frame[2]], method='DOP853',############
+                t_eval=time, dense_output=True, events=terminate, rtol=tol, atol=tol)           #######
+        except:                                              ##########################################
+            yy=solve_ivp(PNEv.Integrand, [time[0],time[-1]], [v_i,0.0,##################################
+                0.0,0.0,0.0,rfrak_frame[0],rfrak_frame[1],rfrak_frame[2]], method='DOP853',############
+                dense_output=True, events=terminate, rtol=tol, atol=tol)           #######
+            print(time,yy.t)
+            time=time[time<yy.t[-1]]
+            yy=solve_ivp(PNEv.Integrand, [time[0],time[-1]], [v_i,0.0,##################################
+                0.0,0.0,0.0,rfrak_frame[0],rfrak_frame[1],rfrak_frame[2]], method='DOP853',############
+                t_eval=time, dense_output=True, events=terminate, rtol=tol, atol=tol)
         if ForwardInTime:
             PNEv.NotForward=False
             time=[0.0]
