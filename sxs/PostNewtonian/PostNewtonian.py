@@ -1,9 +1,9 @@
 import scri
-import PNEvolution
-import PNWaveformModes
+from . import PNEvolution
+from . import PNWaveformModes
+from ..waveforms import WaveformModes
 import numpy as np
 import quaternionic
-import sxs
 
 def PNWaveform(q,M,omega_0,chi1_0,chi2_0,frame_0,t_0=0.0, t_PNStart=False, t_PNEnd=False, return_chi=False, PNEvolutionOrder=4.0, PNWaveformModeOrder=4.0, TaylorTn=1, StepsPerOrbit=32, ForwardInTime=True, tol=1e-10, MinStep=1e-7):
     """
@@ -60,7 +60,7 @@ def PNWaveform(q,M,omega_0,chi1_0,chi2_0,frame_0,t_0=0.0, t_PNStart=False, t_PNE
         # chi2_x, chi2_y, rfrak_frame_x, rfrak_frame_y, rfrak_frame_z]
 
     data, [ellmin,ellmax] = PNWaveformModes.Modes(xHat, yHat, zHat, m1, m2, v_0,S_chi1_0, S_chi2_0, rfrak_frame_0, PN.y, PNWaveformModeOrder)
-    W_PN_corot=sxs.WaveformModes(data,
+    W_PN_corot=WaveformModes(data,
         time=PN.t+t_0,
         frame=np.exp(quaternionic.array(np.column_stack((0.0*PN.t,PN.y[5],PN.y[6],PN.y[7])))),
         modes_axis=1,
