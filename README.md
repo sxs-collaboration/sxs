@@ -103,7 +103,7 @@ t0 = -7000 # reference time
 t1 = -10000 # PN start time relative to reference time, so the actual start time is t0+t1, optional
 t2 = 1000 # PN end time relative to reference time, so the actual end time is t0+t2, optional
 #return_chi: whether to return chi as array of time, optional, default is false
-W_NR_corot, chi1, chi2 = sxs.PostNewtonian.PNWaveform(q, M, omega, chiA, chiB, frame, t0, t1, t2, return_chi=True)
+#W_NR_corot, chi1, chi2 = sxs.PostNewtonian.PNWaveform(q, M, omega, chiA, chiB, frame, t0, t1, t2, return_chi=True)
 ```
 
 [The `catalog` object](api/sxs.catalog.catalog/#sxs.catalog.catalog.Catalog)
