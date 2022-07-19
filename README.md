@@ -90,6 +90,20 @@ catalog = sxs.load("catalog")
 metadata = sxs.load("SXS:BBH:0123/Lev/metadata.json")
 horizons = sxs.load("SXS:BBH:0123/Lev/Horizons.h5")
 waveform = sxs.load("SXS:BBH:0123/Lev/rhOverM", extrapolation_order=2)
+
+# usage of PostNewtonion generator, see documentation in PostNewtonion/PostNewtonion.py for details.
+import quaternionic
+q = 1.51 # mass ratio
+M = 1.0 # total mass
+omega = 0.013 # angular velocity at reference time
+chiA = [0.1,0.2,0.3] # chi at reference time
+chiB = [0.2,0.4,0.1]
+frame = quaternionic.array([0.9,0.1,0.1,0.1]).normalized # frame at reference time
+t0 = -7000 # reference time
+t1 = -10000 # PN start time relative to reference time, so the actual start time is t0+t1, optional
+t2 = 1000 # PN end time relative to reference time, so the actual end time is t0+t2, optional
+#return_chi: whether to return chi as array of time, optional, default is false
+W_NR_corot, chi1, chi2 = sxs.PostNewtonian.PNWaveform(q, M, omega, chiA, chiB, frame, t0, t1, t2, return_chi=True)
 ```
 
 [The `catalog` object](api/sxs.catalog.catalog/#sxs.catalog.catalog.Catalog)
