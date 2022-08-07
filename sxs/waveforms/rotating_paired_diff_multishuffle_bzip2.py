@@ -1,4 +1,4 @@
-"""Functions to load and save waveforms in RPXMB format"""
+"""Functions to load and save waveforms in RPDMB format"""
 
 import sys
 import warnings
@@ -14,30 +14,27 @@ import quaternionic
 import spherical
 
 from . import WaveformModes
-from . import rotating_paired_diff_multishuffle_bzip2 as rpdmb
 from .. import __version__
-from ..utilities import default_shuffle_widths, md5checksum, xor, multishuffle, version_info
+from ..utilities import default_shuffle_widths, md5checksum, diff, multishuffle, version_info
 
 
-sxs_formats = ["rotating_paired_xor_multishuffle_bzip2", "rpxmb", "rpxm", "RPXMB", "RPXM"]
+sxs_formats = ["rotating_paired_diff_multishuffle_bzip2", "rpdmb", "RPDMB"]
 
 
-def save2(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-10, log_frame=None, shuffle_widths=default_shuffle_widths):
-    return rpdmb.save(
-        w, file_name=file_name, file_write_mode=file_write_mode,
-        L2norm_fractional_tolerance=L2norm_fractional_tolerance, log_frame=log_frame,
-        shuffle_widths=shuffle_widths, diff=xor,
-        formats=sxs_formats,
-    )
+def save(
+        w, file_name=None, file_write_mode="w",
+        L2norm_fractional_tolerance=1e-10, log_frame=None,
+        shuffle_widths=default_shuffle_widths, compression=bz2, diff=diff,
+        formats=None,
+):
+    """Save a waveform in RPDMB format
 
-
-def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-10, log_frame=None, shuffle_widths=default_shuffle_widths):
-    """Save a waveform in RPXMB format
-
-    This function converts the data to "rotating paired XOR multishuffle bzip2"
+    This function converts the data to "rotating paired diff multishuffle bzip2"
     format.  In particular, it uses the corotating frame, and zeroes out bits at
     high precision to allow for optimal compression while maintaining the requested
     tolerance.
+
+    Optionally, with appropriate inputs, can provide different formats.
 
     Parameters
     ----------
@@ -72,22 +69,39 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
         `default_shuffle_widths`.  Note that if `L2norm_fractional_tolerance` is
         0.0, this will be ignored and the standard HDF5 shuffle option will be used
         instead.
+    compression : module, optional
+        Compression module (or any other object) with `compress` and `decompress`
+        methods.  Default value is `bz2`, which is part of python's standard
+        library, and performs bzip2 de/compression.  Note that whatever this is
+        must be available to the `load` code, so this should probably be oneof the
+        built-in packages: `bz2`, `lmza`, `gzip`, or `zlib`.
+    diff : function, optional
+        Function to compare successive values.  Defaults to `diff`, which is the
+        floating-point difference.  Other possibilities include `diffInt` (which
+        reinterprets the data as integers before taking the difference) and `xor`
+        (which is the previous default); neither works as well with our data at the
+        time of this writing.
+    formats: array[str], optional
+        Possible names of the format.  Defaults to variations on `RPDMB`.
 
     Returns
     -------
     w_out : WaveformModes
         The output data, after conversion to the corotating frame, pairing of
-        opposite `m` modes, and XOR-ing (but not shuffling).
+        opposite `m` modes, and differencing (but not shuffling).
     log_frame : array of quaternions
         The actual `log_frame` data stored in the file, and used to transform to
         the corotating frame if that was done inside this function.
 
     Note that the returned data are *as stored in the file*.  Specifically, they
-    are presented as various types of `float` data, but have been XOR-ed, which
-    makes them invalid as floats; you will see many NaNs and other nonsensical
-    values unless you reverse the process.
+    are presented as various types of `float` data, but have been differenced,
+    which makes them invalid as floats; you will see many NaNs and other
+    nonsensical values unless you reverse the process.
 
     """
+    if formats is None:
+        formats = sxs_formats
+
     # Make sure that we can understand the file_name and create the directory
     group = None
     if file_name is None:
@@ -149,10 +163,10 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
         np.add(w.data, 0.0, out=w.data)  # Use `.data` so WaveformModes doesn't override scalar addition
         log_frame += 0.0
 
-        # XOR successive instants in time
-        t = xor(w.t)
-        data = xor(w.data.view(float), axis=w.time_axis)
-        log_frame = xor(log_frame, axis=0)
+        # diff successive instants in time
+        t = diff(w.t)
+        data = diff(w.data.view(float), axis=w.time_axis)
+        log_frame = diff(log_frame, axis=0)
 
     # Make sure we have a place to keep all this
     with contextlib.ExitStack() as context:
@@ -170,14 +184,14 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
             else:
                 g = f
             if L2norm_fractional_tolerance != 0.0:
-                g.attrs["sxs_format"] = sxs_formats[0]
+                g.attrs["sxs_format"] = formats[0]
                 g.attrs["n_times"] = w.n_times
                 g.attrs["ell_min"] = w.ell_min
                 g.attrs["ell_max"] = w.ell_max
                 g.attrs["shuffle_widths"] = np.array(shuffle_widths, dtype=np.uint8)
-                # warnings.warn(f'sxs_format is being set to "{sxs_formats[0]}"')
+                # warnings.warn(f'sxs_format is being set to "{formats[0]}"')
                 data = np.void(
-                    bz2.compress(
+                    compression.compress(
                         shuffle(t).tobytes()
                         + shuffle(data.flatten("F")).tobytes()
                         + shuffle(log_frame.flatten("F")).tobytes()
@@ -190,7 +204,7 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
                     "compression_opts": 9,
                     "shuffle": True,
                 }
-                g.attrs["sxs_format"] = f"{sxs_formats[0]}"
+                g.attrs["sxs_format"] = f"{formats[0]}"
                 g.create_dataset("time", data=w.t.view(np.uint64), chunks=(w.n_times,), **compression_options)
                 g.create_dataset("modes", data=w.data.view(np.uint64), chunks=(w.n_times, 1), **compression_options)
                 g["modes"].attrs["ell_min"] = w.ell_min
@@ -210,7 +224,7 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
         if file_name is not None:
             # Set up the corresponding JSON information
             json_data = {
-                "sxs_format": sxs_formats[0],
+                "sxs_format": formats[0],
                 "data_info": {
                     "data_type": w.data_type,
                     "m_is_scaled_out": w._metadata.get("m_is_scaled_out", True),
@@ -259,16 +273,12 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
     return w, log_frame
 
 
-def load2(file_name, ignore_validation=None, check_md5=True, transform_to_inertial=True, **kwargs):
-    return rpdmb.load(
-        file_name, ignore_validation=ignore_validation, check_md5=check_md5,
-        transform_to_inertial=transform_to_inertial, diff=xor, formats=sxs_formats,
+def load(
+        file_name, ignore_validation=None, check_md5=True,
+        transform_to_inertial=True, compression=bz2, diff=diff, formats=None,
         **kwargs
-    )
-
-
-def load(file_name, ignore_validation=None, check_md5=True, transform_to_inertial=True, **kwargs):
-    """Load a waveform in RPXMB format
+):
+    """Load a waveform in RPDMB format
 
     Parameters
     ----------
@@ -291,6 +301,20 @@ def load(file_name, ignore_validation=None, check_md5=True, transform_to_inertia
     transform_to_inertial : bool, optional
         If `True`, the output waveform is transformed to the inertial frame;
         otherwise it is left in the frame used in the file.
+    compression : module, optional
+        Compression module (or any other object) with `compress` and `decompress`
+        methods.  Default value is `bz2`, which is part of python's standard
+        library, and performs bzip2 de/compression.  Note that whatever this is
+        must be available to the `load` code, so this should probably be oneof the
+        built-in packages: `bz2`, `lmza`, `gzip`, or `zlib`.
+    diff : function, optional
+        Function to compare successive values.  Defaults to `diff`, which is the
+        floating-point difference.  Other possibilities include `diffInt` (which
+        reinterprets the data as integers before taking the difference) and `xor`
+        (which is the previous default); neither works as well with our data at the
+        time of this writing.
+    formats: array[str], optional
+        Possible names of the format.  Defaults to variations on `RPDMB`.
 
     Keyword parameters
     ------------------
@@ -309,6 +333,9 @@ def load(file_name, ignore_validation=None, check_md5=True, transform_to_inertia
     the returned waveform.
 
     """
+    if formats is None:
+        formats = sxs_formats
+
     def invalid(message):
         if ignore_validation:
             pass
@@ -351,11 +378,11 @@ def load(file_name, ignore_validation=None, check_md5=True, transform_to_inertia
 
         # Make sure this is our format
         sxs_format = json_data.get("sxs_format", "")
-        if sxs_format not in sxs_formats:
+        if sxs_format not in formats:
             invalid(
                 f"\nThe `sxs_format` found in JSON file is '{sxs_format}';\n"
                 f"it should be one of\n"
-                f"    {sxs_formats}."
+                f"    {formats}."
             )
 
         if group is None:
@@ -381,10 +408,10 @@ def load(file_name, ignore_validation=None, check_md5=True, transform_to_inertia
             g = f
         # Make sure this is our format
         sxs_format = g.attrs["sxs_format"]
-        if sxs_format not in sxs_formats:
+        if sxs_format not in formats:
             raise ValueError(
                 f'The `sxs_format` found in H5 file is "{sxs_format}"; it should be one of\n'
-                f"    {sxs_formats}."
+                f"    {formats}."
             )
 
         # Ensure that the 'validation' keys from the JSON file are the same as in this file
@@ -408,7 +435,7 @@ def load(file_name, ignore_validation=None, check_md5=True, transform_to_inertia
         n_modes = ell_max * (ell_max + 2) - ell_min ** 2 + 1
         i1 = n_times * sizeof_float
         i2 = i1 + n_times * sizeof_complex * n_modes
-        uncompressed_data = bz2.decompress(g["data"][...])
+        uncompressed_data = compression.decompress(g["data"][...])
         t = np.frombuffer(uncompressed_data[:i1], dtype=np.uint64)
         data_tmp = np.frombuffer(uncompressed_data[i1:i2], dtype=np.uint64)
         log_frame = np.frombuffer(uncompressed_data[i2:], dtype=np.uint64)
@@ -420,18 +447,13 @@ def load(file_name, ignore_validation=None, check_md5=True, transform_to_inertia
 
     # Reshape and re-interpret the data
     t = t.view(np.float64)
-    data_tmp = data_tmp.reshape((-1, n_times)).T
+    data_tmp = data_tmp.reshape((-1, n_times)).T.copy().view(np.complex128)
     log_frame = log_frame.reshape((-1, n_times)).T.copy().view(np.float64)
 
-    # Because of the weirdness of complex types, reshaping, and C/F order, we
-    # need to create this with the layout we will eventually want, and then
-    # read data into it.
-    data = np.empty((n_times, n_modes), dtype=complex).view(np.uint64)
-
-    # Un-XOR the data
-    xor(t, reverse=True, preserve_dtype=True, out=t)
-    xor(data_tmp, reverse=True, axis=0, out=data)
-    xor(log_frame, reverse=True, preserve_dtype=True, axis=0, out=log_frame)
+    # Un-diff the data
+    diff(t, reverse=True, preserve_dtype=True, out=t)
+    diff(data_tmp, reverse=True, axis=0, out=data)
+    diff(log_frame, reverse=True, preserve_dtype=True, axis=0, out=log_frame)
 
     frame = np.exp(quaternionic.array(np.insert(log_frame, 0, 0.0, axis=1)))
 
