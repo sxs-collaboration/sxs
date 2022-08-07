@@ -8,11 +8,12 @@ vectorize = functools.partial(numba.vectorize, nopython=True, cache=True)
 guvectorize = functools.partial(numba.guvectorize, nopython=True, cache=True)
 
 # This is a generically reliable set of widths to feed to multishuffle when using 64-bit floats
-default_shuffle_widths = (8, 8, 4, 4, 4, 2,) + (1,) * 34
+default_shuffle_widths = (16, 4, 2, 2, 2) + (1,) * 22 + (4,) * 4
+default_shuffle_widths_old = (8, 8, 4, 4, 4, 2,) + (1,) * 34
 
 from . import url, inspire, monotonicity, decimation, lvcnr, references
 from .downloads import download_file
-from .bitwise import xor, multishuffle
+from .bitwise import diff, xor, multishuffle
 from .sxs_identifiers import (
     sxs_identifier_regex, sxs_identifier_re, lev_regex, lev_re, sxs_id, lev_number, simulation_title
 )
