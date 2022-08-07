@@ -52,7 +52,7 @@ jobs:
         run: |
           poetry run python -m pip install --upgrade pip
           poetry env info
-          rm poetry.lock
+          rm -f poetry.lock
           poetry update
           poetry build
           poetry install --no-interaction
@@ -105,7 +105,7 @@ jobs:
         run: |
           $HOME/.poetry/bin/poetry run python -m pip install --upgrade pip
           $HOME/.poetry/bin/poetry env info
-          rm poetry.lock
+          rm -f poetry.lock
           $HOME/.poetry/bin/poetry update
           $HOME/.poetry/bin/poetry build
           $HOME/.poetry/bin/poetry install --no-interaction --no-dev
