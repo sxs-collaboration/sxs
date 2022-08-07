@@ -22,7 +22,22 @@ from ..utilities import default_shuffle_widths, md5checksum, xor, multishuffle, 
 sxs_formats = ["rotating_paired_xor_multishuffle_bzip2", "rpxmb", "rpxm", "RPXMB", "RPXM"]
 
 
-def save2(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-10, log_frame=None, shuffle_widths=default_shuffle_widths):
+def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-10, log_frame=None, shuffle_widths=default_shuffle_widths):
+    """Save a waveform in RPXMB format
+
+    This function is primarily for backwards compatibility.  The `RPDMB` format is
+    now preferred.  In fact, this function just calls `rpdmb.save`, with two
+    non-default parameters, to look for `RPXMB` format strings, and to use `xor` in
+    place of `diff`.  See that function's docstring for more details.
+
+    Also note that the default `shuffle_widths` parameter has changed.  The
+    previous default is now available as
+    `sxs.utilities.default_shuffle_widths_old`.  The `load` function will
+    automatically read the shuffle widths used from the saved file, so you do not
+    need to worry about this unless you are comparing checksums or something like
+    that.
+
+    """
     return rpdmb.save(
         w, file_name=file_name, file_write_mode=file_write_mode,
         L2norm_fractional_tolerance=L2norm_fractional_tolerance, log_frame=log_frame,
@@ -31,7 +46,7 @@ def save2(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e
     )
 
 
-def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-10, log_frame=None, shuffle_widths=default_shuffle_widths):
+def save2(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-10, log_frame=None, shuffle_widths=default_shuffle_widths):
     """Save a waveform in RPXMB format
 
     This function converts the data to "rotating paired XOR multishuffle bzip2"
@@ -259,7 +274,15 @@ def save(w, file_name=None, file_write_mode="w", L2norm_fractional_tolerance=1e-
     return w, log_frame
 
 
-def load2(file_name, ignore_validation=None, check_md5=True, transform_to_inertial=True, **kwargs):
+def load(file_name, ignore_validation=None, check_md5=True, transform_to_inertial=True, **kwargs):
+    """Load a waveform in RPXMB format
+
+    This function is primarily for backwards compatibility.  The `RPDMB` format is
+    now preferred.  In fact, this function just calls `rpdmb.load`, with two
+    non-default parameters, to look for `RPXMB` format strings, and to use `xor` in
+    place of `diff`.  See that function's docstring for more details.
+
+    """
     return rpdmb.load(
         file_name, ignore_validation=ignore_validation, check_md5=check_md5,
         transform_to_inertial=transform_to_inertial, diff=xor, formats=sxs_formats,
@@ -267,7 +290,7 @@ def load2(file_name, ignore_validation=None, check_md5=True, transform_to_inerti
     )
 
 
-def load(file_name, ignore_validation=None, check_md5=True, transform_to_inertial=True, **kwargs):
+def load2(file_name, ignore_validation=None, check_md5=True, transform_to_inertial=True, **kwargs):
     """Load a waveform in RPXMB format
 
     Parameters

@@ -11,6 +11,7 @@ from .waveform_modes import WaveformModes
 
 from . import nrar, rotating_paired_xor_multishuffle_bzip2, rotating_paired_diff_multishuffle_bzip2, memory, transformations, alignment
 
+# Map a format string to the module that should be used to load a waveform with that format
 formats = {
     None: nrar,
     "": nrar,

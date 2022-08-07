@@ -43,6 +43,9 @@ def diff(x, reverse=False, axis=-1, **kwargs):
     evaluates `-` on that element and the preceding one.  This is a useful
     step in compressing reasonably continuous data.
 
+    Note that, for downstream compatibility with `xor`, if the input array dtype is
+    any unsigned integer, it will be re-interpreted as a `complex128`.
+
     Parameters
     ----------
     x : array_like
@@ -65,6 +68,8 @@ def diff(x, reverse=False, axis=-1, **kwargs):
 
     """
     u = np.asarray(x)
+    if issubclass(u.dtype.type, np.unsignedinteger):
+        u = u.view(np.complex128)
     kwargs.pop("preserve_dtype", None)
     kwargs["axis"] = axis
     if "out" in kwargs:

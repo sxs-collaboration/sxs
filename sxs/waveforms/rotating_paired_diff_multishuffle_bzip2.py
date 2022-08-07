@@ -447,8 +447,13 @@ def load(
 
     # Reshape and re-interpret the data
     t = t.view(np.float64)
-    data_tmp = data_tmp.reshape((-1, n_times)).T.copy().view(np.complex128)
+    data_tmp = data_tmp.reshape((-1, n_times)).T.copy()
     log_frame = log_frame.reshape((-1, n_times)).T.copy().view(np.float64)
+
+    # Because of the weirdness of complex types, reshaping, and C/F order, we
+    # need to create this with the layout we will eventually want, and then
+    # read data into it.
+    data = np.empty((n_times, n_modes), dtype=complex)#.view(np.uint64)
 
     # Un-diff the data
     diff(t, reverse=True, preserve_dtype=True, out=t)
