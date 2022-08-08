@@ -128,6 +128,16 @@ jobs:
           echo "new_version: '${new_version}'"
           echo "new_version=${new_version}" >> $GITHUB_ENV  # Save env variable for later steps
 
+      - name: Update CITATION.cff
+        shell: bash
+        env:
+          timestamp: ${{ github.event.head_commit.timestamp }}
+        run: |
+          new_date=${timestamp:0:10}
+          sed -i -- "s/^version:.*/version: ${new_version}/" CITATION.cff
+          sed -i -- "s/^date-released:.*/date-released: ${new_date}/" CITATION.cff
+          echo "Updated CITATION.cff with version ${new_version} and date ${new_date}"
+
       - name: Tag and push new version
         shell: bash
         run: |
