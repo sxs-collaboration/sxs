@@ -15,7 +15,7 @@ import spherical
 
 from . import WaveformModes
 from .. import __version__
-from ..utilities import default_shuffle_widths, md5checksum, diff, multishuffle, version_info
+from ..utilities import default_shuffle_widths, md5checksum, diff, xor, multishuffle, version_info
 
 
 sxs_formats = ["rotating_paired_diff_multishuffle_bzip2", "rpdmb", "RPDMB"]
@@ -25,7 +25,7 @@ def save(
         w, file_name=None, file_write_mode="w",
         L2norm_fractional_tolerance=1e-10, log_frame=None,
         shuffle_widths=default_shuffle_widths, convert_to_conjugate_pairs=True,
-        compression=bz2, diff=diff, formats=None, verbose=True
+        compression=bz2, diff=diff, formats=None, verbose=True, allow_existing_group=False
 ):
     """Save a waveform in RPDMB format
 
@@ -86,6 +86,9 @@ def save(
         time of this writing.
     formats : array[str], optional
         Possible names of the format.  Defaults to variations on `RPDMB`.
+    allow_existing_group : bool, optional
+        If `True`, allow the group being written into to exist already; otherwise
+        (and by default), if the group exists, an error will be raised.
 
     Returns
     -------
@@ -172,6 +175,7 @@ def save(
 
         # diff successive instants in time
         t = diff(w.t)
+        # t = xor(w.t)
         data = diff(w.data.view(float), axis=w.time_axis)
         log_frame = diff(log_frame, axis=0)
 
@@ -187,7 +191,10 @@ def save(
         with h5py.File(h5_path, file_write_mode) as f:
             # If we are writing to a group within the file, create it
             if group is not None:
-                g = f.create_group(group)
+                if allow_existing_group and group in f:
+                    g = f[group]
+                else:
+                    g = f.create_group(group)
             else:
                 g = f
             if L2norm_fractional_tolerance is not None:
@@ -467,6 +474,7 @@ def load(
 
     # Un-diff the data
     diff(t, reverse=True, preserve_dtype=True, out=t)
+    #xor(t, reverse=True, preserve_dtype=True, out=t)
     diff(data_tmp, reverse=True, axis=0, out=data)
     diff(log_frame, reverse=True, preserve_dtype=True, axis=0, out=log_frame)
 
