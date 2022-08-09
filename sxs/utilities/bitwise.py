@@ -290,7 +290,7 @@ def multishuffle(shuffle_widths, forward=True):
                     "contiguous in the order you want."
                 )
             a = np.zeros_like(b)
-            b_array_bit = dtype.type(0)
+            b_array_bit = np.uint64(0)
             for i, shuffle_width in enumerate(reversed_shuffle_widths):
                 mask_shift = np.sum(reversed_shuffle_widths[:i])
                 mask = dtype.type(2 ** shuffle_width - 1)
