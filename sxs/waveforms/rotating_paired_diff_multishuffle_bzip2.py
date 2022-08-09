@@ -174,8 +174,7 @@ def save(
         log_frame += 0.0
 
         # diff successive instants in time
-        t = diff(w.t)
-        # t = xor(w.t)
+        t = xor(w.t)
         data = diff(w.data.view(float), axis=w.time_axis)
         log_frame = diff(log_frame, axis=0)
 
@@ -473,8 +472,7 @@ def load(
     data = np.empty((n_times, n_modes), dtype=complex)#.view(np.uint64)
 
     # Un-diff the data
-    diff(t, reverse=True, preserve_dtype=True, out=t)
-    #xor(t, reverse=True, preserve_dtype=True, out=t)
+    xor(t, reverse=True, preserve_dtype=True, out=t)
     diff(data_tmp, reverse=True, axis=0, out=data)
     diff(log_frame, reverse=True, preserve_dtype=True, axis=0, out=log_frame)
 
