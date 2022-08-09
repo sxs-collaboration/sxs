@@ -24,8 +24,8 @@ sxs_formats = ["rotating_paired_diff_multishuffle_bzip2", "rpdmb", "RPDMB"]
 def save(
         w, file_name=None, file_write_mode="w",
         L2norm_fractional_tolerance=1e-10, log_frame=None,
-        shuffle_widths=default_shuffle_widths, compression=bz2, diff=diff,
-        formats=None,
+        shuffle_widths=default_shuffle_widths, convert_to_conjugate_pairs=True,
+        compression=bz2, diff=diff, formats=None, verbose=True
 ):
     """Save a waveform in RPDMB format
 
@@ -46,9 +46,10 @@ def save(
         to be the group within the HDF5 file in which the data should be stored.
         Also note that a JSON file is created in the same location, with `.h5`
         replaced by `.json` (and the corresponding data is stored under the `group`
-        key if relevant).  For testing purposes, this argument may be `None`, in
-        which case a temporary directory is used, just to test how large the output
-        will be; it is deleted immediately upon returning.
+        key if relevant).  To retrieve just the return values, or for testing
+        purposes, this argument may be `None`, in which case a temporary directory
+        is used, just to test how large the output will be; it is deleted
+        immediately upon returning.
     file_write_mode : str, optional
         One of the valid [file modes for
         h5py](https://docs.h5py.org/en/stable/high/file.html#opening-creating-files).
@@ -69,6 +70,8 @@ def save(
         `default_shuffle_widths`.  Note that if `L2norm_fractional_tolerance` is
         0.0, this will be ignored and the standard HDF5 shuffle option will be used
         instead.
+    convert_to_conjugate_pairs : bool, optional
+        If `True` (the default), the data is converted to conjugate-pair form.
     compression : module, optional
         Compression module (or any other object) with `compress` and `decompress`
         methods.  Default value is `bz2`, which is part of python's standard
@@ -81,7 +84,7 @@ def save(
         reinterprets the data as integers before taking the difference) and `xor`
         (which is the previous default); neither works as well with our data at the
         time of this writing.
-    formats: array[str], optional
+    formats : array[str], optional
         Possible names of the format.  Defaults to variations on `RPDMB`.
 
     Returns
@@ -122,7 +125,7 @@ def save(
 
     shuffle = multishuffle(tuple(shuffle_widths))
 
-    if L2norm_fractional_tolerance == 0.0:
+    if L2norm_fractional_tolerance is None:
         log_frame = np.log(w.frame).ndarray[:, 1:]
     else:
         # We need this storage anyway, so let's just make a copy and work in-place
@@ -140,7 +143,9 @@ def save(
             except Exception:
                 z_alignment_region = (0.1, 0.95)
             w, log_frame = w.to_corotating_frame(
-                tolerance=1e-10, z_alignment_region=z_alignment_region, truncate_log_frame=True
+                tolerance=L2norm_fractional_tolerance,
+                z_alignment_region=z_alignment_region,
+                truncate_log_frame=True
             )
             log_frame = log_frame.ndarray[:, 1:]
         if w.frame_type != "corotating":
@@ -149,10 +154,12 @@ def save(
             )
 
         # Convert mode structure to conjugate pairs
-        w.convert_to_conjugate_pairs()
+        if convert_to_conjugate_pairs:
+            w.convert_to_conjugate_pairs()
 
         # Set bits below the desired significance level to 0
-        w.truncate(tol=L2norm_fractional_tolerance)
+        if L2norm_fractional_tolerance > 0.0:
+            w.truncate(tol=L2norm_fractional_tolerance)
 
         # Compute log(frame)
         if log_frame is None:
@@ -173,7 +180,7 @@ def save(
         if file_name is None:
             temp_dir = context.enter_context(tempfile.TemporaryDirectory())
             h5_path = pathlib.Path(f"{temp_dir}") / "test.h5"
-        else:
+        elif verbose:
             print(f'Saving H5 to "{h5_path}"')
 
         # Write the H5 file
@@ -183,13 +190,12 @@ def save(
                 g = f.create_group(group)
             else:
                 g = f
-            if L2norm_fractional_tolerance != 0.0:
+            if L2norm_fractional_tolerance is not None:
                 g.attrs["sxs_format"] = formats[0]
                 g.attrs["n_times"] = w.n_times
                 g.attrs["ell_min"] = w.ell_min
                 g.attrs["ell_max"] = w.ell_max
                 g.attrs["shuffle_widths"] = np.array(shuffle_widths, dtype=np.uint8)
-                # warnings.warn(f'sxs_format is being set to "{formats[0]}"')
                 data = np.void(
                     compression.compress(
                         shuffle(t).tobytes()
@@ -258,7 +264,8 @@ def save(
 
             # Write the corresponding JSON file
             json_path = h5_path.with_suffix(".json")
-            print(f'Saving JSON to "{json_path}"')
+            if verbose:
+                print(f'Saving JSON to "{json_path}"')
             if group is not None:
                 if json_path.exists() and file_write_mode!="w":
                     with json_path.open("r") as f:
@@ -275,7 +282,8 @@ def save(
 
 def load(
         file_name, ignore_validation=None, check_md5=True,
-        transform_to_inertial=True, compression=bz2, diff=diff, formats=None,
+        transform_to_inertial=True, convert_from_conjugate_pairs=True,
+        compression=bz2, diff=diff, formats=None,
         **kwargs
 ):
     """Load a waveform in RPDMB format
@@ -301,6 +309,8 @@ def load(
     transform_to_inertial : bool, optional
         If `True`, the output waveform is transformed to the inertial frame;
         otherwise it is left in the frame used in the file.
+    convert_from_conjugate_pairs : bool, optional
+        If `False`, the data is left in its conjugate-pair form; default is `True`.
     compression : module, optional
         Compression module (or any other object) with `compress` and `decompress`
         methods.  Default value is `bz2`, which is part of python's standard
@@ -313,7 +323,7 @@ def load(
         reinterprets the data as integers before taking the difference) and `xor`
         (which is the previous default); neither works as well with our data at the
         time of this writing.
-    formats: array[str], optional
+    formats : array[str], optional
         Possible names of the format.  Defaults to variations on `RPDMB`.
 
     Keyword parameters
@@ -480,7 +490,9 @@ def load(
         ell_max=ell_max,
         spin_weight=spin_weight,
     )
-    w.convert_from_conjugate_pairs()
+
+    if convert_from_conjugate_pairs:
+        w.convert_from_conjugate_pairs()
 
     if transform_to_inertial:
         w = w.to_inertial_frame()
