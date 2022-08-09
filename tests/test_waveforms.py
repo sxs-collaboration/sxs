@@ -301,3 +301,6 @@ def test_rpdmb():
         print(f"Max RPDMB-RPXMB difference = {np.max(diff_norm2)}")
         assert np.max(diff_norm) < L2norm_fractional_tolerance, (np.max(diff_norm), "\n", diff_norm)
         assert np.max(diff_norm2) == 0.0, (np.max(diff_norm2), "\n", diff_norm2)
+        assert np.array_equal(w2.t, w3.t)
+        assert np.array_equal(w2.data, w3.data)
+        assert np.array_equal(w2.frame, w3.frame)
