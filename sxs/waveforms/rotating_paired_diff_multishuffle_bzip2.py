@@ -507,3 +507,57 @@ def load(
     w.log_frame = log_frame
 
     return w
+
+
+def load_time(
+        file_name, ignore_validation=None, check_md5=True,
+        transform_to_inertial=True, convert_from_conjugate_pairs=True,
+        compression=bz2, diff=diff, formats=None,
+        **kwargs
+):
+    """Load time data from a waveform in RPDMB format
+
+    This function is just an abbreviated form of the `load` function, without any
+    type of validation, or conversion of the mode or frame data; only the `time`
+    dataset is returned.
+
+    For compatibility, this function has the same calling signature as `load`,
+    though many of the parameters are meaningless here.  Most importantly, the
+    `file_name` is processed in the same way, meaning that groups can also be
+    specified.  Otherwise, the only possibly relevant parameter is `compression`.
+
+    """
+    file_name_str = str(file_name)
+    group = None
+    if ".h5" in file_name_str and not file_name_str.endswith(".h5"):
+        file_name_str, group = file_name_str.split(".h5")
+    if group == "/":
+        group = None
+
+    h5_path = pathlib.Path(file_name_str).expanduser().resolve().with_suffix(".h5")
+
+    with h5py.File(h5_path, "r") as f:
+        if group is not None:
+            g = f[group]
+        else:
+            g = f
+
+        # Read the raw data
+        n_times = g.attrs["n_times"]
+        sizeof_float = 8
+        i1 = n_times * sizeof_float
+        shuffle_widths = tuple(g.attrs["shuffle_widths"])
+        unshuffle = multishuffle(shuffle_widths, forward=False)
+        uncompressed_data = compression.decompress(g["data"][...])
+        t = np.frombuffer(uncompressed_data[:i1], dtype=np.uint64)
+
+    # Unshuffle the raw data
+    t = unshuffle(t)
+
+    # Reshape and re-interpret the data
+    t = t.view(np.float64)
+
+    # Un-diff the data
+    xor(t, reverse=True, preserve_dtype=True, out=t)
+
+    return t
