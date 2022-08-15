@@ -25,7 +25,8 @@ def save(
         w, file_name=None, file_write_mode="w",
         L2norm_fractional_tolerance=1e-10, log_frame=None,
         shuffle_widths=default_shuffle_widths, convert_to_conjugate_pairs=True,
-        compression=bz2, diff=diff, formats=None, verbose=True, allow_existing_group=False
+        compression=bz2, diff=diff, formats=None, verbose=True, allow_existing_group=False,
+        version_info_update=None,
 ):
     """Save a waveform in RPDMB format
 
@@ -89,6 +90,11 @@ def save(
     allow_existing_group : bool, optional
         If `True`, allow the group being written into to exist already; otherwise
         (and by default), if the group exists, an error will be raised.
+    version_info_update : dict, optional
+        If present, the `version_info` field in the output JSON file will be
+        updated with this information.  Any existing version info that is not found
+        in this input will remain unchanged, but any that are in this input will be
+        either altered or added.
 
     Returns
     -------
@@ -253,6 +259,8 @@ def save(
             version_hist = getattr(w, "version_hist", w._metadata.get("version_hist", None))
             if version_hist is not None:
                 json_data["version_info"]["spec_version_hist"] = version_hist
+            if version_info_update is not None:
+                json_data["version_info"].update(version_info_update)
 
             if group is not None:
                 json_data["validation"] = {
@@ -469,7 +477,7 @@ def load(
     # Because of the weirdness of complex types, reshaping, and C/F order, we
     # need to create this with the layout we will eventually want, and then
     # read data into it.
-    data = np.empty((n_times, n_modes), dtype=complex)#.view(np.uint64)
+    data = np.empty((n_times, n_modes), dtype=complex)
 
     # Un-diff the data
     xor(t, reverse=True, preserve_dtype=True, out=t)
