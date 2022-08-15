@@ -6,7 +6,79 @@ import numba as nb
 from . import guvectorize
 
 
-_uint_ftylists = [(nb.uint8[:], nb.uint8[:]), (nb.uint16[:], nb.uint16[:]), (nb.uint32[:], nb.uint32[:]), (nb.uint64[:], nb.uint64[:])]
+_float_ftylists = [(dt[:], dt[:]) for dt in [nb.float32, nb.float64, nb.complex64, nb.complex128]]
+_uint_ftylists = [(dt[:], dt[:]) for dt in [nb.uint8, nb.uint16, nb.uint32, nb.uint64]]
+
+
+@guvectorize(_float_ftylists, '(n)->(n)')
+def diff_forward(a_in, a_out):
+    """Progressively diff data along an axis
+
+    This is primarily a helper function for `diff`.  See that function's docstring
+    for details.
+
+    """
+    a_out[0] = a_in[0]
+    for i in range(a_in.shape[0] - 1, 0, -1):
+        a_out[i] = a_in[i - 1] - a_in[i]
+
+
+@guvectorize(_float_ftylists, '(n)->(n)')
+def diff_reverse(a_in, a_out):
+    """Progressively reverse diff data along an axis
+
+    This is primarily a helper function for `diff`.  See that function's docstring
+    for details.
+
+    """
+    a_out[0] = a_in[0]
+    for i in range(1, a_in.shape[0]):
+        a_out[i] = a_out[i - 1] - a_in[i]
+
+
+def diff(x, reverse=False, axis=-1, **kwargs):
+    """Progressively diff data along an axis
+
+    This function steps through an array, starting with the second element, and
+    evaluates `-` on that element and the preceding one.  This is a useful
+    step in compressing reasonably continuous data.
+
+    Note that, for downstream compatibility with `xor`, if the input array dtype is
+    any unsigned integer, it will be re-interpreted as a `complex128`.
+
+    Parameters
+    ----------
+    x : array_like
+        After conversion to an array, this must have a dtype that can be converted
+        to unsigned integers with 1, 2, 4, or 8 bytes.
+    reverse : bool, optional
+        If True, this reverses the transformation of progressively diffing the
+        data.  In particular, `diff(diff(x), reverse=True)` will be bitwise-identical
+        to `x`.
+    axis : int, optional
+        This is the axis along which the operation will be performed.  You probably
+        want this to correspond to the most quickly varying dimension of the data —
+        the time axis of a timeseries, for example.
+    preserve_dtype : optional
+        Thrown away; here for compatibility with `xor`.
+
+    Returns
+    -------
+    u : ndarray
+
+    """
+    u = np.asarray(x)
+    if issubclass(u.dtype.type, np.unsignedinteger):
+        u = u.view(np.complex128)
+    kwargs.pop("preserve_dtype", None)
+    kwargs["axis"] = axis
+    if "out" in kwargs:
+        kwargs["out"] = np.asarray(kwargs["out"])
+    if reverse:
+        u_diff = diff_reverse(u, **kwargs)
+    else:
+        u_diff = diff_forward(u, **kwargs)
+    return u_diff
 
 
 @guvectorize(_uint_ftylists, '(n)->(n)')
@@ -218,7 +290,7 @@ def multishuffle(shuffle_widths, forward=True):
                     "contiguous in the order you want."
                 )
             a = np.zeros_like(b)
-            b_array_bit = dtype.type(0)
+            b_array_bit = np.uint64(0)
             for i, shuffle_width in enumerate(reversed_shuffle_widths):
                 mask_shift = np.sum(reversed_shuffle_widths[:i])
                 mask = dtype.type(2 ** shuffle_width - 1)

@@ -268,3 +268,39 @@ def test_rpxmb():
         diff_norm = np.linalg.norm(w.data-w2.data, axis=w.modes_axis)
         print(f"Max difference = {np.max(diff_norm)}")
         assert np.max(diff_norm) < L2norm_fractional_tolerance, (np.max(diff_norm), "\n", diff_norm)
+
+
+def test_rpdmb():
+    print()
+    w = sxs.load(shortest_h_com_file, extrapolation_order=4)
+    for L2norm_fractional_tolerance in [1e-6, 1e-8, 1e-10, 1e-12, 1e-14]:
+        print(f"# Tolerance {L2norm_fractional_tolerance}")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            file_name = pathlib.Path(temp_dir) / "Strain_N4"
+            h5_file_name = file_name.with_suffix(".h5")
+            sxs.rpdmb.save(w, file_name, L2norm_fractional_tolerance=L2norm_fractional_tolerance)
+            file_size = h5_file_name.stat().st_size
+            print(f"RPDMB File size = {file_size:_}B")
+            w2 = sxs.rpdmb.load(file_name)
+
+            file_name2 = pathlib.Path(temp_dir) / "Strain2_N4"
+            h5_file_name2 = file_name2.with_suffix(".h5")
+            sxs.rpxmb.save(
+                w, file_name2, L2norm_fractional_tolerance=L2norm_fractional_tolerance,
+                shuffle_widths=sxs.utilities.default_shuffle_widths_old
+            )
+            file_size2 = h5_file_name2.stat().st_size
+            print(f"RPXMB File size = {file_size2:_}B")
+            w3 = sxs.rpxmb.load(file_name2)
+
+            print(f"RPXMB/RPDMB file size = {file_size2/file_size}")
+
+        diff_norm = np.linalg.norm(w.data-w2.data, axis=w.modes_axis)
+        diff_norm2 = np.linalg.norm(w2.data-w3.data, axis=w.modes_axis)
+        print(f"Max RPDMB difference = {np.max(diff_norm)}")
+        print(f"Max RPDMB-RPXMB difference = {np.max(diff_norm2)}")
+        assert np.max(diff_norm) < L2norm_fractional_tolerance, (np.max(diff_norm), "\n", diff_norm)
+        assert np.max(diff_norm2) == 0.0, (np.max(diff_norm2), "\n", diff_norm2)
+        assert np.array_equal(w2.t, w3.t)
+        assert np.array_equal(w2.data, w3.data)
+        assert np.array_equal(w2.frame, w3.frame)
