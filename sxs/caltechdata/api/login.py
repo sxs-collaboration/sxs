@@ -111,10 +111,10 @@ class Login(object):
                         self.access_token = f.readline().strip()
                 except IOError:
                     print("Unable to find the CaltechDATA access token needed to make a deposit.")
-                    print('Failed to open file "{0}" for reading.'.format(path))
+                    print(f"Failed to open file '{path}' for reading.")
                     raise
                 if not self.access_token:
-                    print('The file "{0}" did not contain any text on the first line.'.format(path))
+                    print(f"The file '{path}' did not contain any text on the first line.")
                     print("This is should be a CaltechDATA access token, which is need to make a Deposit.")
                     raise ValueError("Deposit requires a CaltechDATA access token")
 
@@ -127,7 +127,10 @@ class Login(object):
 
                 def __call__(self, request):
                     if request.url.startswith(self.base_url):
-                        request.headers.update({"Authorization": "Bearer {0}".format(self.access_token)})
+                        request.headers.update({"Authorization": f"Bearer {self.access_token}"})
+                        print("!"*1000 + """Adding ["Authorization": "Bearer {self.access_token}"]""")
+                    else:
+                        print("!"*1000 + """Not adding authorization""")
                     return request
 
             self.session.auth = CaltechDATAAuth(self.base_url, self.access_token)
@@ -161,21 +164,90 @@ class Login(object):
         if r.status_code != 200:
             if r.status_code == 401:
                 print(
-                    "The given CaltechDATA access token was not accepted by {0}.  Please ensure that it is still valid.".format(
-                        self.base_url
-                    )
+                    f"The given CaltechDATA access token was not accepted by {self.base_url}.  Please ensure that it is still valid."
                 )
                 print(
                     "Also note that the standard site and the sandbox site use separate logins and separate access tokens."
                 )
             else:
-                print("An unknown error occurred when trying to access {0}.".format(self.base_url))
+                print(f"An unknown error occurred when trying to access {self.base_url}.")
             try:
                 print(r.json())
             except:
                 pass
             r.raise_for_status()
-            raise RuntimeError()  # Will only happen if the response was not strictly an error
+            raise RuntimeError()  # Will only happen if the response was not strictly an HTTP error
+
+    def send_s3(self, path, name=None, verbose=False):
+        import pathlib
+        if name is None:
+            name = str(path)
+        path = pathlib.Path(path).expanduser().resolve()
+        size = path.stat().st_size
+
+        if verbose:
+            print(f"    Starting to upload {name} ({size} B)")
+
+        s3url = f"{self.base_url}tindfiles/sign_s3"
+        chkurl = f"{self.base_url}tindfiles/md5_s3"
+
+        r = self.session.get(s3url)
+        if r.status_code != 200:
+            if r.status_code == 401:
+                print(
+                    f"The given CaltechDATA access token was not accepted by {self.base_url}.  Please ensure that it is still valid."
+                )
+                print(
+                    "Also note that the standard site and the sandbox site use separate logins and separate access tokens."
+                )
+                print(f"Used headers {r.request.headers}")
+            else:
+                print(f"An unknown error occurred when trying to access {self.base_url}.")
+            try:
+                print(r.json())
+            except:
+                pass
+            r.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an HTTP error
+        s3 = r.json()
+        data = s3["data"]
+        bucket = s3["bucket"]
+
+        key = data["fields"]["key"]
+        policy = data["fields"]["policy"]
+        aid = data["fields"]["AWSAccessKeyId"]
+        signature = data["fields"]["signature"]
+        url = data["url"]
+
+        s3headers = {
+            "Host": f"{bucket}.s3.amazonaws.com",
+            "Date": "date",
+            "x-amz-acl": "public-read",
+            "Access-Control-Allow-Origin": "*",
+        }
+
+        with path.open("rb") as f:
+            form = (
+                ("key", key),
+                ("acl", "public-read"),
+                ("AWSAccessKeyID", aid),
+                ("policy", policy),
+                ("signature", signature),
+                ("file", f),
+            )
+            response = self.session.post(url, files=form, headers=s3headers)
+        if response.text:
+            raise Exception(response.text)
+
+        response = self.session.get(f"{chkurl}/{bucket}/{key}/")
+        md5 = response.json()["md5"]
+
+        fileinfo = {"url": key, "filename": name, "md5": md5, "size": size}
+
+        if verbose:
+            print(f"    Successfully uploaded {name} ({size} B)")
+
+        return fileinfo
 
     def download(self, url, path):
         """Download large file efficiently
