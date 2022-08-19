@@ -7,9 +7,16 @@ and retries any failed requests automatically.
 
 
 class Login(object):
-
-    def __init__(self, url="https://cd-sandbox.tind.io/", access_token=None, access_token_path=None,
-                 total_retry_count=50, backoff_factor=0.1, backoff_max=20.0, session=None):
+    def __init__(
+        self,
+        url="https://cd-sandbox.tind.io/",
+        access_token=None,
+        access_token_path=None,
+        total_retry_count=50,
+        backoff_factor=0.1,
+        backoff_max=20.0,
+        session=None,
+    ):
         """Initialize a Login object for interacting with CaltechDATA
 
         This object encapsulates the credentials needed to interact with the CaltechDATA API, and
@@ -95,21 +102,21 @@ class Login(object):
             else:
                 if access_token_path is None:
                     if "sandbox" in url:
-                        access_token_path = '~/.credentials/caltechdata/access_token_sandbox'
+                        access_token_path = "~/.credentials/caltechdata/access_token_sandbox"
                     else:
-                        access_token_path = '~/.credentials/caltechdata/access_token'
+                        access_token_path = "~/.credentials/caltechdata/access_token"
                 path = os.path.expanduser(access_token_path)
                 try:
-                    with open(path, 'r') as f:
+                    with open(path, "r") as f:
                         self.access_token = f.readline().strip()
                 except IOError:
-                    print('Unable to find the CaltechDATA access token needed to make a deposit.')
+                    print("Unable to find the CaltechDATA access token needed to make a deposit.")
                     print('Failed to open file "{0}" for reading.'.format(path))
                     raise
                 if not self.access_token:
                     print('The file "{0}" did not contain any text on the first line.'.format(path))
-                    print('This is should be a CaltechDATA access token, which is need to make a Deposit.')
-                    raise ValueError('Deposit requires a CaltechDATA access token')
+                    print("This is should be a CaltechDATA access token, which is need to make a Deposit.")
+                    raise ValueError("Deposit requires a CaltechDATA access token")
 
             # Ensure that this session sends the Authorization header with every request to the base_url
             class CaltechDATAAuth(requests.auth.AuthBase):
@@ -117,10 +124,12 @@ class Login(object):
                     self.base_url = base_url
                     self.access_token = access_token
                     super(CaltechDATAAuth, self).__init__()
+
                 def __call__(self, request):
                     if request.url.startswith(self.base_url):
                         request.headers.update({"Authorization": "Bearer {0}".format(self.access_token)})
                     return request
+
             self.session.auth = CaltechDATAAuth(self.base_url, self.access_token)
 
         # Note that some requests require different choices for 'Accept' and 'Content-Type'; these
@@ -136,7 +145,12 @@ class Login(object):
         retry = Retry(
             total=total_retry_count,
             backoff_factor=backoff_factor,
-            status_forcelist=[500, 502, 503, 504,],
+            status_forcelist=[
+                500,
+                502,
+                503,
+                504,
+            ],
         )
         adapter = HTTPAdapter(max_retries=retry)
         self.session.mount(self.base_url, adapter)
@@ -146,10 +160,16 @@ class Login(object):
         r = self.session.get(url)
         if r.status_code != 200:
             if r.status_code == 401:
-                print('The given CaltechDATA access token was not accepted by {0}.  Please ensure that it is still valid.'.format(self.base_url))
-                print('Also note that the standard site and the sandbox site use separate logins and separate access tokens.')
+                print(
+                    "The given CaltechDATA access token was not accepted by {0}.  Please ensure that it is still valid.".format(
+                        self.base_url
+                    )
+                )
+                print(
+                    "Also note that the standard site and the sandbox site use separate logins and separate access tokens."
+                )
             else:
-                print('An unknown error occurred when trying to access {0}.'.format(self.base_url))
+                print("An unknown error occurred when trying to access {0}.".format(self.base_url))
             try:
                 print(r.json())
             except:
@@ -175,6 +195,7 @@ class Login(object):
         from os.path import split, exists, join, isdir
         from functools import partial
         from urllib.parse import urlparse
+
         url_path = urlparse(url).path
         if isdir(path):
             path = join(path, url_path[1:])
@@ -191,7 +212,7 @@ class Login(object):
             local_filename = join(directory, filename)
         r = self.session.get(url, stream=True, allow_redirects=True)
         if r.status_code != 200:
-            print('An error occurred when trying to access <{0}>.'.format(url))
+            print("An error occurred when trying to access <{0}>.".format(url))
             try:
                 print(r.json())
             except:
@@ -200,7 +221,7 @@ class Login(object):
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         r.raw.read = partial(r.raw.read, decode_content=True)
         # r.raw.decode_content = True
-        with open(local_filename, 'wb') as f:
+        with open(local_filename, "wb") as f:
             copyfileobj(r.raw, f)
         return local_filename
 
@@ -212,6 +233,7 @@ class Login(object):
     def deposit(self, deposition_id=None, ignore_deletion=False):
         """Retrieve a deposit created with this login"""
         from .deposit import Deposit
+
         return Deposit(self, deposition_id, ignore_deletion)
 
     def search(self, q=None, sort=None, size=1000, page=1, allversions=False, max_pages=10):
@@ -251,20 +273,20 @@ class Login(object):
             what we've got.
 
         """
-        params={}
+        params = {}
         if q is not None:
-            params['q'] = q
-        if sort is not None and sort in ['bestmatch', 'mostrecent', '-bestmatch', '-mostrecent']:
-            params['sort'] = sort
-        params['page'] = page
-        params['size'] = size
+            params["q"] = q
+        if sort is not None and sort in ["bestmatch", "mostrecent", "-bestmatch", "-mostrecent"]:
+            params["sort"] = sort
+        params["page"] = page
+        params["size"] = size
         if allversions:
-            params['allversions'] = ''
+            params["allversions"] = ""
 
         url = "{0}api/records".format(self.base_url)
         r = self.session.get(url, params=params)
         if r.status_code != 200:
-            print('An unknown error occurred when trying to access {0}.'.format(url))
+            print("An unknown error occurred when trying to access {0}.".format(url))
             print('The search parameters were "{0}"'.format(params))
             try:
                 print(r.json())
@@ -277,9 +299,11 @@ class Login(object):
         if len(json) == size:
             page += 1
             if page > max_pages:
-                print('Search is not yet complete after {0} pages; returning with what we have.'.format(max_pages))
+                print("Search is not yet complete after {0} pages; returning with what we have.".format(max_pages))
                 return json  # Note: This will percolate back up the recursion to include other results
-            return json + self.search(q=q, sort=sort, page=page, size=size, allversions=allversions, max_pages=max_pages)
+            return json + self.search(
+                q=q, sort=sort, page=page, size=size, allversions=allversions, max_pages=max_pages
+            )
 
         return json
 
@@ -288,34 +312,34 @@ class Login(object):
         deposits = self.search()
         for d in deposits:
             try:
-                if d['title'] == '':
-                    d = self.deposit(d['id'], ignore_deletion=True)
+                if d["title"] == "":
+                    d = self.deposit(d["id"], ignore_deletion=True)
                     if not d.files:
                         d.delete_deposit(confirmed=True)
                         deleted_deposits += 1
             except:
                 pass
-        print('Deleted {0} deposits'.format(deleted_deposits))
+        print("Deleted {0} deposits".format(deleted_deposits))
 
     def discard_all_drafts(self):
         discarded_drafts = 0
         deposits = self.search()
         for d in deposits:
             try:
-                if d['state'] == 'inprogress':
-                    d = self.deposit(d['id'], ignore_deletion=True)
+                if d["state"] == "inprogress":
+                    d = self.deposit(d["id"], ignore_deletion=True)
                     d.discard()
                     discarded_drafts += 1
             except:
                 pass
-        print('Discarded {0} drafts'.format(discarded_drafts))
+        print("Discarded {0} drafts".format(discarded_drafts))
 
     def awaiting_approval(self, community_id):
         """List all records awaiting approval for the given community"""
-        url = '{0}/api/records/?q=provisional_communities:{1}'.format(self.base_url, community_id)
+        url = "{0}/api/records/?q=provisional_communities:{1}".format(self.base_url, community_id)
         r = self.session.get(url)
         if r.status_code != 200:
-            print('Unable to find any records for community {0}.'.format(community_id))
+            print("Unable to find any records for community {0}.".format(community_id))
             try:
                 print(r.json())
             except:
@@ -330,10 +354,14 @@ class Login(object):
         data = {"recid": int(record_id), "action": "accept"}
         r = self.session.post(url, json=data)
         if r.status_code != 200:
-            print('Unable to accept record id {0} into community {1}; status code={2}.'.format(record_id, community_id, r.status_code))
+            print(
+                "Unable to accept record id {0} into community {1}; status code={2}.".format(
+                    record_id, community_id, r.status_code
+                )
+            )
             try:
                 r_json = r.json()
-                print('Response JSON:')
+                print("Response JSON:")
                 print(r_json)
             except:
                 pass
@@ -359,12 +387,12 @@ class Login(object):
             depositions = [self.deposit(deposition_id, ignore_deletion=True).representation]
         total_size = 0
         for deposition in depositions:
-            id = deposition['id']
+            id = deposition["id"]
             d = self.deposit(id, ignore_deletion=True)
-            d_total_size = sum([f['filesize'] for f in d.files])
+            d_total_size = sum([f["filesize"] for f in d.files])
             print('{1} in "{2}" (CaltechDATA ID {0})'.format(id, convert_size(d_total_size), d.title))
             total_size += d_total_size
-        print('{0} in {1} deposits'.format(convert_size(total_size), len(depositions)))
+        print("{0} in {1} deposits".format(convert_size(total_size), len(depositions)))
         if human_readable:
             return convert_size(total_size)  # Note: the return type will be str
         else:

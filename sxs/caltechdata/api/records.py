@@ -7,7 +7,6 @@ no Login object is required.
 
 
 class Records(object):
-
     @classmethod
     def search(cls, q=None, sort=None, page=1, size=1000, sandbox=False, all_versions=False, max_pages=10):
         """Search public records
@@ -58,19 +57,19 @@ class Records(object):
             base_url = url_standard
         url = base_url + "api/records/"
 
-        params={}
+        params = {}
         if q is not None:
-            params['q'] = q
+            params["q"] = q
         if sort is not None:
-            params['sort'] = sort
-        params['page'] = page
-        params['size'] = size
+            params["sort"] = sort
+        params["page"] = page
+        params["size"] = size
         if all_versions:
-            params['all_versions'] = ''
+            params["all_versions"] = ""
 
-        r = requests.get(url, params=params, headers={'Accept': 'application/json'})
+        r = requests.get(url, params=params, headers={"Accept": "application/json"})
         if r.status_code != 200:
-            print('An unknown error occurred when trying to access {0}.'.format(url))
+            print("An unknown error occurred when trying to access {0}.".format(url))
             print('The search parameters were "{0}"'.format(params))
             try:
                 print(r.json())
@@ -83,8 +82,10 @@ class Records(object):
         if len(json) == size:
             page += 1
             if page > max_pages:
-                print('Search is not yet complete after {0} pages; returning with what we have.'.format(max_pages))
+                print("Search is not yet complete after {0} pages; returning with what we have.".format(max_pages))
                 return r.json()
-            return json + cls.search(q=q, sort=sort, page=page, size=size, sandbox=sandbox, all_versions=all_versions, max_pages=max_pages)
+            return json + cls.search(
+                q=q, sort=sort, page=page, size=size, sandbox=sandbox, all_versions=all_versions, max_pages=max_pages
+            )
 
         return json

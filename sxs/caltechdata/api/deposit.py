@@ -5,8 +5,8 @@ them.  Thus, you need the correct login information to access a deposit.
 
 """
 
-class Deposit(object):
 
+class Deposit(object):
     def __init__(self, login, deposition_id=None, ignore_deletion=False):
         """Initialize a Deposit object for creating a new CaltechDATA entry
 
@@ -49,7 +49,7 @@ class Deposit(object):
             url = "{0}api/records".format(self.base_url)
             r = self._post(url, data="{}")
             if r.status_code != 201:
-                print('Unable to create a new deposit on {0}.'.format(url))
+                print("Unable to create a new deposit on {0}.".format(url))
                 try:
                     print(r.json())
                 except:
@@ -108,12 +108,12 @@ class Deposit(object):
 
     @property
     def metadata(self):
-        return self.representation['metadata']
+        return self.representation["metadata"]
 
     @property
     def links(self):
-        return self.representation['links']
-    
+        return self.representation["links"]
+
     @property
     def deposition_id(self):
         """Return id number of this deposit"""
@@ -122,12 +122,12 @@ class Deposit(object):
     @property
     def id(self):
         """Return id number of this deposit"""
-        return self.representation['id']
+        return self.representation["id"]
 
     @property
     def id_latest(self):
         """Return id number of the most recent version of this deposit"""
-        return self.links['latest'].split('/')[-1]
+        return self.links["latest"].split("/")[-1]
 
     @property
     def id_latest_draft(self):
@@ -136,17 +136,17 @@ class Deposit(object):
         Note: There may be no draft version, in which case this function will raise a KeyError.
 
         """
-        return self.links['latest_draft'].split('/')[-1]
+        return self.links["latest_draft"].split("/")[-1]
 
     @property
     def website(self):
         """URL of web page on which this deposit is found"""
-        return self.links['html']
+        return self.links["html"]
 
     @property
     def website_latest(self):
         """URL of web page on which the current version of this deposit is found"""
-        return self.links['latest_html']
+        return self.links["latest_html"]
 
     @property
     def website_latest_draft(self):
@@ -155,17 +155,17 @@ class Deposit(object):
         Note: There may be no draft version, in which case this function will raise a KeyError.
 
         """
-        return self.links['latest_draft_html']
+        return self.links["latest_draft_html"]
 
     @property
     def record(self):
         """URL of API endpoint for this deposit"""
-        return self.links['record']
+        return self.links["record"]
 
     @property
     def record_latest(self):
         """URL of API endpoint for most recent version of this deposit"""
-        return self.links['latest']
+        return self.links["latest"]
 
     @property
     def record_latest_draft(self):
@@ -174,7 +174,7 @@ class Deposit(object):
         Note: There may be no draft version, in which case this function will raise a KeyError.
 
         """
-        return self.links['latest_draft']
+        return self.links["latest_draft"]
 
     @property
     def state(self):
@@ -183,31 +183,31 @@ class Deposit(object):
         The documentation states that this may be one of:
             * inprogress: Deposit metadata can be updated. If deposit is also unsubmitted (see
               submitted) files can be updated as well.
-            * done: Deposit has been published. 
+            * done: Deposit has been published.
             * error: Deposit is in an error state - contact CaltechDATA support.
         However, 'inprogress' seems to have been replaced by 'unsubmitted'.
 
         """
-        return self.representation.get('state', 'error')
-    
+        return self.representation.get("state", "error")
+
     @property
     def submitted(self):
         """Return True if this deposit has been submitted/published"""
-        return bool(self.representation.get('submitted', False))
-    
+        return bool(self.representation.get("submitted", False))
+
     @property
     def published(self):
         """Return True if this deposit has been submitted/published"""
-        return self.submitted and self.state=='done'
+        return self.submitted and self.state == "done"
 
     @property
     def is_latest(self):
         """Return True if this deposit is the most recent version"""
-        return (self.links.get('latest', 1) == self.links.get('record', 2))
+        return self.links.get("latest", 1) == self.links.get("record", 2)
 
     def get_latest(self):
         """Return a new Deposit object pointing to the latest version of this deposit
-        
+
         Note: This deposit may already be the latest version, in which case a new object pointing
         to this deposit is returned.
 
@@ -232,15 +232,19 @@ class Deposit(object):
 
         """
         url = "{0}api/deposit/depositions".format(self.base_url)
-        conceptrecid = self.representation['conceptrecid']
+        conceptrecid = self.representation["conceptrecid"]
         params = {
-            'q': 'conceptrecid:{0}'.format(conceptrecid),
-            'all_versions': '',
-            'sort': 'version',
+            "q": "conceptrecid:{0}".format(conceptrecid),
+            "all_versions": "",
+            "sort": "version",
         }
         r = self._get(url, params=params)
         if r.status_code != 200:
-            print('The list of versions for this deposit (id "{0}") could not be accessed on {1}.'.format(self.deposition_id, url))
+            print(
+                'The list of versions for this deposit (id "{0}") could not be accessed on {1}.'.format(
+                    self.deposition_id, url
+                )
+            )
             try:
                 print(r.json())
             except:
@@ -249,13 +253,13 @@ class Deposit(object):
             raise RuntimeError()  # Will only happen if the response was not strictly an error
         version_list = r.json()
         for v, version in enumerate(version_list, 1):
-            if 'version' not in version['metadata']:
-                version['metadata']['version'] = v
+            if "version" not in version["metadata"]:
+                version["metadata"]["version"] = v
         return version_list
 
     @property
     def title(self):
-        return self.representation['title']
+        return self.representation["title"]
 
     @property
     def files(self):
@@ -275,23 +279,23 @@ class Deposit(object):
         use these URLs.  For example, trying to get the 'download' link results in a 404 message.
 
         """
-        return self.representation['files']
+        return self.representation["files"]
 
     @property
     def file_checksums(self):
-        return {d['filename']: d['checksum'] for d in self.files}
+        return {d["filename"]: d["checksum"] for d in self.files}
 
     @property
     def file_sizes(self):
-        return {d['filename']: d['filesize'] for d in self.files}
+        return {d["filename"]: d["filesize"] for d in self.files}
 
     @property
     def file_ids(self):
-        return {d['filename']: d['id'] for d in self.files}
+        return {d["filename"]: d["id"] for d in self.files}
 
     @property
     def file_names(self):
-        return [d['filename'] for d in self.files]
+        return [d["filename"] for d in self.files]
 
     def update_metadata(self, metadata, refresh_information=True):
         """Update this deposit with the given metadata
@@ -350,7 +354,7 @@ class Deposit(object):
             * 'diagram'
             * 'photo'
             * 'other'
-        
+
         publication_date: string [defaults to current date]
             Date of publication in ISO8601 format (YYYY-MM-DD).
 
@@ -506,10 +510,11 @@ class Deposit(object):
 
         """
         import json
+
         url = "{0}api/deposit/depositions/{1}".format(self.base_url, self.deposition_id)
-        r = self._put(url, data=json.dumps({'metadata': metadata}))
+        r = self._put(url, data=json.dumps({"metadata": metadata}))
         if r.status_code != 200:
-            print('Updating deposit {0} failed.'.format(self.deposition_id))
+            print("Updating deposit {0} failed.".format(self.deposition_id))
             try:
                 print(r.json())
             except:
@@ -525,11 +530,11 @@ class Deposit(object):
         url = "{0}api/deposit/depositions/{1}/actions/edit".format(self.base_url, self.deposition_id)
         r = self._post(url)
         if r.status_code != 201:
-            print('Unlocking deposit {0} for editing failed.'.format(self.deposition_id))
+            print("Unlocking deposit {0} for editing failed.".format(self.deposition_id))
             if r.status_code == 400:
-                print('Deposit state does not allow for editing (e.g., deposits in state `inprogress`).')
+                print("Deposit state does not allow for editing (e.g., deposits in state `inprogress`).")
             if r.status_code == 409:
-                print('Deposit is in the process of being integrated.  Please wait 5 minutes before trying again.')
+                print("Deposit is in the process of being integrated.  Please wait 5 minutes before trying again.")
             try:
                 print(r.json())
             except:
@@ -539,15 +544,17 @@ class Deposit(object):
         if refresh_information:
             self.refresh_information
         return r
-        
+
     def discard(self, refresh_information=True):
         """Discard changes in the current editing session."""
         url = "{0}api/deposit/depositions/{1}/actions/discard".format(self.base_url, self.deposition_id)
         r = self._post(url)
         if r.status_code != 201:
-            print('Discarding changes from the current editing session to deposit {0} failed.'.format(self.deposition_id))
+            print(
+                "Discarding changes from the current editing session to deposit {0} failed.".format(self.deposition_id)
+            )
             if r.status_code == 400:
-                print('Deposit is not being edited.')
+                print("Deposit is not being edited.")
             try:
                 print(r.json())
             except:
@@ -575,7 +582,7 @@ class Deposit(object):
         """
         self.register_new_version(refresh_information=refresh_information)
         return self.login.deposit(self.id_latest_draft, ignore_deletion=ignore_deletion)
-        
+
     def register_new_version(self, refresh_information=True):
         """Create a new version of a deposit.
 
@@ -598,9 +605,9 @@ class Deposit(object):
         url = "{0}api/deposit/depositions/{1}/actions/newversion".format(self.base_url, self.deposition_id)
         r = self._post(url)
         if r.status_code != 201:
-            print('Failed to register new version of deposit {0}.'.format(self.deposition_id))
+            print("Failed to register new version of deposit {0}.".format(self.deposition_id))
             if r.status_code == 403:
-                print('This deposit may not have been published, in which case new versions are not allowed.')
+                print("This deposit may not have been published, in which case new versions are not allowed.")
             try:
                 print(r.json())
             except:
@@ -612,23 +619,23 @@ class Deposit(object):
         return r
 
     def delete_file(self, file_name, refresh_information=True):
-        matching_files = [(i, f) for i, f in enumerate(self.files) if f['filename'] == file_name]
+        matching_files = [(i, f) for i, f in enumerate(self.files) if f["filename"] == file_name]
         if not matching_files:
             print('File name "{0}" not found on CaltechDATA.'.format(file_name))
             raise ValueError(file_name)
         file_index, file = matching_files[0]
-        file_name = file['filename']
-        file_id = file['id']
-        url = '{0}api/deposit/depositions/{1}/files/{2}'.format(self.base_url, self.id, file_id)
+        file_name = file["filename"]
+        file_id = file["id"]
+        url = "{0}api/deposit/depositions/{1}/files/{2}".format(self.base_url, self.id, file_id)
         r = self._delete(url)
         if r.status_code != 204:
             print('Deleting file "{0}" from deposit "{1}" failed.'.format(file_name, self.id))
             if r.status_code == 403:
                 print('Server replied with "Forbidden: Deleting an already published deposition file."')
-                print('Try get_new_version, and then delete the file from that version.')
+                print("Try get_new_version, and then delete the file from that version.")
             if r.status_code == 404:
                 print('File id "{0}" does not exist in deposition "{1}".'.format(file_id, self.id))
-                print('Try refreshing the local information in this Deposit object, and trying again as relevant.')
+                print("Try refreshing the local information in this Deposit object, and trying again as relevant.")
             try:
                 print(r.json())
             except:
@@ -638,7 +645,7 @@ class Deposit(object):
         if refresh_information:
             self.refresh_information
         else:
-            self.representation['files'].pop(file_index)
+            self.representation["files"].pop(file_index)
         return r
 
     def upload_file(self, path, name=None, relpath_start=None, skip_checksum=False, refresh_information=True):
@@ -668,6 +675,7 @@ class Deposit(object):
         """
         import os
         from ...utilities import md5checksum
+
         if relpath_start is None:
             relpath_start = os.curdir
         if name is None:
@@ -676,23 +684,23 @@ class Deposit(object):
             name = os.path.relpath(abspath, absstart)
             pardir_sep = os.pardir + os.sep
             while name.startswith(pardir_sep):
-                name = name[len(pardir_sep):]
+                name = name[len(pardir_sep) :]
         if not skip_checksum:
             file_checksums = self.file_checksums
             if name in file_checksums:
                 if md5checksum(path) == file_checksums[name]:
-                    print('File {0} has already been uploaded.  Skipping this upload.'.format(name))
+                    print("File {0} has already been uploaded.  Skipping this upload.".format(name))
                     return None
         if name in self.file_ids:
             self.delete_file(name, refresh_information=False)
-        url = '{0}/{1}'.format(self.links['bucket'], name)
-        r = self._put(url, data=open(path, 'rb'),  headers={"Content-Type": "application/octet-stream"})
+        url = "{0}/{1}".format(self.links["bucket"], name)
+        r = self._put(url, data=open(path, "rb"), headers={"Content-Type": "application/octet-stream"})
         if r.status_code != 200:
-            print('Uploading {0} to deposit {1} failed.'.format(path, self.deposition_id))
-            print('Upload url was {0}.'.format(url))
+            print("Uploading {0} to deposit {1} failed.".format(path, self.deposition_id))
+            print("Upload url was {0}.".format(url))
             if r.status_code == 400:
                 if os.stat(path).st_size == 0:
-                    print('This file has size zero, which leads to an error response.')
+                    print("This file has size zero, which leads to an error response.")
             try:
                 print(r.json())
             except:
@@ -705,22 +713,23 @@ class Deposit(object):
 
     def rename_file(self, old_file_name, new_file_name, refresh_information=True):
         import json
+
         file_ids = self.file_ids
         if old_file_name not in file_ids:
             print('File name "{0}" not found on CaltechDATA.'.format(old_file_name))
             raise ValueError(old_file_name)
         file_id = file_ids[old_file_name]
-        url = '{0}api/deposit/depositions/{1}/files/{2}'.format(self.base_url, self.id, file_id)
-        rename_data = {'filename': new_file_name}
+        url = "{0}api/deposit/depositions/{1}/files/{2}".format(self.base_url, self.id, file_id)
+        rename_data = {"filename": new_file_name}
         r = self._put(url, data=json.dumps(rename_data))
         if r.status_code != 200:
             print('Renaming file "{0}" to "{1}" in deposit "{2}" failed.'.format(old_file_name, new_file_name, self.id))
             if r.status_code == 403:
                 print('Server replied with "Forbidden: Renaming an already published deposition file."')
-                print('Try get_new_version, and then delete the file from that version.')
+                print("Try get_new_version, and then delete the file from that version.")
             if r.status_code == 404:
                 print('File id "{0}" does not exist in deposition "{1}".'.format(file_id, self.id))
-                print('Try refreshing the local information in this Deposit object, and trying again as relevant.')
+                print("Try refreshing the local information in this Deposit object, and trying again as relevant.")
             try:
                 print(r.json())
             except:
@@ -730,7 +739,7 @@ class Deposit(object):
         if refresh_information:
             self.refresh_information
         return r
-        
+
     def upload_all_files(self, top_directory, exclude=[], skip_checksum=False, refresh_information=True):
         """Recursively upload all files found in `top_directory`
 
@@ -740,6 +749,7 @@ class Deposit(object):
 
         """
         from ...utilities import find_files
+
         paths_and_names = find_files(top_directory, exclude=exclude)
         for path, name in paths_and_names:
             print("Uploading\n    {0}\nas\n    {1}".format(path, name))
@@ -758,10 +768,11 @@ class Deposit(object):
 
         """
         from copy import deepcopy
+
         metadata = deepcopy(self.metadata)
-        metadata.update({'doi': metadata['prereserve_doi']['doi']})
+        metadata.update({"doi": metadata["prereserve_doi"]["doi"]})
         return self.update_metadata(metadata, refresh_information=refresh_information)
-    
+
     def publish(self, refresh_information=True):
         """Publish this deposit on CaltechDATA.
 
@@ -776,16 +787,16 @@ class Deposit(object):
         the metadata (including the description) without changing the DOI.
 
         """
-        url = '{0}api/deposit/depositions/{1}/actions/publish'.format(self.base_url, self.deposition_id)
+        url = "{0}api/deposit/depositions/{1}/actions/publish".format(self.base_url, self.deposition_id)
         r = self._post(url)
         if r.status_code != 202:
-            print('Publishing deposit {0} failed.'.format(self.deposition_id))
+            print("Publishing deposit {0} failed.".format(self.deposition_id))
             if r.status_code == 500:
                 print('Server returned the code "500 Internal Server Error".')
-                print('This can have any number of causes, but frequently it is because not')
-                print('all of the required information is present.  In particular, every')
-                print('deposit must contain at least one file, and all of its metadata')
-                print('must be present.  See the warning in `Deposit.update_metadata`.')
+                print("This can have any number of causes, but frequently it is because not")
+                print("all of the required information is present.  In particular, every")
+                print("deposit must contain at least one file, and all of its metadata")
+                print("must be present.  See the warning in `Deposit.update_metadata`.")
             try:
                 print(r.json())
             except:
@@ -795,7 +806,7 @@ class Deposit(object):
         if refresh_information:
             self.refresh_information
         return r
-    
+
     def delete_deposit(self, confirmed=False):
         """Permanently delete this deposit from CaltechDATA
 
@@ -807,17 +818,22 @@ class Deposit(object):
         """
         if not confirmed:
             import sys, select
+
             timeout = 60
             print("Please confirm that you want to delete the deposit {0}.".format(self.deposition_id))
             print("You have {0} seconds to confirm by entering 'yes'.".format(timeout))
             i, o, e = select.select([sys.stdin], [], [], timeout)
-            if not i or sys.stdin.readline().strip().lower() != 'yes':
-                print('No confirmation received.  Aborting deletion of CaltechDATA deposit {0}.'.format(self.deposition_id))
-                raise RuntimeError('No confirmation')
-        url = '{0}api/deposit/depositions/{1}'.format(self.base_url, self.deposition_id)
+            if not i or sys.stdin.readline().strip().lower() != "yes":
+                print(
+                    "No confirmation received.  Aborting deletion of CaltechDATA deposit {0}.".format(
+                        self.deposition_id
+                    )
+                )
+                raise RuntimeError("No confirmation")
+        url = "{0}api/deposit/depositions/{1}".format(self.base_url, self.deposition_id)
         r = self._delete(url)
         if r.status_code != 204:
-            print('Deleting deposit {0} failed.'.format(self.deposition_id))
+            print("Deleting deposit {0} failed.".format(self.deposition_id))
             try:
                 print(r.json())
             except:
@@ -853,5 +869,7 @@ class Deposit(object):
 
                 >>> d.delete()
 
-            """.format(deposition_id=self.deposition_id, base_url=self.base_url)
+            """.format(
+                deposition_id=self.deposition_id, base_url=self.base_url
+            )
             warn(dedent(warning))

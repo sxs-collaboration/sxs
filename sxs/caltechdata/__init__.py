@@ -1,5 +1,6 @@
 from .api import Login, Deposit, Records
-#from . import catalog, simannex, surrogatemodeling
+
+# from . import catalog, simannex, surrogatemodeling
 
 
 import datetime
@@ -12,6 +13,8 @@ from .. import sxs_id, Metadata
 
 
 """
+
+
 def upload(directory, login=None):
     if login is None:
         login = Login()
@@ -25,7 +28,7 @@ def upload(directory, login=None):
         "Horizons.h5",
         "Matter.h5",
     ]
-    
+
     # Check that `directory` is a valid SXS dataset
     # - Name must contain either "Public" or "Private" followed by at least one subdirectory
     # - Must contain common-metadata.txt (though this will not be uploaded)
@@ -49,7 +52,7 @@ def upload(directory, login=None):
             if not (lev / f).exists():
                 raise ValueError(f"""Missing file "{f}" in "{lev}".""")
         if not (lev / "metadata.json").exists():
-            mtxt = (lev / "metadata.txt")
+            mtxt = lev / "metadata.txt"
             if not mtxt.exists():
                 raise ValueError(f"""Missing both "metadata.txt" and "metadata.json" in "{lev}".""")
             else:
@@ -74,23 +77,29 @@ def upload(directory, login=None):
     highest_lev = sorted(set(f.parent for f in files))[-1]
 
     # Set up the metadata; see https://inveniordm.docs.cern.ch/reference/metadata for details
-    resource_type = {"id": "dataset"}  # https://github.com/caltechlibrary/caltechdata/blob/main/app_data/vocabularies/resource_types.yaml
-    creators = [{
-        "person_or_org": {
-            "type": "organizational",
-            "name": "SXS Collaboration",
-        },
-    }]
+    resource_type = {
+        "id": "dataset"
+    }  # https://github.com/caltechlibrary/caltechdata/blob/main/app_data/vocabularies/resource_types.yaml
+    creators = [
+        {
+            "person_or_org": {
+                "type": "organizational",
+                "name": "SXS Collaboration",
+            },
+        }
+    ]
     title = f"Binary black-hole simulation {sxsid}"
     publication_date = datetime.datetime.utcnow().strftime("%Y-%M-%d")
-    additional_titles = [{
-        "title": f"{original_name}",
-        "type": {
-            "id": "alternative-title",
-            "title": {"en": "Original simulation name"},
-        },
-    }]
-    description = "Simulation of a black-hole binary system evolved by the <a href=\"https://www.black-holes.org/code/SpEC.html\">SpEC code</a>."
+    additional_titles = [
+        {
+            "title": f"{original_name}",
+            "type": {
+                "id": "alternative-title",
+                "title": {"en": "Original simulation name"},
+            },
+        }
+    ]
+    description = 'Simulation of a black-hole binary system evolved by the <a href="https://www.black-holes.org/code/SpEC.html">SpEC code</a>.'
     rights = [{"id": "cc-by-4.0"}]
     subjects = [
         {"id": "http://www.oecd.org/science/inno/38235147.pdf?1.3"},
@@ -104,10 +113,7 @@ def upload(directory, login=None):
     default_preview_file = str(highest_lev / "metadata.json")
 
     metadata = {
-        "access": {
-            "files": "public",
-            "record": "public"
-        },
+        "access": {"files": "public", "record": "public"},
         "metadata": {
             "resource_type": resource_type,
             "creators": creators,
@@ -126,44 +132,26 @@ def upload(directory, login=None):
     }
 
     metadata = {
-      "access": {
-        "record": "public",
-        "files": "public"
-      },
-      "files": {
-        "enabled": True
-      },
-      "metadata": {
-        "creators": [
-          {
-            "person_or_org": {
-              "family_name": "Brown",
-              "given_name": "Troy",
-              "type": "personal"
-            }
-          },
-          {
-            "person_or_org": {
-              "family_name": "Collins",
-              "given_name": "Thomas",
-              "identifiers": [
-                {"scheme": "orcid", "identifier": "0000-0002-1825-0097"}
-              ],
-              "name": "Collins, Thomas",
-              "type": "personal"
-            },
-            "affiliations": [
-              {
-                "id": "01ggx4157",
-                "name": "Entity One"
-              }
-            ]
-          }
-        ],
-        "publication_date": "2020-06-01",
-        "resource_type": { "id": "image-photo" },
-        "title": "A Romans story",
-      }
+        "access": {"record": "public", "files": "public"},
+        "files": {"enabled": True},
+        "metadata": {
+            "creators": [
+                {"person_or_org": {"family_name": "Brown", "given_name": "Troy", "type": "personal"}},
+                {
+                    "person_or_org": {
+                        "family_name": "Collins",
+                        "given_name": "Thomas",
+                        "identifiers": [{"scheme": "orcid", "identifier": "0000-0002-1825-0097"}],
+                        "name": "Collins, Thomas",
+                        "type": "personal",
+                    },
+                    "affiliations": [{"id": "01ggx4157", "name": "Entity One"}],
+                },
+            ],
+            "publication_date": "2020-06-01",
+            "resource_type": {"id": "image-photo"},
+            "title": "A Romans story",
+        },
     }
 
     # Search for an existing record with this name
@@ -205,20 +193,17 @@ def upload(directory, login=None):
 
         # Initiate the file
         r = login.session.post(links["files"], data=json.dumps([{"key": name}]))
-        assert r.status_code == 201, \
-            f"Failed to create file {f} (code: {r.status_code})"
+        assert r.status_code == 201, f"Failed to create file {f} (code: {r.status_code})"
         file_links = r.json()["entries"][0]["links"]
 
         # Upload file content by streaming the data
         with open(f, "rb") as fp:
             r = login.session.put(file_links["content"], data=fp, headers={"Content-Type": "application/octet-stream"})
-        assert r.status_code == 200, \
-            f"Failed to upload file contet {f} (code: {r.status_code})"
+        assert r.status_code == 200, f"Failed to upload file contet {f} (code: {r.status_code})"
 
         # Commit the file.
         r = login.session.post(file_links["commit"])
-        assert r.status_code == 200, \
-            f"Failed to commit file {f} (code: {r.status_code})"
+        assert r.status_code == 200, f"Failed to commit file {f} (code: {r.status_code})"
 
     # Publish
     d.publish()
