@@ -5,6 +5,30 @@ and retries any failed requests automatically.
 
 """
 
+import requests
+
+class CaltechDATAAuth(requests.auth.AuthBase):
+    def __init__(self, base_url, access_token):
+        self.base_url = base_url
+        self.access_token = access_token
+        #super(CaltechDATAAuth, self).__init__()
+
+    def __call__(self, request):
+        if request.url.startswith(self.base_url):
+            request.headers["Authorization"] = f"Bearer {self.access_token}"
+        return request
+
+    def __eq__(self, other):
+        return all(
+            [
+                self.base_url == getattr(other, "base_url", None),
+                self.access_token == getattr(other, "access_token", None),
+            ]
+        )
+
+    def __ne__(self, other):
+        return not self == other
+
 
 class Login(object):
     def __init__(
@@ -89,51 +113,33 @@ class Login(object):
 
         self.base_url = url
 
-        # The Session object will handle all requests we make.
+        # The `session` object will handle all requests we make.
         self.session = session or requests.Session()
 
-        # If the input session object succeeds at a `get`, we can skip a lot of the following
-        r = self.session.get("{0}api/records".format(self.base_url))
-        if r.status_code != 200:  # That's okay, we mostly expected this
+        # Set the CaltechDATA API access token
+        if access_token is not None:
+            self.access_token = access_token
+        else:
+            if access_token_path is None:
+                if "sandbox" in url:
+                    access_token_path = "~/.credentials/caltechdata/access_token_sandbox"
+                else:
+                    access_token_path = "~/.credentials/caltechdata/access_token"
+            path = os.path.expanduser(access_token_path)
+            try:
+                with open(path, "r") as f:
+                    self.access_token = f.readline().strip()
+            except IOError:
+                print("Unable to find the CaltechDATA access token needed to make a deposit.")
+                print(f"Failed to open file '{path}' for reading.")
+                raise
+            if not self.access_token:
+                print(f"The file '{path}' did not contain any text on the first line.")
+                print("This is should be a CaltechDATA access token, which is need to make a Deposit.")
+                raise ValueError("Deposit requires a CaltechDATA access token")
 
-            # Set the CaltechDATA API access token
-            if access_token is not None:
-                self.access_token = access_token
-            else:
-                if access_token_path is None:
-                    if "sandbox" in url:
-                        access_token_path = "~/.credentials/caltechdata/access_token_sandbox"
-                    else:
-                        access_token_path = "~/.credentials/caltechdata/access_token"
-                path = os.path.expanduser(access_token_path)
-                try:
-                    with open(path, "r") as f:
-                        self.access_token = f.readline().strip()
-                except IOError:
-                    print("Unable to find the CaltechDATA access token needed to make a deposit.")
-                    print(f"Failed to open file '{path}' for reading.")
-                    raise
-                if not self.access_token:
-                    print(f"The file '{path}' did not contain any text on the first line.")
-                    print("This is should be a CaltechDATA access token, which is need to make a Deposit.")
-                    raise ValueError("Deposit requires a CaltechDATA access token")
-
-            # Ensure that this session sends the Authorization header with every request to the base_url
-            class CaltechDATAAuth(requests.auth.AuthBase):
-                def __init__(self, base_url, access_token):
-                    self.base_url = base_url
-                    self.access_token = access_token
-                    super(CaltechDATAAuth, self).__init__()
-
-                def __call__(self, request):
-                    if request.url.startswith(self.base_url):
-                        request.headers.update({"Authorization": f"Bearer {self.access_token}"})
-                        print("!"*1000 + """Adding ["Authorization": "Bearer {self.access_token}"]""")
-                    else:
-                        print("!"*1000 + """Not adding authorization""")
-                    return request
-
-            self.session.auth = CaltechDATAAuth(self.base_url, self.access_token)
+        # Ensure that this session sends the Authorization header with every request to the base_url
+        self.session.auth = CaltechDATAAuth(self.base_url, self.access_token)
 
         # Note that some requests require different choices for 'Accept' and 'Content-Type'; these
         # are altered in the corresponding methods below.
@@ -179,16 +185,19 @@ class Login(object):
             raise RuntimeError()  # Will only happen if the response was not strictly an HTTP error
 
     def send_s3(self, path, name=None, verbose=False):
+        import sys
         import pathlib
+        #import tqdm
+
         if name is None:
             name = str(path)
         path = pathlib.Path(path).expanduser().resolve()
         size = path.stat().st_size
 
         if verbose:
-            print(f"    Starting to upload {name} ({size} B)")
+            print(f"  Uploading {name} ({size} B) ", end="", flush=True)
 
-        s3url = f"{self.base_url}tindfiles/sign_s3"
+        s3url = f"{self.base_url}tindfiles/sign_s3/"  # Note trailing slash
         chkurl = f"{self.base_url}tindfiles/md5_s3"
 
         r = self.session.get(s3url)
@@ -227,6 +236,7 @@ class Login(object):
         }
 
         with path.open("rb") as f:
+            #with tqdm.tqdm.wrapattr(f, "read", total=size, desc="    ") as fw:  # To monitor upload progress
             form = (
                 ("key", key),
                 ("acl", "public-read"),
@@ -235,9 +245,23 @@ class Login(object):
                 ("signature", signature),
                 ("file", f),
             )
-            response = self.session.post(url, files=form, headers=s3headers)
-        if response.text:
-            raise Exception(response.text)
+            response = requests.session().post(url, files=form, headers=s3headers)
+        if response.status_code != 204:
+            if response.status_code == 400:
+                print(f"Bad request: Probably caused by incorrectly formed input")
+                print(f"Used headers {response.request.headers}")
+            else:
+                print(f"An unknown error occurred when trying to access {self.base_url}.")
+            try:
+                print(response.json())
+            except:
+                pass
+            try:
+                print(response.text)
+            except:
+                pass
+            response.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an HTTP error
 
         response = self.session.get(f"{chkurl}/{bucket}/{key}/")
         md5 = response.json()["md5"]
@@ -245,7 +269,7 @@ class Login(object):
         fileinfo = {"url": key, "filename": name, "md5": md5, "size": size}
 
         if verbose:
-            print(f"    Successfully uploaded {name} ({size} B)")
+            print(f"✓")
 
         return fileinfo
 

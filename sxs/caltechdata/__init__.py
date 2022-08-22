@@ -169,9 +169,9 @@ def upload_simannex_dir(login, directory, date=None):
     # links = r.json()["links"]
 
     # Upload files
-    metadata["files"] = [login.send_s3(f, f.relative_to(directory), verbose=True) for f in files]
+    metadata["files"] = [login.send_s3(f, str(f.relative_to(directory)), verbose=True) for f in files]
 
     # Now tell CaltechDATA about it
-    response = login.session._post(recordurl, data=json.dumps({"record": metadata}))
+    response = login.session.post(recordurl, data=json.dumps({"record": metadata}))
 
     return response.text
