@@ -6,6 +6,7 @@ and retries any failed requests automatically.
 """
 
 import requests
+from datacite import DataCiteRESTClient
 
 class CaltechDATAAuth(requests.auth.AuthBase):
     def __init__(self, base_url, access_token):
@@ -117,26 +118,36 @@ class Login(object):
         self.session = session or requests.Session()
 
         # Set the CaltechDATA API access token
-        if access_token is not None:
-            self.access_token = access_token
+        if "sandbox" in url:
+            access_token_path = "~/.credentials/caltechdata/access_token_sandbox"
+            doi_auth_path = "~/.credentials/caltechdata/doi_auth_sandbox"
+            self.doi_prefix = "10.80269"
+            test_mode = True
         else:
-            if access_token_path is None:
-                if "sandbox" in url:
-                    access_token_path = "~/.credentials/caltechdata/access_token_sandbox"
-                else:
-                    access_token_path = "~/.credentials/caltechdata/access_token"
-            path = os.path.expanduser(access_token_path)
-            try:
-                with open(path, "r") as f:
-                    self.access_token = f.readline().strip()
-            except IOError:
-                print("Unable to find the CaltechDATA access token needed to make a deposit.")
-                print(f"Failed to open file '{path}' for reading.")
-                raise
-            if not self.access_token:
-                print(f"The file '{path}' did not contain any text on the first line.")
-                print("This is should be a CaltechDATA access token, which is need to make a Deposit.")
-                raise ValueError("Deposit requires a CaltechDATA access token")
+            access_token_path = "~/.credentials/caltechdata/access_token"
+            doi_auth_path = "~/.credentials/caltechdata/doi_auth"
+            self.doi_prefix = "10.22002"
+            test_mode = False
+        with open(os.path.expanduser(doi_auth_path), "r") as f:
+            user, password = f.readline().strip().split(":", 1)
+        self.datacite = DataCiteRESTClient(
+            username=user,
+            password=password,
+            prefix=self.doi_prefix,
+            test_mode=test_mode,
+        )
+        path = os.path.expanduser(access_token_path)
+        try:
+            with open(path, "r") as f:
+                self.access_token = f.readline().strip()
+        except IOError:
+            print("Unable to find the CaltechDATA access token needed to change a record.")
+            print(f"Failed to open file '{path}' for reading.")
+            raise
+        if not self.access_token:
+            print(f"The file '{path}' did not contain any text on the first line.")
+            print("This is should be a CaltechDATA access token, which is needed to change a record.")
+            raise ValueError("Deposit requires a CaltechDATA access token")
 
         # Ensure that this session sends the Authorization header with every request to the base_url
         self.session.auth = CaltechDATAAuth(self.base_url, self.access_token)
@@ -195,7 +206,7 @@ class Login(object):
         size = path.stat().st_size
 
         if verbose:
-            print(f"  Uploading {name} ({size} B) ", end="", flush=True)
+            print(f"  Uploading {name} ({size:_} B) ", end="", flush=True)
 
         s3url = f"{self.base_url}tindfiles/sign_s3/"  # Note trailing slash
         chkurl = f"{self.base_url}tindfiles/md5_s3"
