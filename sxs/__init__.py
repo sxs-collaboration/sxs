@@ -23,7 +23,7 @@ from .horizons import Horizons, HorizonQuantities
 from .waveforms import WaveformModes #, WaveformGrid, WaveformSignal
 from .waveforms import rotating_paired_xor_multishuffle_bzip2 as rpxmb
 from .waveforms import rotating_paired_diff_multishuffle_bzip2 as rpdmb
-from . import catalog, metadata, horizons, waveforms, zenodo
+from . import catalog, metadata, horizons, waveforms, zenodo, caltechdata
 from .handlers import load, loadcontext
 
 # The speed of light is, of course, defined to be exactly
