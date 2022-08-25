@@ -7,7 +7,7 @@ import json
 import pathlib
 from caltechdata_api import customize_schema, decustomize_schema
 
-from . import Login
+from .login import Login
 from .. import sxs_id, Metadata
 from ..utilities import sxs_identifier_regex, SimpleVersion
 
