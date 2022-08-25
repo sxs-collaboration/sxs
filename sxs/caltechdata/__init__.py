@@ -38,7 +38,7 @@ def filter_files(files, utime):
     return [f for f in files if mtime(f) > utime]
 
 
-def upload_simannex_dir(login, directory, date=None, force_update=False):
+def upload_simannex_dir(login, directory, date=None):
     """Update/upload data from the SimAnnex to CaltechDATA
 
     Parameters
@@ -49,6 +49,9 @@ def upload_simannex_dir(login, directory, date=None, force_update=False):
         This must contain either "Public" or "Private", followed by the specific
         directory in SimAnnex to upload.  It can also contain higher path elements
         — for example, you can give the absolute path.
+    date : str, optional
+        If given, this is used as the `publicationDate` field.  It must be
+        formatted as "%Y-%m-%d".  The default is just the current UTC time.
 
     """
 
@@ -153,7 +156,7 @@ def upload_simannex_dir(login, directory, date=None, force_update=False):
         # Check to see if any files have changed since the latest version
         utime = datetime.datetime.fromisoformat(latest["updated"])
         files_to_upload = filter_files(files, utime)
-        if not files and not force_update:
+        if not files:
             print(f"No changes to {latest_link}.")
             return latest_link
 
