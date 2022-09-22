@@ -8,11 +8,12 @@ vectorize = functools.partial(numba.vectorize, nopython=True, cache=True)
 guvectorize = functools.partial(numba.guvectorize, nopython=True, cache=True)
 
 # This is a generically reliable set of widths to feed to multishuffle when using 64-bit floats
-default_shuffle_widths = (8, 8, 4, 4, 4, 2,) + (1,) * 34
+default_shuffle_widths = (16, 4, 2, 2, 2) + (1,) * 22 + (4,) * 4
+default_shuffle_widths_old = (8, 8, 4, 4, 4, 2,) + (1,) * 34
 
 from . import url, inspire, monotonicity, decimation, lvcnr, references
 from .downloads import download_file
-from .bitwise import xor, multishuffle
+from .bitwise import diff, xor, multishuffle
 from .sxs_identifiers import (
     sxs_identifier_regex, sxs_identifier_re, lev_regex, lev_re, sxs_id, lev_number, simulation_title
 )
@@ -51,3 +52,65 @@ def version_info():
         except Exception:
             pass
     return info
+
+
+class SimpleVersion:
+    """Basic versioning class
+
+    This class uses a simple two-element version string, enabling printing,
+    incrementing, and comparison.
+
+    Note that this is just intended for use SXS data versions; for more general
+    use, you probably want something like
+    [`packaging.version`](https://packaging.pypa.io/en/latest/version.html).
+
+    """
+    def __init__(self, v):
+        if "." not in v:
+            v = f"1.{v}"
+        self.major, self.minor = map(int, v.split("."))
+    def __str__(self):
+        return f"{self.major}.{self.minor}"
+    def __repr__(self):
+        return f"{self.major}.{self.minor}"
+    def increment(self, level="minor"):
+        if level=="major":
+            self.major += 1
+        elif level=="minor":
+            self.minor += 1
+        else:
+            raise ValueError("""Can only increment major or minor levels, not "{level}".""")
+        return self
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __lt__(self, other):
+        if not isinstance(other, SimpleVersion):
+            return NotImplemented
+        return self.major < other.major or (self.major == other.major and self.minor < other.minor)
+
+    def __le__(self, other):
+        if not isinstance(other, SimpleVersion):
+            return NotImplemented
+        return self.major <= other.major or (self.major == other.major and self.minor <= other.minor)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SimpleVersion):
+            return NotImplemented
+        return self.major == other.major and self.minor == other.minor
+
+    def __ge__(self, other):
+        if not isinstance(other, SimpleVersion):
+            return NotImplemented
+        return self.major >= other.major or (self.major == other.major and self.minor >= other.minor)
+
+    def __gt__(self, other):
+        if not isinstance(other, SimpleVersion):
+            return NotImplemented
+        return self.major > other.major or (self.major == other.major and self.minor > other.minor)
+
+    def __ne__(self, other: object) -> bool:
+        if not isinstance(other, SimpleVersion):
+            return NotImplemented
+        return self.major != other.major or self.minor != other.minor

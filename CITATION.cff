@@ -4,6 +4,9 @@ authors:
   - family-names: Boyle
     given-names: Michael
     orcid: https://orcid.org/0000-0002-5075-5116
+  - family-names: "Scheel"
+    given-names: "Mark"
+    orcid: "https://orcid.org/0000-0001-6656-9134"
 title: "The sxs package"
 license: MIT
 doi: 10.5281/zenodo.4034006

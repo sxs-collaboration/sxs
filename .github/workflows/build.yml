@@ -52,7 +52,7 @@ jobs:
         run: |
           poetry run python -m pip install --upgrade pip
           poetry env info
-          rm poetry.lock
+          rm -f poetry.lock
           poetry update
           poetry build
           poetry install --no-interaction
@@ -105,7 +105,7 @@ jobs:
         run: |
           $HOME/.poetry/bin/poetry run python -m pip install --upgrade pip
           $HOME/.poetry/bin/poetry env info
-          rm poetry.lock
+          rm -f poetry.lock
           $HOME/.poetry/bin/poetry update
           $HOME/.poetry/bin/poetry build
           $HOME/.poetry/bin/poetry install --no-interaction --no-dev
@@ -127,6 +127,16 @@ jobs:
           export new_version=$(python .github/scripts/parse_version.py pyproject.toml)
           echo "new_version: '${new_version}'"
           echo "new_version=${new_version}" >> $GITHUB_ENV  # Save env variable for later steps
+
+      - name: Update CITATION.cff
+        shell: bash
+        env:
+          timestamp: ${{ github.event.head_commit.timestamp }}
+        run: |
+          new_date=${timestamp:0:10}
+          sed -i -- "s/^version:.*/version: ${new_version}/" CITATION.cff
+          sed -i -- "s/^date-released:.*/date-released: ${new_date}/" CITATION.cff
+          echo "Updated CITATION.cff with version ${new_version} and date ${new_date}"
 
       - name: Tag and push new version
         shell: bash
