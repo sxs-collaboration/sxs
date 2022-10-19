@@ -6,7 +6,6 @@ and retries any failed requests automatically.
 """
 
 import requests
-from datacite import DataCiteRESTClient
 
 class CaltechDATAAuth(requests.auth.AuthBase):
     def __init__(self, base_url, access_token):
@@ -111,6 +110,7 @@ class Login(object):
         import requests
         from requests.adapters import HTTPAdapter
         from urllib3.util.retry import Retry
+        from datacite import DataCiteRESTClient
 
         self.base_url = url
 

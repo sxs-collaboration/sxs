@@ -1,6 +1,4 @@
-import pathlib
-
-"""New catalog format
+format_description = """New catalog format
 
 {
     "sxs_format": "catalog_v2"
