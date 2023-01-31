@@ -5,7 +5,6 @@ import re
 import datetime
 import json
 import pathlib
-from caltechdata_api import customize_schema, decustomize_schema
 
 from .login import Login
 from .. import sxs_id, Metadata
@@ -54,6 +53,8 @@ def upload_simannex_dir(login, directory, date=None):
         formatted as "%Y-%m-%d".  The default is just the current UTC time.
 
     """
+    raise Exception("This interface is for the old TIND API; use zenodo for the new API")
+    from caltechdata_api import customize_schema, decustomize_schema
 
     allowed_files = [
         "metadata.json",
