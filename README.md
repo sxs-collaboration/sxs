@@ -69,7 +69,7 @@ python -c "import sxs; sxs.write_config(download=True, cache=True)"
 This will write a configuration file in the directory returned by
 `sxs.sxs_directory("config")`, and downloaded data will be cached in the
 directory returned by `sxs.sxs_directory("cache")`.  See [that function's
-documentation](api/sxs.utilities.sxs_directories/#sxsutilitiessxs_directoriessxs_directory)
+documentation](https://sxs.readthedocs.io/en/main/api/sxs.utilities.sxs_directories/#sxsutilitiessxs_directoriessxs_directory)
 for details.
 
 
@@ -92,14 +92,16 @@ horizons = sxs.load("SXS:BBH:0123/Lev/Horizons.h5")
 waveform = sxs.load("SXS:BBH:0123/Lev/rhOverM", extrapolation_order=2)
 ```
 
-[The `catalog` object](api/sxs.catalog.catalog/#sxs.catalog.catalog.Catalog)
+[The `catalog`
+object](https://sxs.readthedocs.io/en/main/api/sxs.catalog.catalog/#sxs.catalog.catalog.Catalog)
 contains information about every simulation in the catalog, including all
 available data files, and information about how to get them.  You probably
 don't need to actually know about details like where to get the data, but
 `catalog` can help you find the simulations you care about.  Most importantly,
 `catalog.simulations` is a `dict` object, where the keys are names of
 simulations (like "SXS:BBH:0123") and the values are the same types as [the
-`metadata` object](api/sxs.metadata.metadata/#sxs.metadata.metadata.Metadata),
+`metadata`
+object](https://sxs.readthedocs.io/en/main/api/sxs.metadata.metadata/#sxs.metadata.metadata.Metadata),
 which contains metadata about that simulation — things like mass ratio, spins,
 etc.  This `metadata` reflects the actual output of the simulations, which
 leads to some inconsistencies in their formats.  A more consistent interface
@@ -109,16 +111,17 @@ information) is provided by `catalog.table`, which returns a
 types for each column.
 
 The actual data itself is primarily contained in the next two objects.  [The
-`horizons` object](api/sxs.horizons/#sxs.horizons.Horizons) has three
-attributes — `horizons.A`, `horizons.B`, and `horizons.C` — typically
+`horizons`
+object](https://sxs.readthedocs.io/en/main/api/sxs.horizons/#sxs.horizons.Horizons)
+has three attributes — `horizons.A`, `horizons.B`, and `horizons.C` — typically
 representing the original two horizons of the black-hole binary and the common
 horizon that forms at merger.  In matter simulations, one or more of these may
 be `None`.  Otherwise, each of these three is a
-[`HorizonQuantities`](api/sxs.horizons/#sxs.horizons.HorizonQuantities) object,
-containing several timeseries relating to mass, spin, and position.
+[`HorizonQuantities`](https://sxs.readthedocs.io/en/main/api/sxs.horizons/#sxs.horizons.HorizonQuantities)
+object, containing several timeseries relating to mass, spin, and position.
 
 Finally, the
-[`waveform`](api/sxs.waveforms.waveform_modes/#sxs.waveforms.waveform_modes.WaveformModes)
+[`waveform`](https://sxs.readthedocs.io/en/main/api/sxs.waveforms.waveform_modes/#sxs.waveforms.waveform_modes.WaveformModes)
 encapsulates the modes of the waveform and the corresponding time information,
 along with relevant metadata like data type, spin weight, etc., and useful
 features like numpy-array-style slicing.
