@@ -7,13 +7,14 @@ from scipy.integrate import trapezoid
 import multiprocessing as mp
 from functools import partial
 
+
 def align1d(wa, wb, t1, t2, n_brute_force=None):
     """Align waveforms by shifting in time
 
     This function determines the optimal time offset to apply to `wb` by minimizing
     the averaged (over time) squared difference in the L² norms (over the sphere)
     of the waveforms:
-    
+
         ∫ [ ‖wa(t)‖ - ‖wb(t+δt)‖ ]² dt
 
     The integral is taken from time `t1` to `t2`.
@@ -30,7 +31,7 @@ def align1d(wa, wb, t1, t2, n_brute_force=None):
 
     Note that the input waveforms are assumed to be initially aligned at least well
     enough that:
-    
+
       1) the time span from `t1` to `t2` in the two waveforms will overlap at
          least slightly after the second waveform is shifted in time; and
       2) waveform `wb` contains all the times corresponding to `t1` to `t2` in
@@ -61,12 +62,12 @@ def align1d(wa, wb, t1, t2, n_brute_force=None):
     Notes
     -----
     Choosing the time interval is usually the most difficult choice to make when
-    aligning waveforms.  Assuming you want to align during inspiral, the times
-    must span sufficiently long that the waveforms' norm (equivalently, orbital
-    frequency changes) significantly from `t1` to `t2`.  This means that you
-    cannot always rely on a specific number of orbits, for example.  Also note
-    that neither number should be too close to the beginning or end of either
-    waveform, to provide some "wiggle room".
+    aligning waveforms.  Assuming you want to align during inspiral, the times must
+    span sufficiently long that the waveforms' norm (equivalently, orbital
+    frequency changes) significantly from `t1` to `t2`.  This means that you cannot
+    always rely on a specific number of orbits, for example.  Also note that
+    neither number should be too close to the beginning or end of either waveform,
+    to provide some "wiggle room".
 
     Precession generally causes no problems for this function.  In principle,
     eccentricity, center-of-mass offsets, boosts, or other supertranslations could
@@ -81,7 +82,7 @@ def align1d(wa, wb, t1, t2, n_brute_force=None):
     from scipy.optimize import least_squares
 
     # Check that (t1, t2) makes sense and is actually contained in both waveforms
-    if t2<=t1:
+    if t2 <= t1:
         raise ValueError(f"(t1,t2)=({t1}, {t2}) is out of order")
     if wa.t[0] > t1 or wa.t[-1] < t2:
         raise ValueError(f"(t1,t2)=({t1}, {t2}) not contained in wa.t, which spans ({wa.t[0]}, {wa.t[-1]})")
@@ -89,25 +90,26 @@ def align1d(wa, wb, t1, t2, n_brute_force=None):
         raise ValueError(f"(t1,t2)=({t1}, {t2}) not contained in wb.t, which spans ({wb.t[0]}, {wb.t[-1]})")
 
     # Figure out time offsets to try
-    δt_lower = max(t1 - t2, wb.t[0]-t1)
-    δt_upper = min(t2 - t1, wb.t[-1]-t2)
+    δt_lower = max(t1 - t2, wb.t[0] - t1)
+    δt_upper = min(t2 - t1, wb.t[-1] - t2)
 
     # We'll start by brute forcing, sampling time offsets evenly at as many
     # points as there are time steps in (t1,t2) in the input waveforms
     if n_brute_force is None:
-        n_brute_force = max(sum((wa.t>=t1)&(wa.t<=t2)), sum((wb.t>=t1)&(wb.t<=t2)))
+        n_brute_force = max(sum((wa.t >= t1) & (wa.t <= t2)), sum((wb.t >= t1) & (wb.t <= t2)))
     δt_brute_force = np.linspace(δt_lower, δt_upper, num=n_brute_force)
 
     # Times at which the differences will be evaluated
-    t_reference = wa.t[(wa.t>=t1)&(wa.t<=t2)]
+    t_reference = wa.t[(wa.t >= t1) & (wa.t <= t2)]
 
     # Define the cost function
-    norm_a = wa.norm.ndarray[(wa.t>=t1)&(wa.t<=t2)]
+    norm_a = wa.norm.ndarray[(wa.t >= t1) & (wa.t <= t2)]
     norm_b = CubicSpline(wb.t, wb.norm.ndarray)
-    normalization = trapezoid((norm_a)**2, t_reference)
+    normalization = trapezoid((norm_a) ** 2, t_reference)
+
     def cost(δt):
         # Take the sqrt because least_squares squares the inputs...
-        return np.sqrt(trapezoid((norm_a - norm_b(t_reference+δt))**2, t_reference) / normalization)
+        return np.sqrt(trapezoid((norm_a - norm_b(t_reference + δt)) ** 2, t_reference) / normalization)
 
     # Optimize by brute force
     cost_brute_force = [cost(δt) for δt in δt_brute_force]
@@ -118,25 +120,32 @@ def align1d(wa, wb, t1, t2, n_brute_force=None):
 
     return optimum.x[0]
 
+
 def cost(δt_δϕ, args):
     modes_A, modes_B, t_reference, δϕ_factor, δΨ_factor, normalization = args
 
     # Take the sqrt because least_squares squares the inputs...
-    diff = trapezoid(np.sum(abs(modes_A(t_reference + δt_δϕ[0]) * np.exp(1j * δt_δϕ[1]) ** δϕ_factor * δΨ_factor -\
-                                modes_B)**2, axis=1), t_reference)
+    diff = trapezoid(
+        np.sum(
+            abs(modes_A(t_reference + δt_δϕ[0]) * np.exp(1j * δt_δϕ[1]) ** δϕ_factor * δΨ_factor - modes_B) ** 2, axis=1
+        ),
+        t_reference,
+    )
     return np.sqrt(diff / normalization)
+
 
 def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, include_modes=None, nprocs=None):
     """Align waveforms by shifting in time and phase
 
-    This function determines the optimal time and phase offset to apply to `wa` by minimizing
-    the averaged (over time) L² norm (over the sphere) of the difference of the waveforms.
+    This function determines the optimal time and phase offset to apply to `wa` by
+    minimizing the averaged (over time) L² norm (over the sphere) of the difference
+    of the waveforms.
 
     The integral is taken from time `t1` to `t2`.
 
     Note that the input waveforms are assumed to be initially aligned at least well
     enough that:
-    
+
       1) the time span from `t1` to `t2` in the two waveforms will overlap at
          least slightly after the second waveform is shifted in time; and
       2) waveform `wb` contains all the times corresponding to `t1` to `t2` in
@@ -189,12 +198,12 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     Notes
     -----
     Choosing the time interval is usually the most difficult choice to make when
-    aligning waveforms.  Assuming you want to align during inspiral, the times
-    must span sufficiently long that the waveforms' norm (equivalently, orbital
-    frequency changes) significantly from `t1` to `t2`.  This means that you
-    cannot always rely on a specific number of orbits, for example.  Also note
-    that neither number should be too close to the beginning or end of either
-    waveform, to provide some "wiggle room".
+    aligning waveforms.  Assuming you want to align during inspiral, the times must
+    span sufficiently long that the waveforms' norm (equivalently, orbital
+    frequency changes) significantly from `t1` to `t2`.  This means that you cannot
+    always rely on a specific number of orbits, for example.  Also note that
+    neither number should be too close to the beginning or end of either waveform,
+    to provide some "wiggle room".
 
     Precession generally causes no problems for this function.  In principle,
     eccentricity, center-of-mass offsets, boosts, or other supertranslations could
@@ -211,12 +220,16 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     wb_copy = wb.copy()
 
     # Check that (t1, t2) makes sense and is actually contained in both waveforms
-    if t2<=t1:
+    if t2 <= t1:
         raise ValueError(f"(t1,t2)=({t1}, {t2}) is out of order")
     if wa_copy.t[0] > t1 or wa_copy.t[-1] < t2:
-        raise ValueError(f"(t1,t2)=({t1}, {t2}) not contained in wa_copy.t, which spans ({wa_copy.t[0]}, {wa_copy.t[-1]})")
+        raise ValueError(
+            f"(t1,t2)=({t1}, {t2}) not contained in wa_copy.t, which spans ({wa_copy.t[0]}, {wa_copy.t[-1]})"
+        )
     if wb_copy.t[0] > t1 or wb_copy.t[-1] < t2:
-        raise ValueError(f"(t1,t2)=({t1}, {t2}) not contained in wb_copy.t, which spans ({wb_copy.t[0]}, {wb_copy.t[-1]})")
+        raise ValueError(
+            f"(t1,t2)=({t1}, {t2}) not contained in wb_copy.t, which spans ({wb_copy.t[0]}, {wb_copy.t[-1]})"
+        )
 
     # Figure out time offsets to try
     δt_lower = max(t1 - t2, wa_copy.t[0] - t1)
@@ -225,39 +238,48 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     # We'll start by brute forcing, sampling time offsets evenly at as many
     # points as there are time steps in (t1,t2) in the input waveforms
     if n_brute_force_δt is None:
-        n_brute_force_δt = max(sum((wa_copy.t>=t1)&(wa_copy.t<=t2)), sum((wb_copy.t>=t1)&(wb_copy.t<=t2)))
+        n_brute_force_δt = max(sum((wa_copy.t >= t1) & (wa_copy.t <= t2)), sum((wb_copy.t >= t1) & (wb_copy.t <= t2)))
     δt_brute_force = np.linspace(δt_lower, δt_upper, num=n_brute_force_δt)
-    
-    if n_brute_force_δϕ == None:
-        n_brute_force_δϕ = 2*wa_copy.ell_max + 1
-    δϕ_brute_force = np.linspace(0, 2*np.pi, n_brute_force_δϕ, endpoint=False)
-    
-    δt_δϕ_brute_force = np.array(np.meshgrid(δt_brute_force, δϕ_brute_force)).T.reshape(-1,2)
 
-    t_reference = wa_copy.t[np.argmin(abs(wa_copy.t - t1)):np.argmin(abs(wa_copy.t - t2)) + 1]
-            
+    if n_brute_force_δϕ == None:
+        n_brute_force_δϕ = 2 * wa_copy.ell_max + 1
+    δϕ_brute_force = np.linspace(0, 2 * np.pi, n_brute_force_δϕ, endpoint=False)
+
+    δt_δϕ_brute_force = np.array(np.meshgrid(δt_brute_force, δϕ_brute_force)).T.reshape(-1, 2)
+
+    t_reference = wa_copy.t[np.argmin(abs(wa_copy.t - t1)) : np.argmin(abs(wa_copy.t - t2)) + 1]
+
     # Remove certain modes, if requested
     ell_max = min(wa_copy.ell_max, wb_copy.ell_max)
     if include_modes != None:
         for L in range(2, ell_max + 1):
             for M in range(-L, L + 1):
-                if not (L, M) in include_modes: 
-                    wa_copy.data[:,LM(L, M, wa_copy.ell_min)] *= 0
-                    wb_copy.data[:,LM(L, M, wb_copy.ell_min)] *= 0
-                    
+                if not (L, M) in include_modes:
+                    wa_copy.data[:, LM(L, M, wa_copy.ell_min)] *= 0
+                    wb_copy.data[:, LM(L, M, wb_copy.ell_min)] *= 0
+
     # Define the cost function
-    modes_A = CubicSpline(wa_copy.t, wa_copy[:,LM(2, -2, wa_copy.ell_min):LM(ell_max+1, -(ell_max+1), wa_copy.ell_min)].data)
-    modes_B = CubicSpline(wb_copy.t, wb_copy[:,LM(2, -2, wb_copy.ell_min):LM(ell_max+1, -(ell_max+1), wb_copy.ell_min)].data)(t_reference)
-    
-    normalization = trapezoid(CubicSpline(wb_copy.t, wb_copy[:,LM(2, -2, wb_copy.ell_min):LM(ell_max+1, -(ell_max+1), wb_copy.ell_min)].norm)(t_reference), t_reference)
-    
+    modes_A = CubicSpline(
+        wa_copy.t, wa_copy[:, LM(2, -2, wa_copy.ell_min) : LM(ell_max + 1, -(ell_max + 1), wa_copy.ell_min)].data
+    )
+    modes_B = CubicSpline(
+        wb_copy.t, wb_copy[:, LM(2, -2, wb_copy.ell_min) : LM(ell_max + 1, -(ell_max + 1), wb_copy.ell_min)].data
+    )(t_reference)
+
+    normalization = trapezoid(
+        CubicSpline(
+            wb_copy.t, wb_copy[:, LM(2, -2, wb_copy.ell_min) : LM(ell_max + 1, -(ell_max + 1), wb_copy.ell_min)].norm
+        )(t_reference),
+        t_reference,
+    )
+
     δϕ_factor = np.array([M for L in range(2, ell_max + 1) for M in range(-L, L + 1)])
-    
+
     optimums = []
     wa_primes = []
     for δΨ_factor in [-1, +1]:
         # Optimize by brute force with multiprocessing
-        cost_wrapper = partial(cost, args = [modes_A, modes_B, t_reference, δϕ_factor, δΨ_factor, normalization])
+        cost_wrapper = partial(cost, args=[modes_A, modes_B, t_reference, δϕ_factor, δΨ_factor, normalization])
 
         if nprocs != -1:
             if nprocs == None:
@@ -272,15 +294,19 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         δt_δϕ = δt_δϕ_brute_force[np.argmin(cost_brute_force)]
 
         # Optimize explicitly
-        optimum = least_squares(cost_wrapper, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2*np.pi)], max_nfev=50000)
+        optimum = least_squares(cost_wrapper, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2 * np.pi)], max_nfev=50000)
         optimums.append(optimum)
 
-        wa_prime = sxs.WaveformModes(input_array=wa[:,LM(2, -2, wa.ell_min):LM(ell_max+1, -(ell_max+1), wa.ell_min)].data * np.exp(1j * optimum.x[1]) ** δϕ_factor * δΨ_factor,\
-                                     time=wa.t - optimum.x[0],\
-                                     time_axis=0,\
-                                     modes_axis=1,\
-                                     ell_min=2,\
-                                     ell_max=ell_max)
+        wa_prime = sxs.WaveformModes(
+            input_array=wa[:, LM(2, -2, wa.ell_min) : LM(ell_max + 1, -(ell_max + 1), wa.ell_min)].data
+            * np.exp(1j * optimum.x[1]) ** δϕ_factor
+            * δΨ_factor,
+            time=wa.t - optimum.x[0],
+            time_axis=0,
+            modes_axis=1,
+            ell_min=2,
+            ell_max=ell_max,
+        )
         wa_primes.append(wa_prime)
 
     idx = np.argmin(abs(np.array([optimum.cost for optimum in optimums])))
