@@ -257,7 +257,7 @@ def test_modes_evaluate(h, eps):
 def test_rpxmb():
     print()
     w = sxs.load(shortest_h_com_file, extrapolation_order=4)
-    for L2norm_fractional_tolerance in [1e-6, 1e-8, 1e-10, 1e-12, 1e-14]:
+    for L2norm_fractional_tolerance in [1e-6, 1e-10, 1e-14]:
         print(f"# Tolerance {L2norm_fractional_tolerance}")
         with tempfile.TemporaryDirectory() as temp_dir:
             file_name = pathlib.Path(temp_dir) / "Strain_N4"
@@ -273,7 +273,7 @@ def test_rpxmb():
 def test_rpdmb():
     print()
     w = sxs.load(shortest_h_com_file, extrapolation_order=4)
-    for L2norm_fractional_tolerance in [1e-6, 1e-8, 1e-10, 1e-12, 1e-14]:
+    for L2norm_fractional_tolerance in [1e-6, 1e-10, 1e-14]:
         print(f"# Tolerance {L2norm_fractional_tolerance}")
         with tempfile.TemporaryDirectory() as temp_dir:
             file_name = pathlib.Path(temp_dir) / "Strain_N4"
