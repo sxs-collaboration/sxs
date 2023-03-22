@@ -205,13 +205,6 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     neither number should be too close to the beginning or end of either waveform,
     to provide some "wiggle room".
 
-    Precession generally causes no problems for this function.  In principle,
-    eccentricity, center-of-mass offsets, boosts, or other supertranslations could
-    cause problems, but this function begins with a brute-force method of finding
-    the optimal time offset that will avoid local minima in all but truly
-    outrageous situations.  In particular, as long as `t1` and `t2` are separated
-    by enough, there should never be a problem.
-
     """
     from scipy.interpolate import CubicSpline
     from scipy.optimize import least_squares
