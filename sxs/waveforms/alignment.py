@@ -121,12 +121,13 @@ def align1d(wa, wb, t1, t2, n_brute_force=None):
 
 
 def _cost2d(δt_δϕ, args):
-    modes_A, modes_B, t_reference, δϕ_factor, δΨ_factor, normalization = args
+    modes_A, modes_B, t_reference, m, δΨ_factor, normalization = args
+    δt, δϕ = δt_δϕ
 
     # Take the sqrt because least_squares squares the inputs...
     diff = trapezoid(
         np.sum(
-            abs(modes_A(t_reference + δt_δϕ[0]) * np.exp(1j * δt_δϕ[1]) ** δϕ_factor * δΨ_factor - modes_B) ** 2, axis=1
+            abs(modes_A(t_reference + δt) * np.exp(1j * m * δϕ) * δΨ_factor - modes_B) ** 2, axis=1
         ),
         t_reference,
     )
@@ -241,7 +242,7 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         n_brute_force_δt = max(sum((wa.t >= t1) & (wa.t <= t2)), sum((wb.t >= t1) & (wb.t <= t2)))
     δt_brute_force = np.linspace(δt_lower, δt_upper, num=n_brute_force_δt)
 
-    if n_brute_force_δϕ == None:
+    if n_brute_force_δϕ is None:
         n_brute_force_δϕ = 2 * wa.ell_max + 1
     δϕ_brute_force = np.linspace(0, 2 * np.pi, n_brute_force_δϕ, endpoint=False)
 
@@ -273,16 +274,16 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         t_reference,
     )
 
-    δϕ_factor = np.array([M for L in range(2, ell_max + 1) for M in range(-L, L + 1)])
+    m = np.array([M for L in range(2, ell_max + 1) for M in range(-L, L + 1)])
 
     optimums = []
     wa_primes = []
     for δΨ_factor in [-1, +1]:
         # Optimize by brute force with multiprocessing
-        cost_wrapper = partial(_cost2d, args=[modes_A, modes_B, t_reference, δϕ_factor, δΨ_factor, normalization])
+        cost_wrapper = partial(_cost2d, args=[modes_A, modes_B, t_reference, m, δΨ_factor, normalization])
 
         if nprocs != -1:
-            if nprocs == None:
+            if nprocs is None:
                 nprocs = mp.cpu_count()
             pool = mp.Pool(processes=nprocs)
             cost_brute_force = pool.map(cost_wrapper, δt_δϕ_brute_force)
@@ -296,14 +297,15 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         # Optimize explicitly
         optimum = least_squares(cost_wrapper, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2 * np.pi)], max_nfev=50000)
         optimums.append(optimum)
+        δt, δϕ = optimum.x
 
         wa_prime = sxs.WaveformModes(
             input_array=(
                 wa_orig[:, wa_orig.index(2, -2) : wa_orig.index(ell_max + 1, -(ell_max + 1))].data
-                * np.exp(1j * optimum.x[1]) ** δϕ_factor
+                * np.exp(1j * m * δϕ)
                 * δΨ_factor
             ),
-            time=wa_orig.t - optimum.x[0],
+            time=wa_orig.t - δt,
             time_axis=0,
             modes_axis=1,
             ell_min=2,
