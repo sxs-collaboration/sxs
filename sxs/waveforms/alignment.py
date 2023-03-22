@@ -1,6 +1,5 @@
 import sxs
 import numpy as np
-from spherical_functions import LM_index as LM
 
 from scipy.integrate import trapezoid
 
@@ -216,59 +215,60 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     from scipy.interpolate import CubicSpline
     from scipy.optimize import least_squares
 
-    wa_copy = wa.copy()
-    wb_copy = wb.copy()
+    wa_orig = wa
+    wa = wa.copy()
+    wb = wb.copy()
 
     # Check that (t1, t2) makes sense and is actually contained in both waveforms
     if t2 <= t1:
         raise ValueError(f"(t1,t2)=({t1}, {t2}) is out of order")
-    if wa_copy.t[0] > t1 or wa_copy.t[-1] < t2:
+    if wa.t[0] > t1 or wa.t[-1] < t2:
         raise ValueError(
-            f"(t1,t2)=({t1}, {t2}) not contained in wa_copy.t, which spans ({wa_copy.t[0]}, {wa_copy.t[-1]})"
+            f"(t1,t2)=({t1}, {t2}) not contained in wa.t, which spans ({wa.t[0]}, {wa.t[-1]})"
         )
-    if wb_copy.t[0] > t1 or wb_copy.t[-1] < t2:
+    if wb.t[0] > t1 or wb.t[-1] < t2:
         raise ValueError(
-            f"(t1,t2)=({t1}, {t2}) not contained in wb_copy.t, which spans ({wb_copy.t[0]}, {wb_copy.t[-1]})"
+            f"(t1,t2)=({t1}, {t2}) not contained in wb.t, which spans ({wb.t[0]}, {wb.t[-1]})"
         )
 
     # Figure out time offsets to try
-    δt_lower = max(t1 - t2, wa_copy.t[0] - t1)
-    δt_upper = min(t2 - t1, wa_copy.t[-1] - t2)
+    δt_lower = max(t1 - t2, wa.t[0] - t1)
+    δt_upper = min(t2 - t1, wa.t[-1] - t2)
 
     # We'll start by brute forcing, sampling time offsets evenly at as many
     # points as there are time steps in (t1,t2) in the input waveforms
     if n_brute_force_δt is None:
-        n_brute_force_δt = max(sum((wa_copy.t >= t1) & (wa_copy.t <= t2)), sum((wb_copy.t >= t1) & (wb_copy.t <= t2)))
+        n_brute_force_δt = max(sum((wa.t >= t1) & (wa.t <= t2)), sum((wb.t >= t1) & (wb.t <= t2)))
     δt_brute_force = np.linspace(δt_lower, δt_upper, num=n_brute_force_δt)
 
     if n_brute_force_δϕ == None:
-        n_brute_force_δϕ = 2 * wa_copy.ell_max + 1
+        n_brute_force_δϕ = 2 * wa.ell_max + 1
     δϕ_brute_force = np.linspace(0, 2 * np.pi, n_brute_force_δϕ, endpoint=False)
 
     δt_δϕ_brute_force = np.array(np.meshgrid(δt_brute_force, δϕ_brute_force)).T.reshape(-1, 2)
 
-    t_reference = wa_copy.t[np.argmin(abs(wa_copy.t - t1)) : np.argmin(abs(wa_copy.t - t2)) + 1]
+    t_reference = wa.t[np.argmin(abs(wa.t - t1)) : np.argmin(abs(wa.t - t2)) + 1]
 
     # Remove certain modes, if requested
-    ell_max = min(wa_copy.ell_max, wb_copy.ell_max)
+    ell_max = min(wa.ell_max, wb.ell_max)
     if include_modes != None:
         for L in range(2, ell_max + 1):
             for M in range(-L, L + 1):
                 if not (L, M) in include_modes:
-                    wa_copy.data[:, LM(L, M, wa_copy.ell_min)] *= 0
-                    wb_copy.data[:, LM(L, M, wb_copy.ell_min)] *= 0
+                    wa.data[:, wa.index(L, M)] *= 0
+                    wb.data[:, wb.index(L, M)] *= 0
 
     # Define the cost function
     modes_A = CubicSpline(
-        wa_copy.t, wa_copy[:, LM(2, -2, wa_copy.ell_min) : LM(ell_max + 1, -(ell_max + 1), wa_copy.ell_min)].data
+        wa.t, wa[:, wa.index(2, -2) : wa.index(ell_max + 1, -(ell_max + 1))].data
     )
     modes_B = CubicSpline(
-        wb_copy.t, wb_copy[:, LM(2, -2, wb_copy.ell_min) : LM(ell_max + 1, -(ell_max + 1), wb_copy.ell_min)].data
+        wb.t, wb[:, wb.index(2, -2) : wb.index(ell_max + 1, -(ell_max + 1))].data
     )(t_reference)
 
     normalization = trapezoid(
         CubicSpline(
-            wb_copy.t, wb_copy[:, LM(2, -2, wb_copy.ell_min) : LM(ell_max + 1, -(ell_max + 1), wb_copy.ell_min)].norm
+            wb.t, wb[:, wb.index(2, -2) : wb.index(ell_max + 1, -(ell_max + 1))].norm
         )(t_reference),
         t_reference,
     )
@@ -298,10 +298,12 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         optimums.append(optimum)
 
         wa_prime = sxs.WaveformModes(
-            input_array=wa[:, LM(2, -2, wa.ell_min) : LM(ell_max + 1, -(ell_max + 1), wa.ell_min)].data
-            * np.exp(1j * optimum.x[1]) ** δϕ_factor
-            * δΨ_factor,
-            time=wa.t - optimum.x[0],
+            input_array=(
+                wa_orig[:, wa_orig.index(2, -2) : wa_orig.index(ell_max + 1, -(ell_max + 1))].data
+                * np.exp(1j * optimum.x[1]) ** δϕ_factor
+                * δΨ_factor
+            ),
+            time=wa_orig.t - optimum.x[0],
             time_axis=0,
             modes_axis=1,
             ell_min=2,
