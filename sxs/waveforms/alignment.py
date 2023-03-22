@@ -120,7 +120,7 @@ def align1d(wa, wb, t1, t2, n_brute_force=None):
     return optimum.x[0]
 
 
-def cost(δt_δϕ, args):
+def _cost2d(δt_δϕ, args):
     modes_A, modes_B, t_reference, δϕ_factor, δΨ_factor, normalization = args
 
     # Take the sqrt because least_squares squares the inputs...
@@ -279,7 +279,7 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     wa_primes = []
     for δΨ_factor in [-1, +1]:
         # Optimize by brute force with multiprocessing
-        cost_wrapper = partial(cost, args=[modes_A, modes_B, t_reference, δϕ_factor, δΨ_factor, normalization])
+        cost_wrapper = partial(_cost2d, args=[modes_A, modes_B, t_reference, δϕ_factor, δΨ_factor, normalization])
 
         if nprocs != -1:
             if nprocs == None:
