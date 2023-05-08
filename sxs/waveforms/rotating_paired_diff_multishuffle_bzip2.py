@@ -375,8 +375,23 @@ def load(
     if group == "/":
         group = None
 
-    h5_path = pathlib.Path(file_name_str).expanduser().resolve().with_suffix(".h5")
-    json_path = h5_path.with_suffix(".json")
+    # At this point, file_name_str may or may not have an h5 suffix
+    # (because the user may have passed in a file without the suffix,
+    # or because there was an .h5 in the middle of the filename.)
+    # But that's ok, we will use with_suffix below.
+
+
+    # In a common use case, the h5 and json files will be named
+    # bla.h5 and bla.json as expected, but they will be git-annex symlinks.
+    # This means that the files pointed to will have strange names, like:
+    # bla.h5   -> /some/crazy/path/some_crazy_hash.h5
+    # bla.json -> /some/different/crazy/path/a_different_crazy_hash.json
+    # where the paths are determined by git-annex and the hashes are basically
+    # SHA256 hashes of the contents.
+    #
+    # This means we need to change the suffix *before* the resolve() call.
+    h5_path = pathlib.Path(file_name_str).with_suffix(".h5").expanduser().resolve()
+    json_path = pathlib.Path(file_name_str).with_suffix(".json").expanduser().resolve()
 
     # This will be used for validation
     h5_size = h5_path.stat().st_size
@@ -542,7 +557,7 @@ def load_time(
     if group == "/":
         group = None
 
-    h5_path = pathlib.Path(file_name_str).expanduser().resolve().with_suffix(".h5")
+    h5_path = pathlib.Path(file_name_str).with_suffix(".h5").expanduser().resolve()
 
     with h5py.File(h5_path, "r") as f:
         if group is not None:
