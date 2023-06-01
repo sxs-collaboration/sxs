@@ -57,7 +57,15 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
     The total size is implicitly `ell_max * (ell_max + 2) - ell_min ** 2 + 1`.
 
-    For backwards compatibility, it is possible to retrieve individual modes in the
+    The recommended way of retrieving individual modes is
+
+        h_22 = waveform[:, waveform.index(2,2)]
+
+    or equivalently,
+
+        h_22 = waveform.data[:, waveform.index(2,2)]
+
+    For backwards compatibility, it is also possible to retrieve individual modes in the
     same way as the old NRAR-format HDF5 files would be read, as in
 
         h_22 = waveform["Y_l2_m2.dat"]
