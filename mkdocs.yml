@@ -8,9 +8,8 @@ plugins:
       default_handler: python
       handlers:
         python:
-          selection:
+          options:
             docstring_style: numpy
-          rendering:
             show_source: true
   # - mkapi
 
@@ -18,10 +17,9 @@ nav:
     - Home: 'index.md'
     - Mathematica: 'mathematica.md'
     - API: 'api.md'
-    # - API: mkapi/api/sxs
 
 theme:
-  name: 'readthedocs' # 'readthedocs', 'mkdocs', 'material'
+  name: 'material' # 'readthedocs', 'mkdocs', 'material'
   # highlightjs: true
   # hljs_languages:
   #   - mathematica

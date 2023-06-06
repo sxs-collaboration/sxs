@@ -1,3 +1,8 @@
+"""The `TimeSeries` object provides basic functionality for all time-series-like objects, including
+`WaveformModes`, the objects contained in `Horizons`, etc.
+
+"""
+
 import numpy as np
 
 
