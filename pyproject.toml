@@ -45,13 +45,12 @@ caltechdata-api = "^0.3.0"
 pytest = "^7.0"
 pytest-cov = ">=2.10.1"
 mkdocs = {version = ">=1.1.2", optional = true, markers = "implementation_name == 'cpython'"}
-mkdocstrings = {extras = ["python"], version = "^0.18.1", optional = true, markers = "implementation_name == 'cpython'"}
+mkdocstrings = {extras = ["python"], version = "^0.20.0", optional = true, markers = "implementation_name == 'cpython'"}
 black = {version = ">=22.1", optional = true, markers = "implementation_name == 'cpython'"}
 pymdown-extensions = {version = "^8", optional = true, markers = "implementation_name == 'cpython'"}
 
 [tool.poetry.extras]
 mkdocs = ["mkdocs"]
-mkapi = ["mkapi"]
 pymdown-extensions = ["pymdown-extensions"]
 ecosystem = ["ipywidgets", "ipykernel", "jupyter_contrib_nbextensions", "jupyterlab", "line_profiler", "memory_profiler", "matplotlib", "sympy", "corner", "qgrid", "rise", "quaternion", "scri"]
 
