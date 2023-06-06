@@ -22,12 +22,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.11']
 
     steps:
       - name: Skip replicates on main branch
         env:
-          skip_replicates: ${{ github.ref == 'refs/heads/main' && (matrix.os != 'ubuntu-latest' || matrix.python-version != '3.10') }}
+          skip_replicates: ${{ github.ref == 'refs/heads/main' && (matrix.os != 'ubuntu-latest' || matrix.python-version != '3.11') }}
         shell: bash
         run: |
           echo "skipping_build_and_test_replicate=${skip_replicates}" >> $GITHUB_ENV
@@ -68,7 +68,7 @@ jobs:
           poetry run pytest -s --cov=sxs --cov-branch --cov-report=xml --durations=0
 
       - name: Upload coverage
-        if: "matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'"
+        if: "matrix.python-version == '3.11' && matrix.os == 'ubuntu-latest'"
         uses: codecov/codecov-action@v2
 
 
@@ -107,12 +107,12 @@ jobs:
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
         shell: bash
         run: |
-          $HOME/.poetry/bin/poetry run python -m pip install --upgrade pip
-          $HOME/.poetry/bin/poetry env info
+          poetry run python -m pip install --upgrade pip
+          poetry env info
           rm -f poetry.lock
-          $HOME/.poetry/bin/poetry update
-          $HOME/.poetry/bin/poetry build
-          $HOME/.poetry/bin/poetry install --no-interaction --no-dev
+          poetry update
+          poetry build
+          poetry install --no-interaction --no-dev
 
       - name: Bump version
         shell: bash
@@ -127,7 +127,7 @@ jobs:
           # incremented.  See the documentation of the `poetry version` command for details.
           export version_bump_rule=$(python .github/scripts/parse_bump_rule.py)
           echo "version_bump_rule: '${version_bump_rule}'"
-          $HOME/.poetry/bin/poetry version "${version_bump_rule}"
+          poetry version "${version_bump_rule}"
           export new_version=$(python .github/scripts/parse_version.py pyproject.toml)
           echo "new_version: '${new_version}'"
           echo "new_version=${new_version}" >> $GITHUB_ENV  # Save env variable for later steps
@@ -174,9 +174,9 @@ jobs:
         shell: bash
         run: |
           # Do these first two steps again to ensure the version is right
-          $HOME/.poetry/bin/poetry build
-          $HOME/.poetry/bin/poetry install --no-interaction --no-dev
-          $HOME/.poetry/bin/poetry publish
+          poetry build
+          poetry install --no-interaction --no-dev
+          poetry publish
 
 
   binder:
