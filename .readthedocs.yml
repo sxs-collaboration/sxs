@@ -3,8 +3,11 @@ version: 2
 mkdocs:
   configuration: mkdocs.yml
 
+build:
+  tools:
+    python: "3.11"
+
 python:
-  version: 3.11
   install:
     - method: pip
       path: .
