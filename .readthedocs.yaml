@@ -17,5 +17,5 @@ python:
       path: .
       extra_requirements:
         - mkdocs
-        - mkdocstrings[python]
+        - mkdocstrings-python
         - mkdocs-material
