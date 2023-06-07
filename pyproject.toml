@@ -60,6 +60,11 @@ dependencies = [
 test = "pytest"
 
 [project.optional-dependencies]
+docs = [
+  "mkdocs",
+  "mkdocstrings-python",
+  "mkdocs-material"
+]
 ecosystem = [
   "ipywidgets >=7.5.1",
   "ipykernel >=5.3.4",
