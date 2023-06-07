@@ -4,11 +4,11 @@ mkdocs:
   configuration: mkdocs.yml
 
 python:
-  version: 3.8
+  version: 3.11
   install:
     - method: pip
       path: .
       extra_requirements:
         - mkdocs
-        - mkapi
-        - pymdown-extensions
+        - mkdocstrings[python]
+        - mkdocs-material
