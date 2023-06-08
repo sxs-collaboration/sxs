@@ -11,7 +11,6 @@ plugins:
           options:
             docstring_style: numpy
             show_source: true
-  # - mkapi
 
 nav:
     - Home: 'index.md'
@@ -23,6 +22,15 @@ theme:
   # highlightjs: true
   # hljs_languages:
   #   - mathematica
+  palette:
+    scheme: sxs
+  favicon: images/favicon.ico
+  icon:
+    logo: material/library
+  # logo: images/sxs_logo.png
+
+extra_css:
+  - stylesheets/extra.css
 
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js
