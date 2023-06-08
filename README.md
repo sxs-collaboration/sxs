@@ -6,7 +6,7 @@
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/moble/sxs_notebooks/master)
 
 
-# Simulating eXtreme Spacetimes python package
+# Simulating eXtreme Spacetimes package
 
 The `sxs` python package provides a high-level interface for using data
 produced by the SXS collaboration.  In particular, the function `sxs.load` can
