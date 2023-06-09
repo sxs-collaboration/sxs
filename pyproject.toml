@@ -1,6 +1,6 @@
 [project]
 name = "sxs"
-version = "2022.4.5"
+dynamic = ["version"]
 description = "Interface to data produced by the Simulating eXtreme Spacetimes collaboration"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -68,6 +68,9 @@ Documentation = "https://sxs.readthedocs.io/"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+
+[tool.hatch.version]
+path = "sxs/__version__.py"
 
 [tool.hatch.envs.default]
 dependencies = [
