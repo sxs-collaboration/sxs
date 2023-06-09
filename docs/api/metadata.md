@@ -1,0 +1,3 @@
+# `Metadata` class
+
+::: sxs.Metadata

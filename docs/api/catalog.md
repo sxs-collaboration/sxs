@@ -1,0 +1,3 @@
+# `Catalog` class
+
+::: sxs.Catalog
