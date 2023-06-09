@@ -144,10 +144,7 @@ jobs:
           HATCH_INDEX_AUTH: ${{ secrets.PYPI_TOKEN }}
         shell: bash
         run: |
-          # # Do these first two steps again to ensure the version is right
-          # poetry build
-          # poetry install --no-interaction --no-dev
-          # poetry publish
+          hatch build
           hatch publish
 
 
