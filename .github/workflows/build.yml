@@ -94,7 +94,7 @@ jobs:
           # in the commit message, it bumps the corresponding version number.  Those can also be
           # prepended as `#premajor`, etc., to add/bump the prerelease modifier.  If none of those
           # are present, `#patch` is assumed — that is, the lowest-significance number is
-          # incremented.  See the documentation of the `poetry version` command for details.
+          # incremented.  See the documentation of the `hatch version` command for details.
           export version_bump_rule=$(python .github/scripts/parse_bump_rule.py)
           echo "version_bump_rule: '${version_bump_rule}'"
           hatch version "${version_bump_rule}"
