@@ -1,0 +1,3 @@
+# `TimeSeries` class
+
+::: sxs.TimeSeries

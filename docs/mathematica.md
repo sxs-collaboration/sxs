@@ -1,50 +1,41 @@
 # Calling `sxs` from Mathematica
 
-Newer versions of Mathematica (version 11.2 and greater) include a convenient
+Newer versions of Mathematica (version 11.3 and greater) include a convenient
 way to call Python code from a Mathematica session: you just tell Mathematica
 where to find the `python` executable, and then evaluate Mathematica commands
 containing the Python code you want to run.
 
 ## Getting Mathematica working with Python
 
-There are two main points to consider when making sure that Mathematica will
-interact correctly with Python:
+As of this writing, Mathematica *claims* that it works with all reasonably
+modern versions of Python — specificaly ["Python 2.6+ and Python
+3.4+"](https://reference.wolfram.com/language/ref/externalevaluationsystem/Python.html).
+Assuming this is true, the only extra thing to worry about is that Mathematica
+requires the `pyzmq` package to interface with Python.
 
-  1. As of this writing, Mathematica does not support Python 3.8 or greater.
-     Since `sxs` only supports python 3.6 or greater, this means the only
-     possible versions are 3.6 or 3.7.
-  2. In addition to the `sxs` package and its requirements, Mathematica
-     requires the `pyzmq` package.
-
-If you happen to be running Python 3.6 or 3.7, you can just install `pyzmq` and
-move on.  (For example, replace `sxs` with `pyzmq` in [the original
-installation directions](../#installation).)
-
-Otherwise, the easiest thing to do is to create a separate environment with
-just these requirements.  With
-[`conda`](https://docs.anaconda.com/anaconda/install/), you can run
+If you have already installed `sxs`, you should be able to install `pyzmq` in
+the same way.  Alternatively, you may want to create a separate environment with
+both.  Using [`conda`](https://docs.anaconda.com/anaconda/install/), you can run
 
 ```bash
-conda create -n sxs_mathematica python=3.7 sxs pyzmq
-conda activate sxs_mathematica
+conda create -n sxs_mathematica sxs pyzmq
 ```
 
-The second command here just "activates" your new environment, which basically
-just changes the `PATH` in your current terminal so that it uses this version
-of python by default; that change will disappear the next time you open a
-terminal or if you call `conda deactivate`.
+Note that this command just *creates* the environment; if you want to use it
+directly, you need to run `conda activate sxs_mathematica`, which basically
+changes the `PATH` in your current terminal so that it uses this version of
+python by default; that change will disappear the next time you open a terminal
+or if you call `conda deactivate`.
 
 Finally, you'll need to tell Mathematica the full path to your python
 executable.  You can print that out with
 
 ```bash
-python -c 'import sys; print(sys.executable)'
+conda run -n sxs_mathematica python -c 'import sys; print(sys.executable)'
 ```
 
-Just make sure that you run this command using the version of Python that you
-actually intend to use — which was the purpose of the `conda activate` command
-above.  You may never need to activate the environment again except to update;
-just don't delete it if you intend to continue using it from Mathematica.
+You may never need to activate the environment again except to update; just
+don't delete it if you intend to continue using it from Mathematica.
 
 
 ## Usage
