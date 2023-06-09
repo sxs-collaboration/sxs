@@ -22,11 +22,11 @@ nav:
     - "tutorials/03-Horizons.ipynb"
     - "tutorials/04-Waveforms.ipynb"
   - API:
-    - "Time Series": "api/time_series.md"
-    - "Waveforms": "api/waveforms.md"
-    - "Horizons": "api/horizons.md"
-    - "Metadata": "api/metadata.md"
     - "Catalog": "api/catalog.md"
+    - "Metadata": "api/metadata.md"
+    - "Time Series": "api/time_series.md"
+    - "Horizons": "api/horizons.md"
+    - "Waveforms": "api/waveforms.md"
   - "Calling from Mathematica": "mathematica.md"
 
 theme:
