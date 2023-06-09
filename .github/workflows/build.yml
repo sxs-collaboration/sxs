@@ -117,7 +117,7 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add pyproject.toml
+          git add CITATION.cff sxs/__version__.py
           git commit -m "Bump version to v${new_version}"
           git tag -a "v${new_version}" -m "Version ${new_version}"
           git status
