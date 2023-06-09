@@ -31,6 +31,7 @@ nav:
 
 theme:
   name: "material" # "readthedocs", "mkdocs", "material"
+  #custom_dir: "docs/html"
   highlightjs: true
   hljs_languages:
     - python
