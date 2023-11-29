@@ -686,7 +686,7 @@ class Deposit(object):
         if name in self.file_ids:
             self.delete_file(name, refresh_information=False)
         url = '{0}/{1}'.format(self.links['bucket'], name)
-        r = self._put(url, data=open(path, 'rb'),  headers={"Content-Type": "application/octet-stream"})
+        r = self._put(url, data=open(path, 'rb'), headers={"Content-Type": "application/octet-stream"})
         if r.status_code != 200:
             print('Uploading {0} to deposit {1} failed.'.format(path, self.deposition_id))
             print('Upload url was {0}.'.format(url))
