@@ -274,6 +274,7 @@ def delta_waveform(ell, m, begin=-10.0, end=100.0, n_times=1000, ell_min=2, ell_
     t = np.linspace(begin, end, num=n_times)
     data = np.zeros((n_times, n_modes), dtype=complex)
     data[:, spherical.LM_index(ell, m, ell_min)] = 1.0 + 0.0j
+    lm = np.array([[ell, m] for ell in range(ell_min, ell_max + 1) for m in range(-ell, ell + 1)])
     W = sxs.WaveformModes(
         data,
         time=t,
