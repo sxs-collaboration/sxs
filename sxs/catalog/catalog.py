@@ -96,10 +96,10 @@ class Catalog(object):
                     pass
 
         if not cache_path.exists():
-            if download_failed:
-                raise ValueError(f"Catalog not found in '{cache_path}' and download failed") from download_failed
-            elif download is False:  # Test if it literally *is* False, rather than just casts to False
+            if download is False:  # Test if it literally *is* False, rather than just casts to False
                 raise ValueError(f"The catalog was not found in '{cache_path}', and downloading was turned off")
+            elif download_failed:
+                raise ValueError(f"Catalog not found in '{cache_path}' and download failed") from download_failed
             else:
                 raise ValueError(f"Catalog not found in '{cache_path}' for unknown reasons")
 
