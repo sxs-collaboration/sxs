@@ -86,8 +86,6 @@ class WaveformModes(WaveformMixin, TimeSeries):
     output from the HDF5 file whenever the underlying format is NRAR.
 
     """
-    import functools
-
     def __new__(cls, input_array, *args, **kwargs):
         for requirement in ["modes_axis", "ell_min", "ell_max"]:
             if requirement not in kwargs and requirement not in getattr(input_array, "_metadata", {}):
@@ -119,6 +117,31 @@ class WaveformModes(WaveformMixin, TimeSeries):
         obj = obj.view(type(self))
         if "frame" in obj._metadata and obj.frame.shape == (self.n_times, 4):
             obj._metadata["frame"] = obj.frame[time_key, :]
+        if (
+            obj.ndim != self.ndim
+            or obj.shape[obj.modes_axis] != self.shape[self.modes_axis]
+        ):
+            clean_LM_slice = False
+            # Check if the new shape is compatible with specific ell_min and ell_max values
+            if (
+                isinstance(key, tuple)
+                and len(key) > self.modes_axis
+                and isinstance(key[self.modes_axis], slice)
+            ):
+                sl = key[1]
+                if sl.step is None:
+                    ell1, m1 = self.LM[sl.start]
+                    ell2, m2 = self.LM[sl.stop-1]
+                    if ell1 <= ell2 and m1 == -ell1 and m2 == ell2:
+                        # The sliced object has valid ell_min and ell_max values,
+                        # so we can interpret it as a WaveformModes object; we
+                        # just need to correct those values
+                        clean_LM_slice = True
+                        obj._metadata["ell_min"] = ell1
+                        obj._metadata["ell_max"] = ell2
+            if not clean_LM_slice:
+                # If not, don't represent this as a WaveformModes object; it's just a TimeSeries
+                obj = TimeSeries(obj)
         return obj
 
     @property
