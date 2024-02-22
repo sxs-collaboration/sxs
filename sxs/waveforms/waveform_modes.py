@@ -780,17 +780,17 @@ class WaveformModes(WaveformMixin, TimeSeries):
         # Calculate the LL matrix at each instant
         LL = self.expectation_value_LL
 
-        # This is the eigensystem
-        eigenvals, eigenvecs = np.linalg.eigh(LL)
+        # Compute the eigensystem
+        _, eigenvecs = np.linalg.eigh(LL)
 
-        # `eigh` always returns eigenvals in *increasing* order, so element `2` will be
-        # the dominant principal axis
+        # Choose the dominant principal axis `dpa`
+        # `eigh` always returns eigenvalues in *increasing* order, so we want element `2`
         dpa = quaternionic.array.from_vector_part(eigenvecs[..., 2])
 
         # Make the direction vectors continuous
         dpa = quaternionic.unflip_rotors(dpa, inplace=True).vector
 
-        # Now, just make sure that the result if more parallel than anti-parallel to
+        # Now, just make sure that the result is more parallel than anti-parallel to
         # the `rough_direction`
         if np.dot(dpa[rough_direction_index], rough_direction) < 0:
             dpa *= -1
@@ -1083,3 +1083,48 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 return (w, log_frame)
             else:
                 return w
+
+    def coprecessing_frame(self, rough_direction=None, rough_direction_index=0):
+        """Return the coprecessing frame of the waveform
+
+        This function returns the minimally rotating coprecessing frame of the
+        waveform, as a `quaternionic.array`.  Specifically, the result rotates
+        the static $(x,y,z)$ frame onto a frame in which the dominant eigenvector
+        of the matrix expectation value ⟨w|LᵃLᵇ|w⟩ is aligned with the $z'$ axis.
+        Furthermore, to fix the rotation *about* the $z'$ axis, the minimal-
+        rotation condition is enforced.
+        
+        The coprecessing frame and the minimal-rotation condition are defined
+        in https://arxiv.org/abs/1110.2965.
+
+        For details about the arguments, see the docstring for the
+        `dominant_eigenvector_LL` method.
+
+        """
+        cpa = quaternionic.array.from_vector_part(
+            self.dominant_eigenvector_LL(rough_direction, rough_direction_index)
+        )
+        R = np.sqrt(-cpa * quaternionic.z)  # R * z * R.conj() ≈ cpa
+        return R.to_minimal_rotation(self.t)
+
+    def to_coprecessing_frame(self, rough_direction=None, rough_direction_index=0):
+        """Transform this waveform to the coprecessing frame
+
+        The coprecessing frame is defined to be a rotating frame for which the
+        dominant eigenvector of the matrix expectation value ⟨w|LᵃLᵇ|w⟩ is aligned
+        with the $z'$ axis, and the minimal-rotation condition is enforced.  This
+        leaves the frame completely determined, except for a single rotation about
+        the $z'$ axis.
+
+        The coprecessing frame and the minimal-rotation condition are defined in
+        https://arxiv.org/abs/1110.2965.
+
+        For details about the arguments, see the docstring for the
+        `dominant_eigenvector_LL` method.
+
+        """
+        frame = self.coprecessing_frame(rough_direction, rough_direction_index)
+        w = self.rotate(frame)
+        w._metadata["frame_type"] = "coprecessing"
+        w._metadata["frame"] = frame
+        return w
