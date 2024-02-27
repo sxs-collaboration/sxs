@@ -189,22 +189,22 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
     # if it casts to `False`.
     cache_path = sxs_directory("cache", persistent=(cache is not False))
 
-    path = pathlib.Path(sxs_path_to_system_path(location)).expanduser().resolve()
+    path = pathlib.Path(sxs_path_to_system_path(location)).expanduser()  # .resolve()
     h5_path = path.with_suffix('.h5')
     json_path = path.with_suffix('.json')
 
     if not path.exists():
-        if h5_path.exists():
+        if h5_path.resolve().exists():
             path = h5_path
 
-        elif json_path.exists():
+        elif json_path.resolve().exists():
             path = json_path
 
         elif "scheme" in url.parse(location):
             m = url.parse(location)
             path_name = urllib.request.url2pathname(f"{m['host']}/{m['port']}/{m['resource']}")
             path = cache_path / path_name
-            if not path.exists():
+            if not path.resolve().exists():
                 if download is False:  # Again, we want literal False, not casting to False
                     raise ValueError(f"File '{path_name}' not found in cache, but downloading turned off")
                 download_file(location, path, progress=progress)
@@ -225,7 +225,7 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
             for sxs_path, file_info in selections.items():
                 truepath = sxs_path_to_system_path(file_info.get("truepath", sxs_path))
                 path = cache_path / truepath
-                if not path.exists():
+                if not path.resolve().exists():
                     download_url = file_info["download"]
                     download_file(download_url, path, progress=progress)
                 paths.append(path)
