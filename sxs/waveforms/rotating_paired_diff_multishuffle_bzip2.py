@@ -369,7 +369,7 @@ def load(
             raise ValueError(message)
 
     file_name_str = str(file_name)
-    group = None
+    group = kwargs.get("group", None)
     if ".h5" in file_name_str and not file_name_str.endswith(".h5"):
         file_name_str, group = file_name_str.split(".h5")
     if group == "/":
@@ -379,7 +379,6 @@ def load(
     # (because the user may have passed in a file without the suffix,
     # or because there was an .h5 in the middle of the filename.)
     # But that's ok, we will use with_suffix below.
-
 
     # In a common use case, the h5 and json files will be named
     # bla.h5 and bla.json as expected, but they will be git-annex symlinks.
