@@ -58,7 +58,7 @@ def sxs_handler(format_string):
     raise ValueError(f"Format '{format_string}' is unknown to the `sxs` package; maybe you need to update `sxs`")
 
 
-def sxs_loader(file):
+def sxs_loader(file, group=None):
     """Find the function that will load the given file
 
     If a format is specified, we assume that it is a top-level attribute or member
@@ -68,6 +68,8 @@ def sxs_loader(file):
     Parameters
     ----------
     file : file-like object, string, or pathlib.Path
+    group : str, optional
+        If the file is an HDF5 or JSON file, this is the group to inspect.
 
     Returns
     -------
@@ -89,7 +91,7 @@ def sxs_loader(file):
     import re
     import pathlib
     from .utilities import file_format
-    format_string = file_format(file)
+    format_string = file_format(file, group)
     if format_string is None:
         file_string = str(pathlib.Path(file).name).lower()
         if "catalog" in file_string:
@@ -235,7 +237,7 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
             else:
                 return loaded
 
-    loader = sxs_loader(path)
+    loader = sxs_loader(path, kwargs.get("group", None))
 
     return loader(path, **kwargs)
 
