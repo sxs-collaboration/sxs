@@ -498,7 +498,7 @@ def load(
     diff(data_tmp, reverse=True, axis=0, out=data)
     diff(log_frame, reverse=True, preserve_dtype=True, axis=0, out=log_frame)
 
-    frame = np.exp(quaternionic.array(np.insert(log_frame, 0, 0.0, axis=1)))
+    frame = np.exp(quaternionic.array.from_vector_part(log_frame))
 
     if spin_weight is None:
         warning = f"Spin weight has not been provided for {h5_path}.  This may result in errors with some functions."
