@@ -48,14 +48,11 @@ class SimulationConverter(object):
             otherwise just store the final log in the output file.
 
         """
-        import os
-        import time
-        import json
         import platform
         import numpy
         import scipy
         import h5py
-        import sxs
+        from ... import __version__, load, zenodo
 
         self.modes = modes
         self.tolerance = tolerance
@@ -68,7 +65,7 @@ class SimulationConverter(object):
             f"h5py=={h5py.version.version}\n"
             f"# h5py_api=={h5py.version.api_version}\n"
             f"# h5py_hdf5=={h5py.version.hdf5_version}\n"
-            f"sxs=={sxs.__version__}\n"
+            f"sxs=={__version__}\n"
         )
 
         self.command = (
@@ -94,13 +91,13 @@ class SimulationConverter(object):
         self.ell_max = max(lm[0] for lm in self.modes)
 
         # Load catalog metadata
-        catalog = sxs.load("catalog")
+        catalog = load("catalog")
         self.sxs_catalog = {
             "simulations": catalog.simulations,
             "records": catalog.records,
         }
 
-        self.sxs_catalog_resolutions = sxs.zenodo.catalog.resolutions_for_simulations(self.sxs_catalog)
+        self.sxs_catalog_resolutions = zenodo.catalog.resolutions_for_simulations(self.sxs_catalog)
 
     def convert(
         self,
@@ -150,7 +147,7 @@ class SimulationConverter(object):
         import time
         import json
         import h5py
-        import sxs
+        from ... import lev_number
 
         from .metadata import sxs_id_from_alt_names, write_metadata_from_sxs
         from .horizons import horizon_splines_from_sxs, write_horizon_splines_from_sxs
@@ -172,7 +169,7 @@ class SimulationConverter(object):
 
         # Determine the resolution of the input simulation, if needed
         if resolution is None:
-            resolution = sxs.lev_number(sxs_data_path)
+            resolution = lev_number(sxs_data_path)
         if resolution is None:
             raise ValueError("No `resolution` value found in input arguments or data path.")
 
