@@ -1,10 +1,11 @@
-import sxs
 import numpy as np
 
 from scipy.integrate import trapezoid
 
 import multiprocessing as mp
 from functools import partial
+
+from .. import WaveformModes
 
 
 def align1d(wa, wb, t1, t2, n_brute_force=None):
@@ -292,7 +293,7 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         optimums.append(optimum)
         δt, δϕ = optimum.x
 
-        wa_prime = sxs.WaveformModes(
+        wa_prime = WaveformModes(
             input_array=(
                 wa_orig[:, wa_orig.index(2, -2) : wa_orig.index(ell_max + 1, -(ell_max + 1))].data
                 * np.exp(1j * m * δϕ)
