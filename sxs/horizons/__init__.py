@@ -9,6 +9,7 @@ well as functions for saving and loading horizon data in standardized formats.
 import numpy as np
 import inflection
 from . import spec_horizons_h5, xor_multishuffle_bzip2
+from .. import TimeSeries
 
 xmb = xor_multishuffle_bzip2
 
@@ -96,7 +97,6 @@ class HorizonQuantities(object):
     """
 
     def __init__(self, **kwargs):
-        from .. import TimeSeries
         self.time = kwargs["time"]
         self.areal_mass = TimeSeries(kwargs["areal_mass"], time=self.time, time_axis=0)
         self.christodoulou_mass = TimeSeries(kwargs["christodoulou_mass"], time=self.time, time_axis=0)
@@ -432,6 +432,6 @@ class Horizons(object):
         post-Newtonian theory and similar treatments.
 
         """
-        return sxs.TimeSeries(np.cross(self.n̂, self.λ̂), time=self.n̂.time)
+        return TimeSeries(np.cross(self.n̂, self.λ̂), time=self.n̂.time)
 
     ellhat = ℓ̂
