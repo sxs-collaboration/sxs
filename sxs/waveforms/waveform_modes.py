@@ -501,7 +501,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         """
         result = TimeSeries.interpolate(self, new_time, derivative_order=derivative_order, out=out)
         if self.frame.shape == (self.n_times, 4) and not np.array_equal(self.time, result.time):
-            self._metadata["frame"] = quaternionic.squad(self.frame, self.time, result.time)
+            result._metadata["frame"] = quaternionic.squad(self.frame, self.time, result.time)
         return result
 
     def truncate(self, tol=1e-10):
