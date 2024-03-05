@@ -5,7 +5,6 @@ from scipy.integrate import trapezoid
 import multiprocessing as mp
 from functools import partial
 
-from .. import WaveformModes
 
 
 def align1d(wa, wb, t1, t2, n_brute_force=None):
@@ -209,6 +208,7 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     """
     from scipy.interpolate import CubicSpline
     from scipy.optimize import least_squares
+    from .. import WaveformModes
 
     wa_orig = wa
     wa = wa.copy()
