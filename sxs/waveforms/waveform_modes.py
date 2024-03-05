@@ -293,7 +293,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
             conjugate(f){s, l, m} = (-1)**(s+m) * conjugate(f{-s, l, -m})
 
         """
-        return spherical.modes.algebra.bar(self)
+        return spherical.modes.algebra.conjugate(self, False)
 
     @property
     def re(self):
@@ -944,7 +944,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         if self.frame.shape[0] == 1:
             raise ValueError("This waveform appears to already be in an inertial frame")
         if self.frame.shape != (self.n_times, 4):
-            raise ValueError(f"Frame shape {frame.shape} not understood; expected {(self.n_times, 4)}")
+            raise ValueError(f"Frame shape {self.frame.shape} not understood; expected {(self.n_times, 4)}")
         w = self.rotate(~self.frame)
         w._metadata["frame_type"] = "inertial"
         return w
