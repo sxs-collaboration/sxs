@@ -2,6 +2,8 @@
 
 import re
 import numpy as np
+from scipy.interpolate import CubicSpline
+from scipy.optimize import minimize_scalar
 import quaternionic
 import spherical
 from .. import TimeSeries
@@ -454,13 +456,33 @@ class WaveformModes(WaveformMixin, TimeSeries):
             i = int(self.n_times // skip_fraction_of_data)
             return np.argmax(self[i:].norm) + i
 
-    def max_norm_time(self, skip_fraction_of_data=4):
+    def max_norm_time(self, skip_fraction_of_data=4, interpolate=False):
         """Return time at which largest norm occurs in data
 
-        See `help(max_norm_index)` for explanation of the optional argument.
+        See `help(max_norm_index)` for explanation of
+        `skip_fraction_of_data`.
+
+        If `interpolate` is True, the time is interpolated to a higher
+        precision than the time step of the data.  This is done by
+        fitting a cubic spline to the norm of the data and finding the
+        time at which the norm is maximized.
 
         """
-        return self.t[self.max_norm_index(skip_fraction_of_data=skip_fraction_of_data)]
+        if interpolate:
+            i_max = self.max_norm_index(skip_fraction_of_data)
+
+            # Find a range of indices that includes the discrete time with
+            # largest norm, plus 10 points in either direction, to ensure that
+            # the spline has enough data to interpolate the whole range.
+            idx_min = max(0, i_max - 10)
+            idx_max = min(self.n_times, i_max + 10)
+            idx = slice(idx_min, idx_max)
+
+            # Minimize -norm over the range of indices
+            spline = CubicSpline(self.t[idx], -self[idx, :].norm)
+            return minimize_scalar(spline, bounds=(self.t[idx_min], self.t[idx_max]), method='bounded').x
+        else:
+            return self.t[self.max_norm_index(skip_fraction_of_data)]
 
     def interpolate(self, new_time, derivative_order=0, out=None):
         """Interpolate this object to a new set of times
@@ -964,7 +986,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         """Return a copy of this waveform in the inertial frame"""
         if "frame" not in self._metadata:
             raise ValueError("This waveform has no frame information")
-        if self.frame.shape[0] == 1:
+        if self.frame.shape[0] == 1 and self.n_times > 1:
             raise ValueError("This waveform appears to already be in an inertial frame")
         if self.frame.shape != (self.n_times, 4):
             raise ValueError(f"Frame shape {self.frame.shape} not understood; expected {(self.n_times, 4)}")
