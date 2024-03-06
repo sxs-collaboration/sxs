@@ -16,7 +16,7 @@ def sxs_id(s, default=""):
 
     An SXS ID is anything that matches the following regular expression:
 
-        SXS:(BBH|BHNS|NSNS):[0-9]*
+        SXS:(BBH|BHNS|NSNS)(_ExtCCE)?:[0-9]+(v[0-9.]+)?
 
     If no match is found, the empty string is returned.  If multiple matches are
     found, only the first is returned.
@@ -87,13 +87,12 @@ def lev_number(s):
 
     The Lev number is anything that matches the following regular expression:
 
-        Lev(?P<lev>[-0-9]*)
+        Lev(?P<lev>-?[0-9]+)
 
     If no match is found, `None` is returned.  If multiple matches are found,
     only the first is returned.
 
     """
-    import os.path
     import re
     m = re.search(lev_regex, s)
     if m:
