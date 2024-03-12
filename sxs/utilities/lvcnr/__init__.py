@@ -8,7 +8,9 @@ https://git.ligo.org/waveforms/lvcnrpy
 Note that most of the code in this submodule related to metadata is adapted from
 code written by Alyssa Garcia, Geoffrey Lovelace, and Patricia Schmidt.  The main
 difference from [romspline](https://github.com/crgalley/romspline) is in the
-decimation method and modified tolerances.
+decimation method and modified tolerances, making it ~4000x faster for typical
+SXS waveforms, while producing files that are slightly smaller on average, but
+still just as accurate (in the L^2 measure).
 
 """
 
