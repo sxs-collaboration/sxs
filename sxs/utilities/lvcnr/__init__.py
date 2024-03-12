@@ -5,8 +5,10 @@ facto format definition is in the code that checks it, which seems to be the
 `lvcnrpy` module — more specifically, the classes in lvcnrpy.format.specs at
 https://git.ligo.org/waveforms/lvcnrpy
 
-Note that most of the code in this submodule is adapted from code written by Alyssa
-Garcia, Geoffrey Lovelace, and Patricia Schmidt.
+Note that most of the code in this submodule related to metadata is adapted from
+code written by Alyssa Garcia, Geoffrey Lovelace, and Patricia Schmidt.  The main
+difference from [romspline](https://github.com/crgalley/romspline) is in the
+decimation method and modified tolerances.
 
 """
 
