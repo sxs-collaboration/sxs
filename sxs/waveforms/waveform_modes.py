@@ -1150,3 +1150,37 @@ class WaveformModes(WaveformMixin, TimeSeries):
         w._metadata["frame_type"] = "coprecessing"
         w._metadata["frame"] = frame
         return w
+
+
+class WaveformModesDict(WaveformModes):
+    """A dictionary-like class for storing waveform modes
+    
+    This class is a subclass of `WaveformModes` that allows for
+    dictionary-like access to the modes.  Specifically, indexing like
+    `h[2,1]` will return the mode with `(ell,m) = (2,1)` as a function
+    of time.  The input index is checked to ensure that it is a tuple
+    of length 2 containing integers; all other indexing is passed
+    through to the superclass.
+
+    This subclass is necessary because the `WaveformModes` class would
+    consider an index like `h[2,1]` to indicate the second time step
+    and the first mode, rather than the mode with `(ell,m) = (2,1)`.
+    """
+    def __getitem__(self, key):
+        if (
+            isinstance(key, tuple)
+            and len(key) == 2
+            and isinstance(key[0], (int, np.integer))
+            and isinstance(key[1], (int, np.integer))
+        ):
+            ell, m = key
+            if abs(m) > ell:
+                raise KeyError(f"Mode index {(ell,m)=} is not valid")
+            if not h.ell_min <= ell <= h.ell_max:
+                raise KeyError(
+                    f"Mode {ell=} is out of range for this waveform's "
+                    f"ell values {[h.ell_min, h.ell_max]}"
+                )
+            return super().__getitem__((slice(None), self.index(ell, m))).ndarray
+        else:
+            return super().__getitem__(key)
