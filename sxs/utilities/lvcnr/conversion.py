@@ -111,7 +111,7 @@ class SimulationConverter(object):
         ----------
         sxs_data_path : string
             Path to directory containing rhOverM_Asymptotic_GeometricUnits_CoM.h5,
-            Horizons.h5, and metadata.json files.
+            Horizons.h5, and metadata.txt or metadata.json files.
         out_path : string
             Path where LVC-format file is to be output
         truncation_time : {None, float}
@@ -145,9 +145,14 @@ class SimulationConverter(object):
                                 truncation_time=truncation_time, resolution=resolution))
         log("Starting at "+time.strftime('%H:%M%p %Z on %b %d, %Y'))
 
-        # Load metadata.json from this simulation
-        with open(os.path.join(sxs_data_path, "metadata.json"), 'r') as f:
-            metadata = json.load(f)
+        # Load metadata from this simulation
+        try:
+            metadata = sxs.Metadata.from_file(os.path.join(sxs_data_path, "metadata.txt"))
+        except:
+            try:
+                metadata = sxs.Metadata.from_file(os.path.join(sxs_data_path, "metadata.json"))
+            except:
+                raise ValueError('Cannot load metadata.')
 
         # Determine the resolution of the input simulation, if needed
         if resolution is None:
@@ -165,7 +170,7 @@ class SimulationConverter(object):
         log("Output filename is '{0}'".format(out_name))
 
         start_time, peak_time, version_hist = convert_modes(
-            sxs_data_path + "/rhOverM_Asymptotic_GeometricUnits_CoM.h5",
+            sxs_data_path + "/Strain_N2",
             metadata, out_name, self.modes, extrapolation_order, log,
             truncation_time, tolerance=self.tolerance/2.0, truncation_tol=truncation_tol
         )
