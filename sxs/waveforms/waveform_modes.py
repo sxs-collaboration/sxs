@@ -1176,10 +1176,10 @@ class WaveformModesDict(WaveformModes):
             ell, m = key
             if abs(m) > ell:
                 raise KeyError(f"Mode index {(ell,m)=} is not valid")
-            if not h.ell_min <= ell <= h.ell_max:
+            if not self.ell_min <= ell <= self.ell_max:
                 raise KeyError(
                     f"Mode {ell=} is out of range for this waveform's "
-                    f"ell values {[h.ell_min, h.ell_max]}"
+                    f"ell values {[self.ell_min, self.ell_max]}"
                 )
             return super().__getitem__((slice(None), self.index(ell, m))).ndarray
         else:
