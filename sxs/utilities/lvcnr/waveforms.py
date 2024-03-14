@@ -21,13 +21,16 @@ def convert_modes(
     from time import perf_counter
     from . import WaveformAmpPhase, Dataset
     from ... import load
-
+    from ..dicts import KeyPassingDict
+    
     extrap = str(extrapolation_order) + ".dir"
 
     if truncation_time is None:
         truncation_time = metadata["reference_time"] / (metadata["reference_mass1"] + metadata["reference_mass2"])
 
     h = load(sxs_format_waveform)
+    if type(h) == KeyPassingDict:
+        h = h[extrap]
     if not truncation_time is None:
         h = h[np.argmin(abs(h.t - truncation_time)) + 1 :]
 
