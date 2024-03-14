@@ -562,22 +562,23 @@ def load(
     else:
         metadata = Metadata.from_file(metadata_path)
 
-    dtb = kwargs.pop("drop_times_before", None)
-    if dtb is None or dtb==0:
-        i0 = np.argmin(w.t < 0)
-    elif dtb=="begin":
+    dtb = kwargs.pop("drop_times_before", 0)
+    if dtb=="begin":
         i0 = 0
+    elif dtb==0:
+        i0 = np.argmin(w.t < 0)
     elif dtb=="reference":
         if metadata is None:
             raise ValueError(f"Metadata is required if `drop_times_before` is set to 'reference'")
         i0 = np.argmin(w.t < metadata.reference_time)
-    elif dtb=="merger":
-        i0 = w.max_norm_index()
     elif isinstance(dtb, numbers.Real):
         i0 = np.argmin(w.t < dtb)
+    elif dtb=="merger":
+        i0 = w.max_norm_index()
     else:
         raise ValueError(f"Invalid value for `drop_times_before`: {dtb}")
-    w = w[i0:]
+    if i0 != 0:
+        w = w[i0:]
 
     w.json_data = json_data
     w.log_frame = log_frame
