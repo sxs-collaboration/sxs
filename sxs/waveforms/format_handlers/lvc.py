@@ -1,9 +1,3 @@
-# TODO: Ensure that docs include `load` function
-# TODO: If an SXS ID alone is given, just give the highest Lev and
-#       Strain_N2 (with kwargs for lev and extrap order)
-# TODO: Create new catalog
-
-
 import numpy as np
 from scipy.optimize import root_scalar
 from scipy.interpolate import CubicSpline, UnivariateSpline
