@@ -14,9 +14,9 @@ import h5py
 import quaternionic
 import spherical
 
-from .. import WaveformModes
-from ... import __version__
 from ...utilities import default_shuffle_widths, md5checksum, diff, xor, multishuffle, version_info
+from ... import Metadata, __version__
+from .. import WaveformModes
 
 
 sxs_formats = ["rotating_paired_diff_multishuffle_bzip2", "rpdmb", "RPDMB"]
@@ -556,13 +556,11 @@ def load(
     if transform_to_inertial:
         w = w.to_inertial_frame()
 
-    w.json_data = json_data
-    w.log_frame = log_frame
-
     if not metadata_path.exists():
         invalid(f'\nMetadata file "{metadata_path}" cannot be found, but is expected for this data format.')
+        metadata = None
     else:
-        w.metadata = load(metadata_path)
+        metadata = Metadata.from_file(metadata_path)
 
     dtb = kwargs.pop("drop_times_before", None)
     if dtb is None or dtb==0:
@@ -570,17 +568,23 @@ def load(
     elif dtb=="begin":
         i0 = 0
     elif dtb=="reference":
-        if not hasattr(w.metadata, "metadata"):
+        if metadata is None:
             raise ValueError(f"Metadata is required if `drop_times_before` is set to 'reference'")
-        i0 = np.argmin(w.t < w.metadata.reference_time)
+        i0 = np.argmin(w.t < metadata.reference_time)
     elif dtb=="merger":
         i0 = w.max_norm_index()
     elif isinstance(dtb, numbers.Real):
         i0 = np.argmin(w.t < dtb)
     else:
         raise ValueError(f"Invalid value for `drop_times_before`: {dtb}")
+    w = w[i0:]
 
-    return w[i0:]
+    w.json_data = json_data
+    w.log_frame = log_frame
+    if metadata is not None:
+        w.metadata = metadata
+
+    return w
 
 
 def load_time(
