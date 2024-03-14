@@ -4,9 +4,9 @@ import sys
 import warnings
 import ast
 import numpy as np
-from . import WaveformModes
-from ..metadata import Metadata
-from ..utilities.monotonicity import index_is_monotonic
+from .. import WaveformModes
+from ...metadata import Metadata
+from ...utilities.monotonicity import index_is_monotonic
 
 
 FrameType = [UnknownFrameType, Inertial, Coprecessing, Coorbital, Corotating] = range(5)

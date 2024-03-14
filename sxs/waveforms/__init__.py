@@ -9,7 +9,11 @@ from .waveform_modes import WaveformModes
 # from .waveform_grid import WaveformGrid
 # from .waveform_signal import WaveformSignal
 
-from . import nrar, rotating_paired_xor_multishuffle_bzip2, rotating_paired_diff_multishuffle_bzip2, memory, transformations, alignment
+from .format_handlers import (
+    nrar, rotating_paired_diff_multishuffle_bzip2, rotating_paired_xor_multishuffle_bzip2
+)
+#from .format_handlers.lvc import to_lvc_conventions
+from . import memory, transformations, alignment
 
 # Map a format string to the module that should be used to load a waveform with that format
 formats = {

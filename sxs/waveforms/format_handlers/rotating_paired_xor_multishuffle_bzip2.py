@@ -13,10 +13,10 @@ import h5py
 import quaternionic
 import spherical
 
-from . import WaveformModes
+from .. import WaveformModes
 from . import rotating_paired_diff_multishuffle_bzip2 as rpdmb
-from .. import __version__
-from ..utilities import default_shuffle_widths, md5checksum, xor, multishuffle, version_info
+from ... import __version__
+from ...utilities import default_shuffle_widths, md5checksum, xor, multishuffle, version_info
 
 
 sxs_formats = ["rotating_paired_xor_multishuffle_bzip2", "rpxmb", "rpxm", "RPXMB", "RPXM"]
