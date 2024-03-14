@@ -12,7 +12,7 @@ from .waveform_modes import WaveformModes, WaveformModesDict
 from .format_handlers import (
     nrar, rotating_paired_diff_multishuffle_bzip2, rotating_paired_xor_multishuffle_bzip2
 )
-#from .format_handlers.lvc import to_lvc_conventions
+from .format_handlers.lvc import to_lvc_conventions
 from . import memory, transformations, alignment
 
 # Map a format string to the module that should be used to load a waveform with that format
