@@ -20,11 +20,11 @@ from .time_series import TimeSeries
 from .metadata import Metadata
 from .catalog import Catalog
 from .horizons import Horizons, HorizonQuantities
-from .waveforms import WaveformModes, WaveformModesDict #, WaveformGrid, WaveformSignal
+from .waveforms import WaveformModes, WaveformModesDict, to_lvc_conventions #, WaveformGrid, WaveformSignal
 from .waveforms import rotating_paired_xor_multishuffle_bzip2 as rpxmb
 from .waveforms import rotating_paired_diff_multishuffle_bzip2 as rpdmb
 from . import catalog, metadata, horizons, waveforms, zenodo, caltechdata
-from .handlers import load, loadcontext
+from .handlers import load, loadcontext, load_lvc
 
 # The speed of light is, of course, defined to be exactly
 speed_of_light = 299_792_458.0  # m/s

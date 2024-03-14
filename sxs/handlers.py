@@ -1,6 +1,7 @@
 """Functions to facilitate generic handling of SXS-format data files"""
 
 import contextlib
+from . import waveforms
 
 
 def sxs_handler(format_string):
@@ -276,3 +277,201 @@ def loadcontext(*args, **kwargs):
 
     """
     yield load(*args, **kwargs)
+
+
+def load_lvc(
+        sxs_id, *,
+        t_ref=None, f_ref=None,
+        dt=None,
+        f_low=None,
+        ell_max=None,
+        phi_ref=None, inclination=None,
+        ell_max_epoch=None,
+        **kwargs
+):
+    r"""Load an SXS waveform in LVC convention.
+
+    Returns an SXS waveform (modes or polarizations) and dynamics
+    (including angular velocities, frame quaternions, and spins) in
+    the inertial frame that coincides with the waveform-defined frame
+    defined at a reference time `t_ref` or reference frequency
+    `f_ref`.
+
+    Parameters
+    ==========
+    sxs_id : str
+        The SXS ID of the simulation to use — e.g., "SXS:BBH:1234".
+    t_ref : float, optional
+        The reference time at which the waveform frame is specified.
+        This is measured in units of M, and defined relative to the
+        epoch time (see below).  Either `t_ref` or `f_ref` must be
+        specified.  If `t_ref` is given, it is used to compute
+        `f_ref`.
+    f_ref : float, optional
+        The reference frequency, in units of cycles/M, at which the
+        waveform frame is specified.  Either `t_ref` or `f_ref` must
+        be specified.  If `f_ref` is given, it is used to compute
+        `t_ref`.
+    dt : float, optional
+        The time step, in units of M, to which to interpolate the
+        waveform.
+    f_low : float, optional
+        The lower frequency bound, in units of cycles/M, for the
+        waveform.
+    ell_max : int, optional
+        The maximum ell to include in the waveform.
+    phi_ref : float, optional
+        The binary's phase in the coprecessing frame, measured at
+        `t_ref`. Should be between 0 and $2\pi$.
+    inclination : float, optional
+        Angle between the binary's angular momentum and the line of
+        sight of the observer, measured at `t_ref`.  Should be between
+        0 and $\pi$.
+    ell_max_epoch : int, optional
+        The maximum ell to include in the epoch time calculation,
+        which sets t=0 at the maximum of the L^2 norm, calculated by
+        including all modes up to and including this ell value.
+
+    Returns
+    =======
+    times : float array
+        Uniformly spaced 1D array of times, in units of M, at which
+        the waveform and dynamics quantities are returned.  Aligned
+        such that peak of waveform modes with ell=2 is at t=0.
+    hlm_dict : dict [optional]
+        Dictionary of waveform modes in the inertial frame that
+        coincides with the waveform-defined coprecessing frame at
+        `f_ref`.  Each mode in the dictionary is a 1D array of
+        complex-valued floats with values corresponding to each time
+        node.  Keys:[(ell,m)] for all ell<=ell_max and -ell<=m<=+ell.
+        This is returned only if the input values of `phi_ref` and
+        `inclination` are both None.
+    hp, hc : float arrays [optional]
+        1D-arrays of real-valued GW polarizations evaluated in the
+        frame of the observer at each time node.  Polarizations are
+        computed using all modes up to ell=ell_max, with one value at
+        each time node.  These are returned only if either of the
+        input values of `phi_ref` and `inclination` is not None.
+    dynamics_dict : dict
+        Dictionary of real-valued arrays of dynamics quantities:
+            * "t_ref": The reference time at which the waveform frame
+              is specified.
+            * "f_ref": The waveform's frequency at `t_ref`.
+            * "t_low": The earliest time in the waveform.
+            * "f_low": The waveform's frequency at `t_low`.
+            * "chi1_ref": Cartesian spin components for the more
+              massive object, evaluated at `t_ref` in the
+              waveform-defined inertial frame.
+            * "chi2_ref": Cartesian spin components for the less
+              massive object, evaluated at `t_ref` in the
+              waveform-defined inertial frame.
+            * "frame_quat": Quaternions describing the instantaneous
+              transformation from the inertial frame to the corotating
+              frame at each time node as described in arXiv:1905.09300
+              and using conventions in Appendix B of arXiv:1110.2965.
+              Array of shape (len(times),4) with four quaternion
+              components at each time node.  The first element at each
+              time node is the scalar part.
+            * "frame_omega": Angular velocity vector of the corotating
+              frame at each time node.  Array of shape (len(times),3)
+              with three components at each time node.
+            * "times_spins": The times, in units of M, at which `chi`
+              and `chi2` are returned.  Note that these are coordinate
+              times deep within the dynamic region of the simulation,
+              and so cannot be precisely related to the times in the
+              asymptotic waveform.
+            * "chi1": Cartesian spin components for the more massive
+              object, evaluated in the waveform-defined inertial
+              frame.  Array of shape (len(times_spins),3) which
+              contains the Cartesian spin components
+              \{chi_{1x},chi_{1y},chi_{1z}\} at each time node.
+            * "chi2": Cartesian spin components for the less massive
+              object, evaluated in the waveform-defined inertial
+              frame.  Array of shape (len(times_spins),3) which
+              contains the Cartesian spin components
+              \{chi_{2x},chi_{2y},chi_{2z}\} at each time node.
+            * "times_remnant": The times, in units of M, at which
+              `chi_remnant` and `mass_remnant` are returned.  Note
+              that these are coordinate times deep within the dynamic
+              region of the simulation, and so cannot be precisely
+              related to the times in the asymptotic waveform.
+            * "chi_remnant": Cartesian spin components for the remnant
+              black hole, evaluated in the waveform-defined inertial
+              frame.  Array of shape (len(times_remnant),3) which
+              contains the Cartesian spin components
+              \{chi_{rx},chi_{ry},chi_{rz}\}.
+            * "mass_remnant": The Christodoulou mass of the remnant
+              black hole as a function of time.  Array of shape
+              (len(times_remnant),).
+
+    See also
+    ========
+    sxs.load : General-purpose function to load SXS data in native
+        format
+    sxs.waveforms.to_lvc_conventions : Inner function that does all
+        the work for this function
+
+    Conventions
+    ===========
+    We assume geometric units for time (units of M) and frequency
+    (units of cycles/M), with total mass M equal to 1.
+    
+    Epoch time is defined by the peak of the $L^2$ norm of the modes:
+
+        $$t_e = \argmax_t \sum_\ell \sum_m |h_{\ell,m}(t)|^2,$$
+
+    where the sum over $\ell$ ranges from 2 to `ell_max_epoch`.  All
+    time axes are then adjusted so that $t_e = 0$.
+
+    Frequencies are measured from the waveform, rather than orbital
+    trajectories, in terms of the angular-velocity vector given by
+    equation (7) of arXiv:1302.2919.  The frequency is defined as the
+    magnitude of this vector divided by $2\pi$.
+
+    Waveforms, spins, dynamics, times, inclination angle and GW
+    reference phase are all defined in the inertial frame that
+    coincides with the "waveform-defined frame" at the reference time.
+    This frame is chosen so that the $z$ axis is aligned with the
+    dominant principal axis of the matrix given by equation (2a) of
+    arXiv:1109.5224, except that the strain is used in place of
+    $\psi_4$.  That axis is only determined up to a sign, so we choose
+    the positive $z$ axis to be more parallel than antiparallel to the
+    angular velocity.  Rotation about the $z$ axis is chosen to
+    approximate the condition that the more massive black hole is
+    located on the positive $x$ axis at the reference time, but can be
+    written solely in terms of the waveform modes:
+
+        * $\Im{h_{2,2} + \bar{h}_{2,-2}} = 0$
+        * $\Re{h_{2,2} + \bar{h}_{2,-2}} < 0$
+        * $\Im{h_{2,1} + \bar{h}_{2,-1}} < 0$
+
+    The first two conditions are necessary for cases of symmetric
+    systems in which $h_{2,\pm 1}=0$; the last condition breaks the
+    degeneracy of the first two under rotation about the $z$ axis by
+    $\pi$.  For configurations that are symmetric under that rotation,
+    $h_{2,1}$ will be zero, so this condition will be impossible to
+    apply, but the symmetry of the system will mean that there is no
+    difference in the result.
+
+    Quaternion conventions are described in Appendix B of
+    arXiv:1110.2965.  In particular, we use the convention that
+
+        Q = q_0 + vec(q) = (q_0, q_1, q_2, q_3)
+
+    where q_0 is the scalar part.
+
+    """
+    lev = kwargs.pop("lev", "Lev")  # If number is unspecified, load chooses highest
+    waveform_name = kwargs.pop("waveform_name", "Strain_N2.h5")
+    h = load(f"{sxs_id}/{lev}/{waveform_name}", transform_to_inertial=False)
+    horizons = load(f"{sxs_id}/{lev}/Horizons.h5")
+    return waveforms.to_lvc_conventions(
+        h, horizons,
+        t_ref=t_ref, f_ref=f_ref,
+        dt=dt,
+        f_low=f_low,
+        ell_max=ell_max,
+        phi_ref=phi_ref, inclination=inclination,
+        ell_max_epoch=ell_max_epoch,
+        **kwargs
+    )
