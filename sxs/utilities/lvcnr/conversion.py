@@ -1,5 +1,6 @@
 """Class and function to convert SXS data to LVC-NR format"""
 
+
 class SimulationConverter(object):
     class Log(object):
         """Object to replace `log` function that used global `history`
@@ -13,6 +14,7 @@ class SimulationConverter(object):
         argument, which will work the same, but not store the value.
 
         """
+
         def __init__(self, quiet):
             self.history = ""
             self.quiet = quiet
@@ -82,26 +84,34 @@ class SimulationConverter(object):
         )
 
         # Make sense of the `modes` parameter
-        if modes == 'all':
-            self.modes = [[l, m] for l in range(2, 9) for m in range(-l, l+1)]
-        elif modes == '22only':
+        if modes == "all":
+            self.modes = [[l, m] for l in range(2, 9) for m in range(-l, l + 1)]
+        elif modes == "22only":
             self.modes = [[2, 2], [2, -2]]
         else:
             l_max = int(modes)
-            self.modes = [[l, m] for l in range(2, l_max+1) for m in range(-l, l+1)]
+            self.modes = [[l, m] for l in range(2, l_max + 1) for m in range(-l, l + 1)]
         self.ell_max = max(lm[0] for lm in self.modes)
 
         # Load catalog metadata
         catalog = sxs.load("catalog")
         self.sxs_catalog = {
-            'simulations': catalog.simulations,
-            'records': catalog.records,
+            "simulations": catalog.simulations,
+            "records": catalog.records,
         }
 
         self.sxs_catalog_resolutions = sxs.zenodo.catalog.resolutions_for_simulations(self.sxs_catalog)
 
-
-    def convert(self, sxs_data_path, out_path, truncation_time=None, resolution=None, truncation_tol=None):
+    def convert(
+        self,
+        sxs_data_path,
+        out_path,
+        waveform_name=None,
+        out_waveform_name=None,
+        truncation_time=None,
+        resolution=None,
+        truncation_tol=None,
+    ):
         """Convert a simulation from the SXS BBH catalog into the LVC format.
 
         This function outputs a file in LVC format named SXS_BBH_####_Res#.h5 in
@@ -110,10 +120,16 @@ class SimulationConverter(object):
         Parameters
         ----------
         sxs_data_path : string
-            Path to directory containing rhOverM_Asymptotic_GeometricUnits_CoM.h5,
+            Path to directory containing waveform file,
             Horizons.h5, and metadata.txt or metadata.json files.
         out_path : string
             Path where LVC-format file is to be output
+        waveform_name : string
+            Name of waveform to load in sxs_data_path. If not specified,
+            will try to load Strain_N2.h5 or rhOverM_Asymptotic_GeometricUnits_CoM.h5
+        out_waveform_name : string
+            Name of LVC-format file to output in out_path. If not specified,
+            will use SXS_BBH_####_Res#.h5
         truncation_time : {None, float}
             If specified, truncate time series at this time instead of at the reference
             time
@@ -141,69 +157,105 @@ class SimulationConverter(object):
         from .waveforms import convert_modes
 
         log = self.Log(self.quiet)
-        log(self.command.format(sxs_data_path=sxs_data_path, out_path=out_path,
-                                truncation_time=truncation_time, resolution=resolution))
-        log("Starting at "+time.strftime('%H:%M%p %Z on %b %d, %Y'))
+        log(
+            self.command.format(
+                sxs_data_path=sxs_data_path, out_path=out_path, truncation_time=truncation_time, resolution=resolution
+            )
+        )
+        log("Starting at " + time.strftime("%H:%M%p %Z on %b %d, %Y"))
 
         # Load metadata from this simulation
         try:
-            metadata = sxs.Metadata.from_file(os.path.join(sxs_data_path, "metadata.txt"))
+            metadata = sxs.Metadata.from_file(os.path.join(sxs_data_path, "metadata"))
         except:
-            try:
-                metadata = sxs.Metadata.from_file(os.path.join(sxs_data_path, "metadata.json"))
-            except:
-                raise ValueError('Cannot load metadata.')
+            raise ValueError("Cannot load metadata.")
 
         # Determine the resolution of the input simulation, if needed
         if resolution is None:
             resolution = sxs.lev_number(sxs_data_path)
         if resolution is None:
-            raise ValueError('No `resolution` value found in input arguments or data path.')
+            raise ValueError("No `resolution` value found in input arguments or data path.")
 
-        sxs_id = sxs_id_from_alt_names(metadata['alternative_names'])
+        sxs_id = sxs_id_from_alt_names(metadata["alternative_names"])
         log("Converting " + sxs_id)
 
         extrapolation_order = "Extrapolated_N2"
         log("Extrapolation order: " + extrapolation_order)
 
-        out_name = out_path + "/" + sxs_id.replace(':', '_') + "_Res" + str(resolution) + ".h5"
+        if not out_waveform_name is None:
+            out_name = out_path + "/" + out_waveform_name
+        else:
+            out_name = out_path + "/" + sxs_id.replace(":", "_") + "_Res" + str(resolution) + ".h5"
         log("Output filename is '{0}'".format(out_name))
 
+        if waveform_name is None:
+            if os.path.exists(os.path.join(sxs_data_path, "Strain_N2.h5")):
+                waveform_path = sxs_data_path + "/Strain_N2"
+            elif os.path.exists(os.path.join(sxs_data_path, "rhOverM_Asymptotic_GeometricUnits_CoM.h5")):
+                waveform_path = sxs_data_path + "/rhOverM_Asymptotic_GeometricUnits_CoM.h5"
+            else:
+                raise ValueError("Cannot find a default waveform file.")
+        else:
+            waveform_path = sxs_data_path + "/" + waveform_name
+
         start_time, peak_time, version_hist = convert_modes(
-            sxs_data_path + "/Strain_N2",
-            metadata, out_name, self.modes, extrapolation_order, log,
-            truncation_time, tolerance=self.tolerance/2.0, truncation_tol=truncation_tol
+            waveform_path,
+            metadata,
+            out_name,
+            self.modes,
+            extrapolation_order,
+            log,
+            truncation_time,
+            tolerance=self.tolerance / 2.0,
+            truncation_tol=truncation_tol,
         )
 
-        with h5py.File(sxs_data_path + "/Horizons.h5", 'r') as horizons:
+        with h5py.File(sxs_data_path + "/Horizons.h5", "r") as horizons:
             horizon_splines_to_write, t_A, t_B, t_C = horizon_splines_from_sxs(
                 horizons, start_time, peak_time, log, truncation_tol=truncation_tol
             )
         write_horizon_splines_from_sxs(out_name, horizon_splines_to_write, t_A, t_B, t_C, log)
 
-        write_metadata_from_sxs(out_name, resolution, metadata,
-                                self.sxs_catalog, self.sxs_catalog_resolutions,
-                                start_time, peak_time, self.ell_max, log)
+        write_metadata_from_sxs(
+            out_name,
+            resolution,
+            metadata,
+            self.sxs_catalog,
+            self.sxs_catalog_resolutions,
+            start_time,
+            peak_time,
+            self.ell_max,
+            log,
+        )
 
-        with h5py.File(out_name, 'a') as out_file:
+        with h5py.File(out_name, "a") as out_file:
             # Save information about versions of code used in this function
-            out_file["auxiliary-info"].create_dataset('CodeVersions.txt', data=self.code_versions)
+            out_file["auxiliary-info"].create_dataset("CodeVersions.txt", data=self.code_versions)
 
             # Copy VersionHist.ver into the new file, if available
             if version_hist is not None:
                 log("Writing VersionHist.ver")
-                out_file["auxiliary-info"].create_dataset('VersionHist.ver', data=version_hist)
+                out_file["auxiliary-info"].create_dataset("VersionHist.ver", data=version_hist)
             else:
                 log("No VersionHist.ver found. Data being converted is version 0.")
 
             # Store the log output by this script as a dataset
-            log("Finishing at "+time.strftime('%H:%M%p %Z on %b %d, %Y'))
+            log("Finishing at " + time.strftime("%H:%M%p %Z on %b %d, %Y"))
             log("Writing log")
-            out_file["auxiliary-info"].create_dataset('ConversionLog.txt', data=log.history)
+            out_file["auxiliary-info"].create_dataset("ConversionLog.txt", data=log.history)
 
 
-def convert_simulation(sxs_data_path, out_path, truncation_time=None, resolution=None,
-                       modes=8, tolerance=1e-06, quiet=False):
+def convert_simulation(
+    sxs_data_path,
+    out_path,
+    waveform_name=None,
+    out_waveform_name=None,
+    truncation_time=None,
+    resolution=None,
+    modes=8,
+    tolerance=1e-06,
+    quiet=False,
+):
     """Convert a simulation from the SXS BBH catalog into the LVC format.
 
     This function outputs a file in LVC format named SXS_BBH_####_Res#.h5 in
@@ -217,10 +269,16 @@ def convert_simulation(sxs_data_path, out_path, truncation_time=None, resolution
     Parameters
     ----------
     sxs_data_path : string
-        Path to directory containing rhOverM_Asymptotic_GeometricUnits_CoM.h5, Horizons.h5,
-        and metadata.json files.
+        Path to directory containing waveform file,
+        Horizons.h5, and metadata.txt or metadata.json files.
     out_path : string
-        Path where LVC format file is to be output
+        Path where LVC-format file is to be output
+    waveform_name : string
+        Name of waveform to load in sxs_data_path. If not specified,
+        will try to load Strain_N2.h5 or rhOverM_Asymptotic_GeometricUnits_CoM.h5
+    out_waveform_name : string
+        Name of LVC-format file to output in out_path. If not specified,
+        will use SXS_BBH_####_Res#.h5
     truncation_time : {None, float}, optional
         If specified, truncate time series at this time instead of at the reference time
     resolution : {None, int}, optional
@@ -239,4 +297,4 @@ def convert_simulation(sxs_data_path, out_path, truncation_time=None, resolution
 
     """
     lvc_converter = SimulationConverter(modes, tolerance, quiet)
-    return lvc_converter.convert(sxs_data_path, out_path, truncation_time, resolution)
+    return lvc_converter.convert(sxs_data_path, out_path, waveform_name, out_waveform_name, truncation_time, resolution)
