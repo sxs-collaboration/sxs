@@ -1,6 +1,7 @@
 """The main container for waveform objects with mode weights"""
 
 import re
+import numbers
 import numpy as np
 from scipy.interpolate import CubicSpline
 from scipy.optimize import minimize_scalar
@@ -1159,7 +1160,7 @@ class WaveformModesDict(WaveformModes):
     dictionary-like access to the modes.  Specifically, indexing like
     `h[2,1]` will return the mode with `(ell,m) = (2,1)` as a function
     of time.  The input index is checked to ensure that it is a tuple
-    of length 2 containing integers; all other indexing is passed
+    containing exactly two integers; all other indexing is passed
     through to the superclass.
 
     This subclass is necessary because the `WaveformModes` class would
@@ -1170,8 +1171,8 @@ class WaveformModesDict(WaveformModes):
         if (
             isinstance(key, tuple)
             and len(key) == 2
-            and isinstance(key[0], (int, np.integer))
-            and isinstance(key[1], (int, np.integer))
+            and isinstance(key[0], numbers.Integral)
+            and isinstance(key[1], numbers.Integral)
         ):
             ell, m = key
             if abs(m) > ell:

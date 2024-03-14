@@ -5,7 +5,7 @@ Currently, the most interesting object in this submodule is [`WaveformModes`](..
 """
 
 from .waveform_mixin import WaveformMixin
-from .waveform_modes import WaveformModes
+from .waveform_modes import WaveformModes, WaveformModesDict
 # from .waveform_grid import WaveformGrid
 # from .waveform_signal import WaveformSignal
 

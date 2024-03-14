@@ -20,7 +20,7 @@ from .time_series import TimeSeries
 from .metadata import Metadata
 from .catalog import Catalog
 from .horizons import Horizons, HorizonQuantities
-from .waveforms import WaveformModes #, WaveformGrid, WaveformSignal
+from .waveforms import WaveformModes, WaveformModesDict #, WaveformGrid, WaveformSignal
 from .waveforms import rotating_paired_xor_multishuffle_bzip2 as rpxmb
 from .waveforms import rotating_paired_diff_multishuffle_bzip2 as rpdmb
 from . import catalog, metadata, horizons, waveforms, zenodo, caltechdata
