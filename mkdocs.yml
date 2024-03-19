@@ -22,6 +22,7 @@ nav:
     - "tutorials/03-Horizons.ipynb"
     - "tutorials/04-Waveforms.ipynb"
   - API:
+    - "Load": "api/load.md"
     - "Catalog": "api/catalog.md"
     - "Metadata": "api/metadata.md"
     - "Time Series": "api/time_series.md"
