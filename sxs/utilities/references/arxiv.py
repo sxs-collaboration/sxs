@@ -106,7 +106,7 @@ def get_journal_reference_from_ads(doi):
     import sys
     import difflib
     import ads
-    from sxs.references.journal_abbreviations import journal_abbreviation_pairs
+    from .journal_abbreviations import journal_abbreviation_pairs
     reference = {'title':'', 'pub':'', 'volume':'', 'issue':'', 'year':'', 'page':''}
     try:
         article = ads.SearchQuery(q="doi:{0}".format(doi), fl=list(reference)).next()

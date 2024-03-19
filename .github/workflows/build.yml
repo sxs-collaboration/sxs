@@ -69,6 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
         github.ref == 'refs/heads/main'
+        && github.repository_owner == 'sxs-collaboration'
         && !contains(github.event.head_commit.message, '[no release]')
         && (success() || contains(github.event.head_commit.message, '[skip tests]'))
 

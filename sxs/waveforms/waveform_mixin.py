@@ -6,9 +6,6 @@ import quaternionic
 
 
 class WaveformMixin(abc.ABC):
-    # Note: This is currently a pretty trivial class, but as the code develops
-    # this will be increasingly useful.
-
     @property
     @abc.abstractmethod
     def data(self):  # Handy alias for backwards compatibility
