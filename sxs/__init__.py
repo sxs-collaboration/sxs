@@ -13,7 +13,8 @@ __version__ = importlib_metadata.version(__name__)
 
 from . import utilities
 from .utilities import (
-    file_format, sxs_directory, read_config, write_config, sxs_id, lev_number,
+    file_format, sxs_directory, read_config, write_config,
+    sxs_id, lev_number, sxs_id_to_url,
     jit, vectorize, guvectorize, version_info
 )
 from .time_series import TimeSeries

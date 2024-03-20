@@ -15,13 +15,18 @@ from . import url, inspire, monotonicity, decimation, lvcnr, references
 from .downloads import download_file
 from .bitwise import diff, xor, multishuffle
 from .sxs_identifiers import (
-    sxs_identifier_regex, sxs_identifier_re, lev_regex, lev_re, sxs_id, lev_number, simulation_title
+    sxs_identifier_regex, sxs_identifier_re, lev_regex, lev_re, sxs_id,
+    lev_number, simulation_title, sxs_id_to_url
 )
-from .sxs_directories import sxs_directory, read_config, write_config, sxs_path_to_system_path, cached_path
+from .sxs_directories import (
+    sxs_directory, read_config, write_config, sxs_path_to_system_path, cached_path
+)
 from .select import select_by_path_component
 from .formats import file_format
 from .pretty_print import fit_to_console
-from .files import md5checksum, lock_file_manager, find_simulation_directories, find_files
+from .files import (
+    md5checksum, lock_file_manager, find_simulation_directories, find_files
+)
 from .dicts import KeyPassingDict
 
 
