@@ -49,3 +49,7 @@ solar_mass_parameter = 1.32712440041e20  # m^3/s^2
 # precision than is warranted by the measurement.
 m_sun_in_meters = 1476.6250385063112526099633973363  # m
 m_sun_in_seconds = 4.925490949162941425997992909269e-06  # s
+
+
+doi_prefix = "10.26138"
+doi_url = f"https://doi.org/{doi_prefix}/"
