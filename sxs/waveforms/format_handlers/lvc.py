@@ -70,7 +70,7 @@ def to_lvc_conventions(
     # Otherwise, use `t_ref` to find `f_ref`.
     omega = h.frame.to_angular_velocity(h.t)  # Note that this is a vector-valued function of time
     f = np.linalg.norm(omega, axis=1) / (2 * np.pi)
-    f = UnivariateSpline(h.t, f, s=1e-8*sum(f**2))(h.t)  # Smooth the data a bit
+    f = UnivariateSpline(h.t, f, s=sum((1e-4*f)**2))(h.t)  # Smooth the data a little
     i2 = h.max_norm_index()
     i1 = find_i1(f, i2)
     if f_low is not None and (f_low < f[i1] or f_low > f[i2]):
