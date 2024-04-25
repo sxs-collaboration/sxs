@@ -1158,8 +1158,11 @@ class WaveformModesDict(MutableMapping, WaveformModes):
     """A dictionary-like class for storing waveform modes
 
     This class is a subclass of `MutableMapping`, which is essentially
-    a `dict`.  The only difference is that this class disables
-    `__delitem__`.
+    a `dict`.  The only difference is that this class silently passes
+    `__delitem__`, and disables adding keys that aren't within the
+    valid `ell` range or don't have valid `m` values.  Otherwise, it
+    behaves exactly like a dictionary, including the various methods
+    of iteration, and being able to update values.
     
     This class is also a subclass of `WaveformModes`, except with
     dictionary-like access to the modes.  Specifically, indexing like
