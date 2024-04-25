@@ -46,6 +46,10 @@ def to_lvc_conventions(
     if t_ref is not None and f_ref is not None:
         raise ValueError("Only one of `t_ref` or `f_ref` may be specified")
     
+    # Transform to corotating frame, if necessary
+    if h.frame_type != "corotating":
+        h = h.to_corotating_frame()
+    
     # Find the spin data
     chi1 = horizons.A.chi_inertial
     chi2 = horizons.B.chi_inertial
@@ -63,6 +67,7 @@ def to_lvc_conventions(
     # Set `t` to equal 0 at the moment of maximum ell<=ell_max_epoch norm
     epoch_time = h[:, h.index(2,-2):h.index(ell_max_epoch, ell_max_epoch)+1].max_norm_time(interpolate=True)
     h.t -= epoch_time
+    assert h.t[0] < 0.0 and h.t[-1] > 0.0, "Epoch time is not within waveform data"
     t_chi -= epoch_time
     t_remnant -= epoch_time
 
