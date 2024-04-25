@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import root_scalar
 from scipy.interpolate import CubicSpline, UnivariateSpline
 import quaternionic
-from ... import jit
+from ... import jit, WaveformModesDict
 
 from numpy import exp
 from numpy import pi as π
@@ -199,8 +199,9 @@ def to_lvc_conventions(
 
     # If `phi_ref` and `inclination` are not None, return polarizations
     if phi_ref is not None:
-        raise NotImplementedError("Return polarizations")
-        hp, hc = NotImplemented()
+        hp, hc = h.evaluate(inclination, phi_ref).ndarray.view((float, 2)).T
         return t, hp, hc, dynamics_dict
     else:
+        # Could do `dict(WaveformModesDict(h))` to convert to a plain dict
+        hlm_dict = WaveformModesDict(h)
         return t, hlm_dict, dynamics_dict
