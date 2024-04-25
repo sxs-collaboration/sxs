@@ -2,6 +2,7 @@
 
 import re
 import numbers
+from collections.abc import MutableMapping
 import numpy as np
 from scipy.interpolate import CubicSpline
 from scipy.optimize import minimize_scalar
@@ -1153,10 +1154,14 @@ class WaveformModes(WaveformMixin, TimeSeries):
         return w
 
 
-class WaveformModesDict(WaveformModes):
+class WaveformModesDict(MutableMapping, WaveformModes):
     """A dictionary-like class for storing waveform modes
+
+    This class is a subclass of `MutableMapping`, which is essentially
+    a `dict`.  The only difference is that this class disables
+    `__delitem__`.
     
-    This class is a subclass of `WaveformModes` that allows for
+    This class is also a subclass of `WaveformModes`, except with
     dictionary-like access to the modes.  Specifically, indexing like
     `h[2,1]` will return the mode with `(ell,m) = (2,1)` as a function
     of time.  The input index is checked to ensure that it is a tuple
@@ -1165,9 +1170,30 @@ class WaveformModesDict(WaveformModes):
 
     This subclass is necessary because the `WaveformModes` class would
     consider an index like `h[2,1]` to indicate the second time step
-    and the first mode, rather than the mode with `(ell,m) = (2,1)`.
+    and the first mode, rather than the mode with `(ell,m) = (2,1)`,
+    which is preferred by some users.
     """
     def __getitem__(self, key):
+        if (
+            isinstance(key, (tuple, list))
+            and len(key) == 2
+            and isinstance(key[0], numbers.Integral)
+            and isinstance(key[1], numbers.Integral)
+        ):
+            ell, m = key
+            if abs(m) > ell:
+                raise KeyError(f"Mode index {(ell,m)=} is not valid")
+            if not self.ell_min <= ell <= self.ell_max:
+                raise KeyError(
+                    f"Mode {ell=} is out of range for this waveform's "
+                    f"ell values {[self.ell_min, self.ell_max]}"
+                )
+            return np.take(self.ndarray, self.index(ell, m), axis=self.modes_axis)
+            # return self.ndarray[:, self.index(ell, m)]
+            # return super().__getitem__((slice(None), self.index(ell, m))).ndarray
+        else:
+            return super().__getitem__(key)
+    def __setitem__(self, key, value):
         if (
             isinstance(key, tuple)
             and len(key) == 2
@@ -1182,6 +1208,12 @@ class WaveformModesDict(WaveformModes):
                     f"Mode {ell=} is out of range for this waveform's "
                     f"ell values {[self.ell_min, self.ell_max]}"
                 )
-            return super().__getitem__((slice(None), self.index(ell, m))).ndarray
+            self.ndarray[:, self.index(ell, m)] = value
         else:
-            return super().__getitem__(key)
+            return super().__setitem__(key, value)
+    def __delitem__(self, key):
+        pass
+    def __iter__(self):
+        return map(tuple, self.LM)
+    def __len__(self):
+        return self.LM.__len__()
