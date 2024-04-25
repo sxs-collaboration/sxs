@@ -407,16 +407,21 @@ class TimeSeries(np.ndarray):
         new_time : array_like
             Points to evaluate the interpolant at
         derivative_order : int, optional
-            Order of derivative to evaluate.  If negative, the antiderivative is
-            returned.  Default value of 0 returns the interpolated data without
-            derivatives or antiderivatives.  Must be between -3 and 3, inclusive.
+            Order of derivative to evaluate.  If negative, the
+            antiderivative is returned.  Default value of 0 returns
+            the interpolated data without derivatives or
+            antiderivatives.  Must be between -3 and 3, inclusive.
         out : array_like, optional
-            If provided, the result will be placed into this array.  It must have
-            the same shape as the result would have been if it was not provided.
+            If provided, the result will be placed into this array.
+            It must have the same shape as the result would have been
+            if it was not provided.
         padding_points : int, optional
-            Number of points to include on either side of `new_time` to ensure that
-            the interpolant has enough data to interpolate the whole range.  Default
-            value is 10.
+            Number of points to include on either side of `new_time`
+            when constructing interpolating spline, to ensure that the
+            interpolant has enough data to interpolate the whole
+            range.  Default value is 10.  If there are not enough
+            points in the input data to supply all of these padding
+            points, the function will just come as close as possible.
 
         See Also
         --------
@@ -424,11 +429,12 @@ class TimeSeries(np.ndarray):
             The function that this function is based on.
         antiderivative :
             Calls this function with `new_time=self.time` and
-            `derivative_order=-antiderivative_order` (defaulting to a single
-            antiderivative).
+            `derivative_order=-antiderivative_order` (defaulting to a
+            single antiderivative).
         derivative :
             Calls this function `new_time=self.time` and
-            `derivative_order=derivative_order` (defaulting to a single derivative).
+            `derivative_order=derivative_order` (defaulting to a
+            single derivative).
         dot :
             Property calling `self.derivative(1)`.
         ddot :
@@ -440,7 +446,8 @@ class TimeSeries(np.ndarray):
 
         Notes
         -----
-        This function is essentially a wrapper around `scipy.interpolate.CubicSpline`
+        This function is essentially a wrapper around
+        `scipy.interpolate.CubicSpline`
 
         """
         from scipy.interpolate import CubicSpline

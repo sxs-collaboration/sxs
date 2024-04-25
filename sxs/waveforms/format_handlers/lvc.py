@@ -11,7 +11,11 @@ from quaternionic import z
 
 @jit
 def find_i1(f, i2):
-    """Convenience function to find previous non-monotonic index in `f`."""
+    """Convenience function to find previous non-increasing index.
+    
+    Given index `i2` find the nearest preceding `i1` such that
+    `f[i1-1] > f[i1]`; if there is no such `i1`, return 0.
+    """
     for i in range(i2, 0, -1):
         if f[i] <= f[i-1]:
             return i
