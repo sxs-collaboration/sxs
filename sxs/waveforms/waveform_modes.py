@@ -807,8 +807,8 @@ class WaveformModes(WaveformMixin, TimeSeries):
         _, eigenvecs = np.linalg.eigh(LL)
 
         # Choose the dominant principal axis `dpa`
-        # `eigh` always returns eigenvalues in *increasing* order, so we want element `2`
-        dpa = quaternionic.array.from_vector_part(eigenvecs[..., 2])
+        # `eigh` always returns eigenvalues in *increasing* order, so we want the last
+        dpa = quaternionic.array.from_vector_part(eigenvecs[..., -1])
 
         # Make the direction vectors continuous
         dpa = quaternionic.unflip_rotors(dpa, inplace=True).vector
