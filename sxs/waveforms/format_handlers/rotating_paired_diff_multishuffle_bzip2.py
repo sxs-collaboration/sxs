@@ -27,7 +27,7 @@ def save(
         L2norm_fractional_tolerance=1e-10, log_frame=None,
         shuffle_widths=default_shuffle_widths, convert_to_conjugate_pairs=True,
         compression=bz2, diff=diff, formats=None, verbose=True, allow_existing_group=False,
-        version_info_update=None,
+        version_info_update=None, max_phase_per_timestep=None
 ):
     """Save a waveform in RPDMB format
 
@@ -106,6 +106,15 @@ def save(
         info that is not found in this input will remain unchanged,
         but any that are in this input will be either altered or
         added.
+    max_phase_per_timestep : float, optional
+        Maximum phase change per time step.  If given, the approximate
+        phase change per time step is calculated when transforming to
+        the corotating frame.  If it exceeds this value, a ValueError
+        is raised.  A sensible value here is probably 10 or so — high
+        enough that random spikes from junk radiation or late ringdown
+        noise won't trigger it, but low enough that the integration
+        will still proceed reasonably quickly for anything below this
+        threshold.
 
     Returns
     -------
@@ -165,11 +174,16 @@ def save(
                 z_alignment_region = ((relaxation_time - initial_time) / (max_norm_time - initial_time), 0.95)
             except Exception:
                 z_alignment_region = (0.1, 0.95)
-            w, log_frame = w.to_corotating_frame(
-                tolerance=L2norm_fractional_tolerance,
-                z_alignment_region=z_alignment_region,
-                truncate_log_frame=True
-            )
+            try:
+                w, log_frame = w.to_corotating_frame(
+                    tolerance=L2norm_fractional_tolerance,
+                    z_alignment_region=z_alignment_region,
+                    truncate_log_frame=True,
+                    max_phase_per_timestep=max_phase_per_timestep
+                )
+            except ValueError as e:
+                print("\nError transforming to corotating frame:")
+                raise e
             log_frame = log_frame.ndarray[:, 1:]
         if w.frame_type != "corotating":
             raise ValueError(

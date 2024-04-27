@@ -996,7 +996,14 @@ class WaveformModes(WaveformMixin, TimeSeries):
         w._metadata["frame_type"] = "inertial"
         return w
 
-    def corotating_frame(self, R0=quaternionic.one, tolerance=1e-12, z_alignment_region=None, return_omega=False):
+    def corotating_frame(
+            self,
+            R0=quaternionic.one,
+            tolerance=1e-12,
+            z_alignment_region=None,
+            return_omega=False,
+            max_phase_per_timestep=None
+        ):
         """Return rotor taking current mode frame into corotating frame
 
         Parameters
@@ -1016,6 +1023,10 @@ class WaveformModes(WaveformMixin, TimeSeries):
             If True, return a 2-tuple consisting of the frame (the usual returned
             object) and the angular-velocity data.  That is frequently also needed, so
             this is just a more efficient way of getting the data.  Default is `False`.
+        max_phase_per_timestep : float, optional
+            Maximum phase change per time step.  If given, the approximate phase change
+            per time step is calculated, and if it exceeds this value, a ValueError is
+            raised.
 
         Notes
         -----
@@ -1032,6 +1043,18 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         """
         ω = self.angular_velocity
+        if max_phase_per_timestep is not None:
+            dt = np.diff(self.t)
+            dt = np.append(dt, dt[-1])
+            dθ = np.linalg.norm(ω, axis=1) * dt
+            if np.max(dθ) > max_phase_per_timestep:
+                index = np.argmax(dθ)
+                t = self.t[index]
+                raise ValueError(
+                    f"\nMaximum phase change per time step exceeded: "
+                    f"{max(dθ)=:.2g} > {max_phase_per_timestep} at {index=} ({t=:.2f}).\n"
+                    f"This probably means that there is something very wrong in your data."
+                )
         R = quaternionic.array.from_angular_velocity(ω, self.t, R0=R0, tolerance=tolerance)
         if z_alignment_region is None:
             correction_rotor = quaternionic.one
@@ -1054,8 +1077,14 @@ class WaveformModes(WaveformMixin, TimeSeries):
             return R
 
     def to_corotating_frame(
-        self, R0=None, tolerance=1e-12, z_alignment_region=None, return_omega=False, truncate_log_frame=False
-    ):
+            self,
+            R0=None,
+            tolerance=1e-12,
+            z_alignment_region=None,
+            return_omega=False,
+            truncate_log_frame=False,
+            max_phase_per_timestep=None
+        ):
         """Return a copy of this waveform in the corotating frame
 
         The corotating frame is defined to be a rotating frame for which the (L² norm
@@ -1085,10 +1114,18 @@ class WaveformModes(WaveformMixin, TimeSeries):
             If True, set bits of log(frame) with lower significance than `tolerance` to
             zero, and use exp(truncated(log(frame))) to rotate the waveform.  Also
             returns `log_frame` along with the waveform (and optionally `omega`)
+        max_phase_per_timestep : float, optional
+            Maximum phase change per time step.  If given, the approximate phase change
+            per time step is calculated, and if it exceeds this value, a ValueError is
+            raised.
 
         """
         frame, omega = self.corotating_frame(
-            R0=R0, tolerance=tolerance, z_alignment_region=z_alignment_region, return_omega=True
+            R0=R0,
+            tolerance=tolerance,
+            z_alignment_region=z_alignment_region,
+            return_omega=True,
+            max_phase_per_timestep=max_phase_per_timestep
         )
         if truncate_log_frame:
             log_frame = np.log(frame)
