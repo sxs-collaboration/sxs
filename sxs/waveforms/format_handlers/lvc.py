@@ -2,7 +2,8 @@ import numpy as np
 from scipy.optimize import root_scalar
 from scipy.interpolate import CubicSpline, UnivariateSpline
 import quaternionic
-from ... import jit, WaveformModesDict
+from ... import jit
+from ..waveform_modes import WaveformModesDict
 
 from numpy import exp
 from numpy import pi as π
