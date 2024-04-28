@@ -1,6 +1,7 @@
 """Containers for various types of waveforms
 
-Currently, the most interesting object in this submodule is [`WaveformModes`](../sxs.waveforms.waveform_modes/).
+Currently, the most interesting object in this submodule is
+[`WaveformModes`](../sxs.waveforms.waveform_modes/).
 
 """
 
@@ -10,7 +11,10 @@ from .waveform_modes import WaveformModes, WaveformModesDict
 # from .waveform_signal import WaveformSignal
 
 from .format_handlers import (
-    nrar, rotating_paired_diff_multishuffle_bzip2, rotating_paired_xor_multishuffle_bzip2
+    nrar,
+    rotating_paired_diff_multishuffle_bzip2,
+    rotating_paired_xor_multishuffle_bzip2,
+    spectre_cce_v1,
 )
 from .format_handlers.lvc import to_lvc_conventions
 from . import memory, transformations, alignment
@@ -25,4 +29,5 @@ formats = {
     "rpxmb": rotating_paired_xor_multishuffle_bzip2,
     "rotating_paired_diff_multishuffle_bzip2": rotating_paired_diff_multishuffle_bzip2,
     "rpdmb": rotating_paired_diff_multishuffle_bzip2,
+    "SpECTRE_CCE_v1": spectre_cce_v1,
 }
