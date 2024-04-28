@@ -1,6 +1,5 @@
 """Functions to load and save waveforms in RPDMB format"""
 
-import sys
 import warnings
 import tempfile
 import contextlib
@@ -9,10 +8,8 @@ import numbers
 import bz2
 import json
 import numpy as np
-import scipy
 import h5py
 import quaternionic
-import spherical
 
 from ...utilities import default_shuffle_widths, md5checksum, diff, xor, multishuffle, version_info
 from ... import Metadata, __version__
