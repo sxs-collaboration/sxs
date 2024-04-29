@@ -7,7 +7,7 @@ def save(*args, **kwargs):
     raise NotImplementedError("Saving waveforms in SpECTRE CCE format (v1) is not supported")
 
 
-def load(file_name, group, **kwargs):
+def load(file_name, **kwargs):
     """Load a waveform in SpECTRE CCE format (version 1)
 
     Parameters
@@ -20,6 +20,9 @@ def load(file_name, group, **kwargs):
         expected in the same location, with `.h5` replaced by `.json`
         (and the corresponding data must be stored under the `group`
         key if relevant).
+
+    Required keyword argument
+    -------------------------
     group : str
         The group within the HDF5 file in which the data is stored.
 
@@ -34,6 +37,11 @@ def load(file_name, group, **kwargs):
     path = Path(file_name).expanduser().resolve()
     if not path.exists():
         raise FileNotFoundError(f"Could not find {path}")
+
+    # Get the group name
+    group = kwargs.pop("group", None)
+    if group is None:
+        raise ValueError("The 'group' keyword argument is required")
 
     # Determine the data type and spin weight from the group name
     if "news" in group.lower():

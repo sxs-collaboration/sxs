@@ -24,6 +24,7 @@ from .horizons import Horizons, HorizonQuantities
 from .waveforms import WaveformModes, WaveformModesDict, to_lvc_conventions #, WaveformGrid, WaveformSignal
 from .waveforms import rotating_paired_xor_multishuffle_bzip2 as rpxmb
 from .waveforms import rotating_paired_diff_multishuffle_bzip2 as rpdmb
+from .waveforms import spectre_cce_v1
 from . import catalog, metadata, horizons, waveforms, zenodo, caltechdata
 from .handlers import load, loadcontext, load_lvc
 
