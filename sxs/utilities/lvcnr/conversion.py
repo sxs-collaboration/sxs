@@ -146,9 +146,9 @@ class SimulationConverter(object):
         import os
         import time
         import h5py
-        from ... import lev_number
+        from ... import lev_number, Metadata
 
-        from .metadata import sxs_id_from_alt_names, write_metadata_from_sxs, Metadata
+        from .metadata import sxs_id_from_alt_names, write_metadata_from_sxs
         from .horizons import horizon_splines_from_sxs, write_horizon_splines_from_sxs
         from .waveforms import convert_modes
 
