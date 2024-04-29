@@ -145,11 +145,10 @@ class SimulationConverter(object):
         """
         import os
         import time
-        import json
         import h5py
         from ... import lev_number
 
-        from .metadata import sxs_id_from_alt_names, write_metadata_from_sxs
+        from .metadata import sxs_id_from_alt_names, write_metadata_from_sxs, Metadata
         from .horizons import horizon_splines_from_sxs, write_horizon_splines_from_sxs
         from .waveforms import convert_modes
 
@@ -163,7 +162,7 @@ class SimulationConverter(object):
 
         # Load metadata from this simulation
         try:
-            metadata = sxs.Metadata.from_file(os.path.join(sxs_data_path, "metadata"))
+            metadata = Metadata.from_file(os.path.join(sxs_data_path, "metadata"))
         except:
             raise ValueError("Cannot load metadata.")
 
