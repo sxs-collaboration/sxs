@@ -133,8 +133,8 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 and isinstance(key[self.modes_axis], slice)
             ):
                 sl = key[1]
-                if sl.step is None:
-                    ell1, m1 = self.LM[sl.start]
+                if sl.step is None or sl.step==1:
+                    ell1, m1 = self.LM[sl.start or 0]  # in case sl.start is None
                     ell2, m2 = self.LM[sl.stop-1]
                     if ell1 <= ell2 and m1 == -ell1 and m2 == ell2:
                         # The sliced object has valid ell_min and ell_max values,
