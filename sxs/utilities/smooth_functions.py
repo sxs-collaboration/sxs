@@ -126,8 +126,9 @@ def transition_to_constant(f, t, t1, t2):
     Parameters
     ----------
     f : array_like
-        One-dimensional array corresponding to the following `t`
-        parameter.
+        Array corresponding to the following `t` parameter.  If this
+        array is multi-dimensional, the first dimension must be the
+        same size as `t`.
     t : array_like
         One-dimensional monotonic array of floats.
     t1 : float
@@ -136,7 +137,7 @@ def transition_to_constant(f, t, t1, t2):
         Value after which the output will be constant.
 
     """
-    fprime = f.copy()
+    fprime = np.asanyarray(f).copy()
     transition_to_constant_inplace(fprime, t, t1, t2)
     return fprime
 
@@ -147,13 +148,18 @@ def transition_to_constant_inplace(f, t, t1, t2):
     See that function's docstring for details.
     """
     from scipy.interpolate import CubicSpline
+    assert f.shape[0] == t.size
     i1, i2 = np.searchsorted(t, [t1, t2])
     τ = transition_function(t, t1, t2, y0=1, y1=0)
     τ̇ = transition_function_derivative(t, t1, t2, y0=1, y1=0)
+    # Note that numpy's broadcasting rules add extra dimensions on the
+    # left, which means we need to move the time dimension to the
+    # right to multiply `f` by `t`, then move it back.  This is the
+    # reason for the double transposes.
     intfτ̇ = CubicSpline(
-        t[i1:i2], f[i1:i2] * τ̇[i1:i2]
+        t[i1:i2], (f[i1:i2].T * τ̇[i1:i2]).T
     ).antiderivative()(t[i1:i2])
-    f[i1:i2] = f[i1:i2] * τ[i1:i2] - intfτ̇
+    f[i1:i2] = (f[i1:i2].T * τ[i1:i2]).T - intfτ̇
     f[i2:] = f[i2 - 1]
     return f
 

@@ -345,9 +345,13 @@ def test_transition_to_constant():
     # Test that transition of constant function is just constant
     t = np.linspace(-10.13, 11.28, 10_001)
     t0, t1 = -3.14, 5.92
-    y = np.exp(1) * np.ones_like(t)
-    y2 = transition_to_constant(y, t, t0, t1)
-    assert np.allclose(y, y2)
+    f1 = np.exp(1.97) * np.ones_like(t)
+    f2 = transition_to_constant(f1, t, t0, t1)
+    assert np.allclose(f1, f2)
+
+    f1 = np.outer(np.ones_like(t), np.random.rand(17))
+    f2 = transition_to_constant(f1, t, t0, t1)
+    assert np.allclose(f1, f2)
 
     for t0 in -3.14 + np.random.rand(30):
         for t1 in 5.92 + np.random.rand(30):
