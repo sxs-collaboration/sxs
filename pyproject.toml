@@ -95,6 +95,12 @@ serve = "mkdocs serve --dev-addr localhost:8000"
 [tool.hatch.envs.docs.env-vars]
 JUPYTER_PLATFORM_DIRS = "1"
 
+[tool.hatch.envs.notes]
+dependencies = [
+  "ipython",
+  "matplotlib"
+]
+
 
 [tool.black]
 line-length = 120
