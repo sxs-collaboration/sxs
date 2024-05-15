@@ -3,7 +3,7 @@
 [![PyPI Version](https://img.shields.io/pypi/v/sxs?color=)](https://pypi.org/project/sxs/)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/sxs.svg?color=)](https://anaconda.org/conda-forge/sxs)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sxs-collaboration/sxs/blob/main/LICENSE)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/moble/sxs_notebooks/master)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/moble/sxs_notebooks/main)
 
 
 # Simulating eXtreme Spacetimes package
@@ -22,6 +22,8 @@ high-level objects encapsulate
   * Horizons — time-series data describing the apparent horizons
   * Waveforms — time-series data describing the extrapolated gravitational-wave
     modes
+
+The complete documentation is [hosted here](https://sxs.readthedocs.io/en/stable/).
 
 
 ## Installation
@@ -76,7 +78,7 @@ for details.
 ## Usage
 
 An extensive demonstration of this package's capabilities is available
-[here](https://mybinder.org/v2/gh/moble/sxs_notebooks/master), in the form of
+[here](https://mybinder.org/v2/gh/moble/sxs_notebooks/main), in the form of
 interactive jupyter notebooks that are actually running this code and some
 pre-downloaded data.  The following is just a very brief overview of the `sxs`
 package's main components.
