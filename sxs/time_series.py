@@ -399,7 +399,7 @@ class TimeSeries(np.ndarray):
     def __str__(self):
         return repr(self)
 
-    def interpolate(self, new_time, derivative_order=0, out=None):
+    def interpolate(self, new_time, derivative_order=0, out=None, padding_points=10):
         """Interpolate this object to a new set of times
 
         Parameters
@@ -407,21 +407,34 @@ class TimeSeries(np.ndarray):
         new_time : array_like
             Points to evaluate the interpolant at
         derivative_order : int, optional
-            Order of derivative to evaluate.  If negative, the antiderivative is
-            returned.  Default value of 0 returns the interpolated data without
-            derivatives or antiderivatives.  Must be between -3 and 3, inclusive.
+            Order of derivative to evaluate.  If negative, the
+            antiderivative is returned.  Default value of 0 returns
+            the interpolated data without derivatives or
+            antiderivatives.  Must be between -3 and 3, inclusive.
+        out : array_like, optional
+            If provided, the result will be placed into this array.
+            It must have the same shape as the result would have been
+            if it was not provided.
+        padding_points : int, optional
+            Number of points to include on either side of `new_time`
+            when constructing interpolating spline, to ensure that the
+            interpolant has enough data to interpolate the whole
+            range.  Default value is 10.  If there are not enough
+            points in the input data to supply all of these padding
+            points, the function will just come as close as possible.
 
         See Also
         --------
         scipy.interpolate.CubicSpline :
             The function that this function is based on.
         antiderivative :
-            Calls this funtion with `new_time=self.time` and
-            `derivative_order=-antiderivative_order` (defaulting to a single
-            antiderivative).
+            Calls this function with `new_time=self.time` and
+            `derivative_order=-antiderivative_order` (defaulting to a
+            single antiderivative).
         derivative :
             Calls this function `new_time=self.time` and
-            `derivative_order=derivative_order` (defaulting to a single derivative).
+            `derivative_order=derivative_order` (defaulting to a
+            single derivative).
         dot :
             Property calling `self.derivative(1)`.
         ddot :
@@ -433,15 +446,19 @@ class TimeSeries(np.ndarray):
 
         Notes
         -----
-        This function is essentially a wrapper around `scipy.interpolate.CubicSpline`
+        This function is essentially a wrapper around
+        `scipy.interpolate.CubicSpline`
 
         """
         from scipy.interpolate import CubicSpline
+
         if derivative_order > 3:
             raise ValueError(
                 f"{type(self).__name__} interpolation uses CubicSpline, which cannot take a derivative "
                 f"of order {derivative_order}."
             )
+
+        # Sort out shapes and storage for output
         new_time = np.asarray(new_time)
         if new_time.ndim != 1:
             raise ValueError(f"New time array must have exactly 1 dimension; it has {new_time.ndim}.")
@@ -451,19 +468,38 @@ class TimeSeries(np.ndarray):
             out = np.asarray(out)
             if out.shape != new_shape:
                 raise ValueError(
-                    f"Output array should have shape {new_shape} for consistency with new time array and modes array"
+                    f"Output array should have shape {new_shape} for consistency with new time "
+                    "array and modes array"
                 )
             if out.dtype != self.dtype:
                 raise ValueError(
-                    f"Output array should have same dtype as this array {self.dtype}; it has dtype {out.dtype}"
+                    f"Output array should have same dtype as this array {self.dtype}; "
+                    f"it has dtype {out.dtype}"
                 )
         result = out or np.empty(new_shape, dtype=self.dtype)
-        spline = CubicSpline(self.time, self.ndarray, axis=self.time_axis)
+
+        # Find a range of indices that includes `new_time`, plus
+        # `padding_points` points in either direction, to ensure that
+        # the spline has enough data to interpolate the whole range.
+        idx_min = max(0, self.index_closest_to(new_time.min()) - padding_points)
+        idx_max = min(self.n_times, self.index_closest_to(new_time.max()) + padding_points)
+        idx = range(idx_min, idx_max)
+
+        # Construct the spline — possibly including derivatives or antiderivatives
+        spline = CubicSpline(
+            self.time[idx],
+            self.ndarray.take(idx, axis=self.time_axis),
+            axis=self.time_axis
+        )
         if derivative_order < 0:
             spline = spline.antiderivative(-derivative_order)
         elif 0 < derivative_order <= 3:
             spline = spline.derivative(derivative_order)
+
+        # Evaluate the spline at the new time points
         result[:] = spline(new_time)
+
+        # Copy metadata and return the result
         metadata = self._metadata.copy()
         metadata["time"] = new_time
         metadata["time_axis"] = self.time_axis

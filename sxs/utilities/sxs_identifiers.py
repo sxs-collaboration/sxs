@@ -2,18 +2,21 @@
 
 import re
 
-sxs_identifier_regex = r"(?P<sxs_identifier>SXS:(?P<simulation_type>BBH|BHNS|NSNS):(?P<sxs_number>[0-9]+))(?:v(?P<version>[0-9]+))?"
-lev_regex = r"Lev(?P<lev>[-0-9]*)"
+sxs_identifier_regex = (
+    r"(?P<sxs_identifier>SXS:(?P<simulation_type>BBH|BHNS|NSNS)(?:_ExtCCE)?:"
+    r"(?P<sxs_number>[0-9]+))(?:(v|V)(?P<version>[0-9.]+))?"
+)
+lev_regex = r"Lev(?P<lev>-?[0-9]+)"
 sxs_identifier_re = re.compile(sxs_identifier_regex)
 lev_re = re.compile(lev_regex)
 
 
-def sxs_id(s, default=""):
+def sxs_id(s, default="", include_version=False):
     """Return the SXS ID contained in the input string
 
     An SXS ID is anything that matches the following regular expression:
 
-        SXS:(BBH|BHNS|NSNS):[0-9]*
+        SXS:(BBH|BHNS|NSNS)(_ExtCCE)?:[0-9]+(v[0-9.]+)?
 
     If no match is found, the empty string is returned.  If multiple matches are
     found, only the first is returned.
@@ -46,7 +49,10 @@ def sxs_id(s, default=""):
         pass
     m = re.search(sxs_identifier_regex, s)
     if m:
-        return m["sxs_identifier"]
+        if include_version:
+            return m["sxs_identifier"] + (f"v{m['version']}" if m["version"] else "")
+        else:
+            return m["sxs_identifier"]
     else:
         return default
 
@@ -84,16 +90,20 @@ def lev_number(s):
 
     The Lev number is anything that matches the following regular expression:
 
-        Lev(?P<lev>[-0-9]*)
+        Lev(?P<lev>-?[0-9]+)
 
     If no match is found, `None` is returned.  If multiple matches are found,
     only the first is returned.
 
     """
-    import os.path
     import re
     m = re.search(lev_regex, s)
     if m:
         return int(m["lev"])
     else:
         return None
+
+
+def sxs_id_to_url(sxs_id):
+    """Return the DOI URL for the SXS ID"""
+    return f"https://doi.org/10.26138/{sxs_id}"

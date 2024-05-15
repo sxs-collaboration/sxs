@@ -264,7 +264,7 @@ def test_rpxmb():
             h5_file_name = file_name.with_suffix(".h5")
             sxs.rpxmb.save(w, file_name, L2norm_fractional_tolerance=L2norm_fractional_tolerance)
             print(f"File size = {h5_file_name.stat().st_size:_}B")
-            w2 = sxs.rpxmb.load(file_name)
+            w2 = sxs.rpxmb.load(file_name, drop_times_before="begin")
         diff_norm = np.linalg.norm(w.data-w2.data, axis=w.modes_axis)
         print(f"Max difference = {np.max(diff_norm)}")
         assert np.max(diff_norm) < L2norm_fractional_tolerance, (np.max(diff_norm), "\n", diff_norm)
@@ -281,7 +281,7 @@ def test_rpdmb():
             sxs.rpdmb.save(w, file_name, L2norm_fractional_tolerance=L2norm_fractional_tolerance)
             file_size = h5_file_name.stat().st_size
             print(f"RPDMB File size = {file_size:_}B")
-            w2 = sxs.rpdmb.load(file_name)
+            w2 = sxs.rpdmb.load(file_name, drop_times_before="begin")
 
             file_name2 = pathlib.Path(temp_dir) / "Strain2_N4"
             h5_file_name2 = file_name2.with_suffix(".h5")
@@ -291,7 +291,7 @@ def test_rpdmb():
             )
             file_size2 = h5_file_name2.stat().st_size
             print(f"RPXMB File size = {file_size2:_}B")
-            w3 = sxs.rpxmb.load(file_name2)
+            w3 = sxs.rpxmb.load(file_name2, drop_times_before="begin")
 
             print(f"RPXMB/RPDMB file size = {file_size2/file_size}")
 

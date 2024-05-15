@@ -573,8 +573,9 @@ class Deposit(object):
         deposit from the first call is not published or deleted.
 
         """
-        self.register_new_version(refresh_information=refresh_information)
-        return self.login.deposit(self.id_latest_draft, ignore_deletion=ignore_deletion)
+        r = self.register_new_version(refresh_information=refresh_information)
+        id_latest_draft = r.json()['links']['latest_draft'].split('/')[-1]
+        return self.login.deposit(id_latest_draft, ignore_deletion=ignore_deletion)
         
     def register_new_version(self, refresh_information=True):
         """Create a new version of a deposit.
@@ -687,7 +688,7 @@ class Deposit(object):
             self.delete_file(name, refresh_information=False)
         url = '{0}/{1}'.format(self.links['bucket'], name)
         r = self._put(url, data=open(path, 'rb'), headers={"Content-Type": "application/octet-stream"})
-        if r.status_code != 200:
+        if r.status_code != 201:
             print('Uploading {0} to deposit {1} failed.'.format(path, self.deposition_id))
             print('Upload url was {0}.'.format(url))
             if r.status_code == 400:
@@ -711,7 +712,7 @@ class Deposit(object):
             raise ValueError(old_file_name)
         file_id = file_ids[old_file_name]
         url = '{0}api/deposit/depositions/{1}/files/{2}'.format(self.base_url, self.id, file_id)
-        rename_data = {'filename': new_file_name}
+        rename_data = {'name': new_file_name}
         r = self._put(url, data=json.dumps(rename_data))
         if r.status_code != 200:
             print('Renaming file "{0}" to "{1}" in deposit "{2}" failed.'.format(old_file_name, new_file_name, self.id))

@@ -30,23 +30,23 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.8', '3.11']
+        python-version: ['3.8', '3.12']
 
     steps:
       - name: Skip replicates on main branch
         env:
-          skip_replicates: ${{ github.ref == 'refs/heads/main' && (matrix.os != 'ubuntu-latest' || matrix.python-version != '3.11') }}
+          skip_replicates: ${{ github.ref == 'refs/heads/main' && (matrix.os != 'ubuntu-latest' || matrix.python-version != '3.12') }}
         shell: bash
         run: |
           echo "skipping_build_and_test_replicate=${skip_replicates}" >> $GITHUB_ENV
 
       - name: Check out code
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -59,8 +59,10 @@ jobs:
         run: hatch run test
 
       - name: Upload coverage
-        if: "matrix.python-version == '3.11' && matrix.os == 'ubuntu-latest'"
-        uses: codecov/codecov-action@v3
+        if: "matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'"
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
 
   release:
@@ -69,15 +71,16 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
         github.ref == 'refs/heads/main'
+        && github.repository_owner == 'sxs-collaboration'
         && !contains(github.event.head_commit.message, '[no release]')
         && (success() || contains(github.event.head_commit.message, '[skip tests]'))
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -126,12 +129,12 @@ jobs:
       - name: Create release
         if: "!contains(github.event.head_commit.message, '[no release]')"
         id: create_release
-        uses: actions/create-release@latest
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ env.new_version }}
-          release_name: Release v${{ env.new_version }}
+          name: Release v${{ env.new_version }}
           draft: false
           prerelease: false
 

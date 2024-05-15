@@ -1,7 +1,11 @@
 """The main container for waveform objects with mode weights"""
 
 import re
+import numbers
+from collections.abc import MutableMapping
 import numpy as np
+from scipy.interpolate import CubicSpline
+from scipy.optimize import minimize_scalar
 import quaternionic
 import spherical
 from .. import TimeSeries
@@ -86,8 +90,6 @@ class WaveformModes(WaveformMixin, TimeSeries):
     output from the HDF5 file whenever the underlying format is NRAR.
 
     """
-    import functools
-
     def __new__(cls, input_array, *args, **kwargs):
         for requirement in ["modes_axis", "ell_min", "ell_max"]:
             if requirement not in kwargs and requirement not in getattr(input_array, "_metadata", {}):
@@ -119,6 +121,31 @@ class WaveformModes(WaveformMixin, TimeSeries):
         obj = obj.view(type(self))
         if "frame" in obj._metadata and obj.frame.shape == (self.n_times, 4):
             obj._metadata["frame"] = obj.frame[time_key, :]
+        if (
+            obj.ndim != self.ndim
+            or obj.shape[obj.modes_axis] != self.shape[self.modes_axis]
+        ):
+            clean_LM_slice = False
+            # Check if the new shape is compatible with specific ell_min and ell_max values
+            if (
+                isinstance(key, tuple)
+                and len(key) > self.modes_axis
+                and isinstance(key[self.modes_axis], slice)
+            ):
+                sl = key[1]
+                if sl.step is None or sl.step==1:
+                    ell1, m1 = self.LM[sl.start or 0]  # in case sl.start is None
+                    ell2, m2 = self.LM[sl.stop-1]
+                    if ell1 <= ell2 and m1 == -ell1 and m2 == ell2:
+                        # The sliced object has valid ell_min and ell_max values,
+                        # so we can interpret it as a WaveformModes object; we
+                        # just need to correct those values
+                        clean_LM_slice = True
+                        obj._metadata["ell_min"] = ell1
+                        obj._metadata["ell_max"] = ell2
+            if not clean_LM_slice:
+                # If not, don't represent this as a WaveformModes object; it's just a TimeSeries
+                obj = TimeSeries(obj)
         return obj
 
     @property
@@ -431,13 +458,33 @@ class WaveformModes(WaveformMixin, TimeSeries):
             i = int(self.n_times // skip_fraction_of_data)
             return np.argmax(self[i:].norm) + i
 
-    def max_norm_time(self, skip_fraction_of_data=4):
+    def max_norm_time(self, skip_fraction_of_data=4, interpolate=False):
         """Return time at which largest norm occurs in data
 
-        See `help(max_norm_index)` for explanation of the optional argument.
+        See `help(max_norm_index)` for explanation of
+        `skip_fraction_of_data`.
+
+        If `interpolate` is True, the time is interpolated to a higher
+        precision than the time step of the data.  This is done by
+        fitting a cubic spline to the norm of the data and finding the
+        time at which the norm is maximized.
 
         """
-        return self.t[self.max_norm_index(skip_fraction_of_data=skip_fraction_of_data)]
+        if interpolate:
+            i_max = self.max_norm_index(skip_fraction_of_data)
+
+            # Find a range of indices that includes the discrete time with
+            # largest norm, plus 10 points in either direction, to ensure that
+            # the spline has enough data to interpolate the whole range.
+            idx_min = max(0, i_max - 10)
+            idx_max = min(self.n_times, i_max + 10)
+            idx = slice(idx_min, idx_max)
+
+            # Minimize -norm over the range of indices
+            spline = CubicSpline(self.t[idx], -self[idx, :].norm)
+            return minimize_scalar(spline, bounds=(self.t[idx_min], self.t[idx_max]), method='bounded').x
+        else:
+            return self.t[self.max_norm_index(skip_fraction_of_data)]
 
     def interpolate(self, new_time, derivative_order=0, out=None):
         """Interpolate this object to a new set of times
@@ -478,7 +525,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         """
         result = TimeSeries.interpolate(self, new_time, derivative_order=derivative_order, out=out)
         if self.frame.shape == (self.n_times, 4) and not np.array_equal(self.time, result.time):
-            self._metadata["frame"] = quaternionic.squad(self.frame, self.time, result.time)
+            result._metadata["frame"] = quaternionic.squad(self.frame, self.time, result.time)
         return result
 
     def truncate(self, tol=1e-10):
@@ -757,17 +804,17 @@ class WaveformModes(WaveformMixin, TimeSeries):
         # Calculate the LL matrix at each instant
         LL = self.expectation_value_LL
 
-        # This is the eigensystem
-        eigenvals, eigenvecs = np.linalg.eigh(LL)
+        # Compute the eigensystem
+        _, eigenvecs = np.linalg.eigh(LL)
 
-        # `eigh` always returns eigenvals in *increasing* order, so element `2` will be
-        # the dominant principal axis
-        dpa = quaternionic.array.from_vector_part(eigenvecs[..., 2])
+        # Choose the dominant principal axis `dpa`
+        # `eigh` always returns eigenvalues in *increasing* order, so we want the last
+        dpa = quaternionic.array.from_vector_part(eigenvecs[..., -1])
 
         # Make the direction vectors continuous
         dpa = quaternionic.unflip_rotors(dpa, inplace=True).vector
 
-        # Now, just make sure that the result if more parallel than anti-parallel to
+        # Now, just make sure that the result is more parallel than anti-parallel to
         # the `rough_direction`
         if np.dot(dpa[rough_direction_index], rough_direction) < 0:
             dpa *= -1
@@ -941,7 +988,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         """Return a copy of this waveform in the inertial frame"""
         if "frame" not in self._metadata:
             raise ValueError("This waveform has no frame information")
-        if self.frame.shape[0] == 1:
+        if self.frame.shape[0] == 1 and self.n_times > 1:
             raise ValueError("This waveform appears to already be in an inertial frame")
         if self.frame.shape != (self.n_times, 4):
             raise ValueError(f"Frame shape {self.frame.shape} not understood; expected {(self.n_times, 4)}")
@@ -949,7 +996,14 @@ class WaveformModes(WaveformMixin, TimeSeries):
         w._metadata["frame_type"] = "inertial"
         return w
 
-    def corotating_frame(self, R0=quaternionic.one, tolerance=1e-12, z_alignment_region=None, return_omega=False):
+    def corotating_frame(
+            self,
+            R0=quaternionic.one,
+            tolerance=1e-12,
+            z_alignment_region=None,
+            return_omega=False,
+            max_phase_per_timestep=None
+        ):
         """Return rotor taking current mode frame into corotating frame
 
         Parameters
@@ -969,6 +1023,10 @@ class WaveformModes(WaveformMixin, TimeSeries):
             If True, return a 2-tuple consisting of the frame (the usual returned
             object) and the angular-velocity data.  That is frequently also needed, so
             this is just a more efficient way of getting the data.  Default is `False`.
+        max_phase_per_timestep : float, optional
+            Maximum phase change per time step.  If given, the approximate phase change
+            per time step is calculated, and if it exceeds this value, a ValueError is
+            raised.
 
         Notes
         -----
@@ -985,6 +1043,18 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         """
         ω = self.angular_velocity
+        if max_phase_per_timestep is not None:
+            dt = np.diff(self.t)
+            dt = np.append(dt, dt[-1])
+            dθ = np.linalg.norm(ω, axis=1) * dt
+            if np.max(dθ) > max_phase_per_timestep:
+                index = np.argmax(dθ)
+                t = self.t[index]
+                raise ValueError(
+                    f"\nMaximum phase change per time step exceeded: "
+                    f"{max(dθ)=:.2g} > {max_phase_per_timestep} at {index=} ({t=:.2f}).\n"
+                    f"This probably means that there is something very wrong in your data."
+                )
         R = quaternionic.array.from_angular_velocity(ω, self.t, R0=R0, tolerance=tolerance)
         if z_alignment_region is None:
             correction_rotor = quaternionic.one
@@ -1007,8 +1077,14 @@ class WaveformModes(WaveformMixin, TimeSeries):
             return R
 
     def to_corotating_frame(
-        self, R0=None, tolerance=1e-12, z_alignment_region=None, return_omega=False, truncate_log_frame=False
-    ):
+            self,
+            R0=None,
+            tolerance=1e-12,
+            z_alignment_region=None,
+            return_omega=False,
+            truncate_log_frame=False,
+            max_phase_per_timestep=None
+        ):
         """Return a copy of this waveform in the corotating frame
 
         The corotating frame is defined to be a rotating frame for which the (L² norm
@@ -1038,10 +1114,18 @@ class WaveformModes(WaveformMixin, TimeSeries):
             If True, set bits of log(frame) with lower significance than `tolerance` to
             zero, and use exp(truncated(log(frame))) to rotate the waveform.  Also
             returns `log_frame` along with the waveform (and optionally `omega`)
+        max_phase_per_timestep : float, optional
+            Maximum phase change per time step.  If given, the approximate phase change
+            per time step is calculated, and if it exceeds this value, a ValueError is
+            raised.
 
         """
         frame, omega = self.corotating_frame(
-            R0=R0, tolerance=tolerance, z_alignment_region=z_alignment_region, return_omega=True
+            R0=R0,
+            tolerance=tolerance,
+            z_alignment_region=z_alignment_region,
+            return_omega=True,
+            max_phase_per_timestep=max_phase_per_timestep
         )
         if truncate_log_frame:
             log_frame = np.log(frame)
@@ -1060,3 +1144,116 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 return (w, log_frame)
             else:
                 return w
+
+    def coprecessing_frame(self, rough_direction=None, rough_direction_index=0):
+        """Return the coprecessing frame of the waveform
+
+        This function returns the minimally rotating coprecessing frame of the
+        waveform, as a `quaternionic.array`.  Specifically, the result rotates
+        the static $(x,y,z)$ frame onto a frame in which the dominant eigenvector
+        of the matrix expectation value ⟨w|LᵃLᵇ|w⟩ is aligned with the $z'$ axis.
+        Furthermore, to fix the rotation *about* the $z'$ axis, the minimal-
+        rotation condition is enforced.
+        
+        The coprecessing frame and the minimal-rotation condition are defined
+        in https://arxiv.org/abs/1110.2965.
+
+        For details about the arguments, see the docstring for the
+        `dominant_eigenvector_LL` method.
+
+        """
+        cpa = quaternionic.array.from_vector_part(
+            self.dominant_eigenvector_LL(rough_direction, rough_direction_index)
+        )
+        R = np.sqrt(-cpa * quaternionic.z)  # R * z * R.conj() ≈ cpa
+        return R.to_minimal_rotation(self.t)
+
+    def to_coprecessing_frame(self, rough_direction=None, rough_direction_index=0):
+        """Transform this waveform to the coprecessing frame
+
+        The coprecessing frame is defined to be a rotating frame for which the
+        dominant eigenvector of the matrix expectation value ⟨w|LᵃLᵇ|w⟩ is aligned
+        with the $z'$ axis, and the minimal-rotation condition is enforced.  This
+        leaves the frame completely determined, except for a single rotation about
+        the $z'$ axis.
+
+        The coprecessing frame and the minimal-rotation condition are defined in
+        https://arxiv.org/abs/1110.2965.
+
+        For details about the arguments, see the docstring for the
+        `dominant_eigenvector_LL` method.
+
+        """
+        frame = self.coprecessing_frame(rough_direction, rough_direction_index)
+        w = self.rotate(frame)
+        w._metadata["frame_type"] = "coprecessing"
+        w._metadata["frame"] = frame
+        return w
+
+
+class WaveformModesDict(MutableMapping, WaveformModes):
+    """A dictionary-like class for storing waveform modes
+
+    This class is a subclass of `MutableMapping`, which is essentially
+    a `dict`.  The only difference is that this class silently passes
+    `__delitem__`, and disables adding keys that aren't within the
+    valid `ell` range or don't have valid `m` values.  Otherwise, it
+    behaves exactly like a dictionary, including the various methods
+    of iteration, and being able to update values.
+    
+    This class is also a subclass of `WaveformModes`, except with
+    dictionary-like access to the modes.  Specifically, indexing like
+    `h[2,1]` will return the mode with `(ell,m) = (2,1)` as a function
+    of time.  The input index is checked to ensure that it is a tuple
+    containing exactly two integers; all other indexing is passed
+    through to the superclass.
+
+    This subclass is necessary because the `WaveformModes` class would
+    consider an index like `h[2,1]` to indicate the second time step
+    and the first mode, rather than the mode with `(ell,m) = (2,1)`,
+    which is preferred by some users.
+    """
+    def __getitem__(self, key):
+        if (
+            isinstance(key, (tuple, list))
+            and len(key) == 2
+            and isinstance(key[0], numbers.Integral)
+            and isinstance(key[1], numbers.Integral)
+        ):
+            ell, m = key
+            if abs(m) > ell:
+                raise KeyError(f"Mode index {(ell,m)=} is not valid")
+            if not self.ell_min <= ell <= self.ell_max:
+                raise KeyError(
+                    f"Mode {ell=} is out of range for this waveform's "
+                    f"ell values {[self.ell_min, self.ell_max]}"
+                )
+            return np.take(self.ndarray, self.index(ell, m), axis=self.modes_axis)
+            # return self.ndarray[:, self.index(ell, m)]
+            # return super().__getitem__((slice(None), self.index(ell, m))).ndarray
+        else:
+            return super().__getitem__(key)
+    def __setitem__(self, key, value):
+        if (
+            isinstance(key, tuple)
+            and len(key) == 2
+            and isinstance(key[0], numbers.Integral)
+            and isinstance(key[1], numbers.Integral)
+        ):
+            ell, m = key
+            if abs(m) > ell:
+                raise KeyError(f"Mode index {(ell,m)=} is not valid")
+            if not self.ell_min <= ell <= self.ell_max:
+                raise KeyError(
+                    f"Mode {ell=} is out of range for this waveform's "
+                    f"ell values {[self.ell_min, self.ell_max]}"
+                )
+            self.ndarray[:, self.index(ell, m)] = value
+        else:
+            return super().__setitem__(key, value)
+    def __delitem__(self, key):
+        pass
+    def __iter__(self):
+        return map(tuple, self.LM)
+    def __len__(self):
+        return self.LM.__len__()

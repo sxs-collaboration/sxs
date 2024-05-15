@@ -4,9 +4,9 @@ import sys
 import warnings
 import ast
 import numpy as np
-from . import WaveformModes
-from ..metadata import Metadata
-from ..utilities.monotonicity import index_is_monotonic
+from .. import WaveformModes
+from ...metadata import Metadata
+from ...utilities.monotonicity import index_is_monotonic
 
 
 FrameType = [UnknownFrameType, Inertial, Coprecessing, Coorbital, Corotating] = range(5)
@@ -147,7 +147,7 @@ def load(file, **kwargs):
     import h5py
     import quaternionic
     import spherical
-    from ..utilities import KeyPassingDict
+    from ...utilities import KeyPassingDict
 
     # This unfortunate concoction is needed to determine the (ell,m) values of the various mode data sets
     pattern_Ylm = re.compile(r"""Y_l(?P<L>[0-9]+)_m(?P<M>[-+0-9]+)\.dat""")
