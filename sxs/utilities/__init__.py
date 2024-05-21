@@ -28,6 +28,12 @@ from .files import (
     md5checksum, lock_file_manager, find_simulation_directories, find_files
 )
 from .dicts import KeyPassingDict
+from .smooth_functions import (
+    transition_function, transition_function_inplace,
+    transition_function_derivative, transition_function_derivative_inplace,
+    transition_to_constant, transition_to_constant_inplace,
+    bump_function, bump_function_inplace
+)
 
 
 def version_info():
