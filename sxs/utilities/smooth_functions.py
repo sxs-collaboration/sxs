@@ -1,5 +1,5 @@
 import numpy as np
-from .. import jit
+from . import jit
 
 
 def transition_function(x, x0, x1, y0=0, y1=1, msquared=3):

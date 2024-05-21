@@ -21,6 +21,7 @@ nav:
     - "tutorials/01-Metadata.ipynb"
     - "tutorials/03-Horizons.ipynb"
     - "tutorials/04-Waveforms.ipynb"
+    - "tutorials/05-PreprocessingForFFTs.ipynb"
   - API:
     - "Load": "api/load.md"
     - "Catalog": "api/catalog.md"
