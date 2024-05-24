@@ -29,7 +29,8 @@ dependencies = [
   "tqdm >=4.63.1",
   "pytz >=2020.1",
   "urllib3 >=1.25.10",
-  "pandas >=1.1.2"
+  "pandas >=1.1.2",
+  "juliacall >=0.9.20"
 ]
 
 [project.optional-dependencies]
@@ -73,7 +74,8 @@ path = "sxs/__version__.py"
 dependencies = [
   "pytest",
   "pytest-cov",
-  "pytest-forked >=1.3.0"
+  "pytest-forked >=1.3.0",
+  "juliapkg >=0.1.13"
 ]
 [tool.hatch.envs.default.scripts]
 # Run these as `hatch run test`
