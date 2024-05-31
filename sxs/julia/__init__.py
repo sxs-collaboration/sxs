@@ -8,8 +8,8 @@ PostNewtonian = juliacall.newmodule("PN")
 PostNewtonian.seval("using PostNewtonian")
 
 
-def update():
-    """Update the Julia packages."""
+def pkg_update():
+    """Update all installed Julia packages (but not julia itself)."""
     PostNewtonian.seval("import Pkg")
     return PostNewtonian.seval("Pkg.update()")
 
