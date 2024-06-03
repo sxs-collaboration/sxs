@@ -30,6 +30,7 @@ nav:
     - "Horizons": "api/horizons.md"
     - "Waveforms": "api/waveforms.md"
   - "Calling from Mathematica": "mathematica.md"
+  - "Calling from Julia": "julia.md"
 
 theme:
   name: "material" # "readthedocs", "mkdocs", "material"
@@ -63,6 +64,7 @@ extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js
 
 markdown_extensions:
+  - admonition
   - toc:
       permalink: "#"
   - pymdownx.arithmatex:
