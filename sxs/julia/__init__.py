@@ -14,7 +14,11 @@ def pkg_update():
     return PostNewtonian.seval("Pkg.update()")
 
 
-def PNWaveform(M1, M2, chi1, chi2, Omega_i, **kwargs):
+def PNWaveform(
+        M1, M2, chi1, chi2, Omega_i, *,
+        ell_min=2, ell_max=8, waveform_pn_order=None,
+        **orbital_evolution_kwargs
+):
     """Generate a PN waveform.
 
     The return value is an `sxs.WaveformModes` object with the
@@ -24,7 +28,8 @@ def PNWaveform(M1, M2, chi1, chi2, Omega_i, **kwargs):
         - `M2` (array): The secondary mass as a function of time.
         - `chi1` (array): The primary spin as a function of time.
         - `chi2` (array): The secondary spin as a function of time.
-        - `frame` (array): The quaternionic frame as a function of time.
+        - `frame` (array): The quaternionic frame as a function of
+          time.
         - `v` (array): The orbital velocity as a function of time.
         - `orbital_phase` (array): The orbital phase as a function of
           time.
@@ -34,21 +39,32 @@ def PNWaveform(M1, M2, chi1, chi2, Omega_i, **kwargs):
     `PostNewtonian.inertial_waveform`.  See [the Julia
     documentation](https://moble.github.io/PostNewtonian.jl/dev/internals/dynamics/#PostNewtonian.orbital_evolution)
     for details on the optional keyword arguments.
+
+    Note that the full Julia interface is also accessible from this
+    Python module.  See [the Julia
+    docs](https://moble.github.io/PostNewtonian.jl/dev/interface/python/)
+    for details.  Also, the GWFrames submodule of this module provides
+    another interface.
     
     """
     # Integrate the orbital dynamics
-    inspiral = PostNewtonian.orbital_evolution(M1, M2, chi1, chi2, Omega_i, **kwargs)
+    inspiral = PostNewtonian.orbital_evolution(
+        M1, M2, chi1, chi2, Omega_i, **orbital_evolution_kwargs
+    )
     values = PostNewtonian.stack(inspiral.u)
 
     # Compute the waveform in the inertial frame
-    h = PostNewtonian.inertial_waveform(inspiral).to_numpy().T
+    waveform_pn_order = waveform_pn_order or PostNewtonian.typemax(PostNewtonian.Int)
+    h = PostNewtonian.inertial_waveform(
+        inspiral, ell_min=ell_min, ell_max=ell_max, PNOrder=waveform_pn_order
+    ).to_numpy().T
 
     w = WaveformModes(
         h,
         time=inspiral.t,
         modes_axis=1,
-        ell_min=2,
-        ell_max=8,
+        ell_min=ell_min,
+        ell_max=ell_max,
         M1=values[0, :].to_numpy(),
         M2=values[1, :].to_numpy(),
         chi1=values[2:5, :].to_numpy().T,
