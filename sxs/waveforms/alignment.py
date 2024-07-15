@@ -501,7 +501,9 @@ def align4d(
     δt_δSO3 = δt_δSO3_brute_force[np.argmin(cost_brute_force)]
 
     # Optimize explicitly
-    optimum = least_squares(cost_wrapper, δt_δSO3, bounds=[(δt_lower, 0, 0, 0), (δt_upper, 2*np.pi, np.pi, 2*np.pi)], max_nfev=50000)
+    optimum = least_squares(
+        cost_wrapper, δt_δSO3, bounds=[(δt_lower, 0, 0, 0), (δt_upper, 2 * np.pi, np.pi, 2 * np.pi)], max_nfev=50000
+    )
     δt = optimum.x[0]
     angle, theta, phi = optimum.x[1:]
     axis = np.array([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)])
@@ -516,6 +518,6 @@ def align4d(
         ell_max=ell_max,
         spin_weight=-2,
     )
-    wa_prime.rotate(δSO3.components)
+    wa_prime = wa_prime.rotate(δSO3.components)
 
     return optimum.cost, wa_prime, optimum
