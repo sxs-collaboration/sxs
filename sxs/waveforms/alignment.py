@@ -306,9 +306,7 @@ def _cost4d(δt_δSO3, args):
 
     modes_A, modes_B, t_reference, normalization = args
     δt = δt_δSO3[0]
-    angle, theta, phi = δt_δSO3[1:]
-    axis = np.array([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)])
-    δSO3 = quaternion.quaternion(np.cos(angle / 2), *(np.sin(angle / 2) * axis))
+    δSO3 = np.exp(quaternion.quaternion(*δt_δSO3[1:]))
 
     modes_A_at_δt = modes_A(t_reference + δt)
     ell_max = int(np.sqrt(modes_A_at_δt.shape[1] + 4)) - 1
@@ -451,8 +449,14 @@ def align4d(
     if n_brute_force_δSO3 is None:
         n_brute_force_δSO3 = 5
 
+    # pick (angle, theta, phi) such that exp(q) corresponds to the expected (angle, theta, phi)
     δSO3_brute_force = [
-        [angle, theta, phi]
+        quaternion.quaternion(
+            0,
+            angle / 2 * np.sin(theta) * np.cos(phi),
+            angle / 2 * np.sin(theta) * np.sin(phi),
+            angle / 2 * np.cos(theta),
+        ).components[1:]
         for phi in np.linspace(0.0, 2 * np.pi, num=n_brute_force_δSO3, endpoint=False)
         for theta in np.linspace(0.0, max_δSO3, num=n_brute_force_δSO3, endpoint=True)
         for angle in np.linspace(0.0, 2 * np.pi, num=n_brute_force_δSO3, endpoint=False)
@@ -505,9 +509,7 @@ def align4d(
         cost_wrapper, δt_δSO3, bounds=[(δt_lower, 0, 0, 0), (δt_upper, 2 * np.pi, np.pi, 2 * np.pi)], max_nfev=50000
     )
     δt = optimum.x[0]
-    angle, theta, phi = optimum.x[1:]
-    axis = np.array([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)])
-    δSO3 = quaternion.quaternion(np.cos(angle / 2), *(np.sin(angle / 2) * axis))
+    δSO3 = np.exp(quaternion.quaternion(*optimum.x[1:]))
 
     wa_prime = WaveformModes(
         input_array=(wa_orig[:, wa_orig.index(2, -2) : wa_orig.index(ell_max + 1, -(ell_max + 1))].data),
