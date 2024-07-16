@@ -1,7 +1,5 @@
 import numpy as np
 
-import quaternion
-
 from scipy.integrate import trapezoid
 
 import multiprocessing as mp
@@ -306,7 +304,7 @@ def _cost4d(δt_δSO3, args):
 
     modes_A, modes_B, t_reference, normalization = args
     δt = δt_δSO3[0]
-    δSO3 = np.exp(quaternion.quaternion(*δt_δSO3[1:]))
+    δSO3 = np.exp(np.quaternion(*δt_δSO3[1:]))
 
     modes_A_at_δt = modes_A(t_reference + δt)
     ell_max = int(np.sqrt(modes_A_at_δt.shape[1] + 4)) - 1
@@ -451,12 +449,11 @@ def align4d(
 
     # pick (angle, theta, phi) such that exp(q) corresponds to the expected (angle, theta, phi)
     δSO3_brute_force = [
-        quaternion.quaternion(
-            0,
+        [
             angle / 2 * np.sin(theta) * np.cos(phi),
             angle / 2 * np.sin(theta) * np.sin(phi),
             angle / 2 * np.cos(theta),
-        ).components[1:]
+        ]
         for phi in np.linspace(0.0, 2 * np.pi, num=n_brute_force_δSO3, endpoint=False)
         for theta in np.linspace(0.0, max_δSO3, num=n_brute_force_δSO3, endpoint=True)
         for angle in np.linspace(0.0, 2 * np.pi, num=n_brute_force_δSO3, endpoint=False)
@@ -465,7 +462,7 @@ def align4d(
     δt_δSO3_brute_force = []
     for i in range(len(δt_brute_force)):
         for j in range(len(δSO3_brute_force)):
-            if quaternion.quaternion(*δSO3_brute_force[j]).norm() == 0:
+            if np.quaternion(*δSO3_brute_force[j]).norm() == 0:
                 continue
             δt_δSO3_brute_force.append([δt_brute_force[i], *δSO3_brute_force[j]])
 
@@ -509,7 +506,7 @@ def align4d(
         cost_wrapper, δt_δSO3, bounds=[(δt_lower, 0, 0, 0), (δt_upper, 2 * np.pi, np.pi, 2 * np.pi)], max_nfev=50000
     )
     δt = optimum.x[0]
-    δSO3 = np.exp(quaternion.quaternion(*optimum.x[1:]))
+    δSO3 = np.exp(np.quaternion(*optimum.x[1:]))
 
     wa_prime = WaveformModes(
         input_array=(wa_orig[:, wa_orig.index(2, -2) : wa_orig.index(ell_max + 1, -(ell_max + 1))].data),
