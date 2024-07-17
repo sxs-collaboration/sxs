@@ -1,5 +1,7 @@
 import numpy as np
 
+import quaternionic
+
 from scipy.integrate import trapezoid
 
 import multiprocessing as mp
@@ -299,12 +301,12 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
     return optimums[idx].cost, wa_primes[idx], optimums[idx]
 
 
-def _cost4d(δt_δSO3, args):
+def _cost4d(δt_δso3, args):
     from .. import WaveformModes
 
     modes_A, modes_B, t_reference, normalization = args
-    δt = δt_δSO3[0]
-    δSO3 = np.exp(np.quaternion(*δt_δSO3[1:]))
+    δt = δt_δso3[0]
+    δso3 = np.exp(quaternionic.array([0] + list(δt_δso3[1:])))
 
     modes_A_at_δt = modes_A(t_reference + δt)
     ell_max = int(np.sqrt(modes_A_at_δt.shape[1] + 4)) - 1
@@ -319,7 +321,7 @@ def _cost4d(δt_δSO3, args):
         spin_weight=-2,
     )
 
-    wa_prime = wa_prime.rotate(δSO3.components)
+    wa_prime = wa_prime.rotate(δso3)
 
     # Take the sqrt because least_squares squares the inputs...
     diff = trapezoid(
@@ -335,9 +337,8 @@ def align4d(
     t1,
     t2,
     n_brute_force_δt=None,
-    n_brute_force_δSO3=None,
-    max_δt=None,
-    max_δSO3=None,
+    n_brute_force_δso3=None,
+    max_δt=np.inf,
     include_modes=None,
     nprocs=None,
 ):
@@ -378,13 +379,11 @@ def align4d(
         for the initial guess.  By default, this is just the maximum number of
         time steps in the range (t1, t2) in the input waveforms.  If this is
         too small, an incorrect local minimum may be found.
-    n_brute_force_δSO3 : int, optional
+    n_brute_force_δso3 : int, optional
         Number of evenly spaced values over the two sphere to sample
         for the initial guess. Dy default, this is 5.
     max_δt : float, optional
         Max δt to allow for when choosing the initial guess.
-    max_δSO3 : float, optional
-        Max δtheta (away from z) to allow for when choosing the initial guess.
     include_modes: list, optional
         A list containing the (ell, m) modes to be included in the L² norm.
     nprocs: int, optional
@@ -428,48 +427,30 @@ def align4d(
     if wb.t[0] > t1 or wb.t[-1] < t2:
         raise ValueError(f"(t1,t2)=({t1}, {t2}) not contained in wb.t, which spans ({wb.t[0]}, {wb.t[-1]})")
 
-    if max_δt is None:
-        max_δt = np.inf
-
     # Figure out time offsets to try
-    δt_lower = min(max_δt, max(t1 - t2, wa.t[0] - t1))
+    δt_lower = max(-max_δt, max(t1 - t2, wa.t[0] - t1))
     δt_upper = min(max_δt, min(t2 - t1, wa.t[-1] - t2))
 
-    # We'll start by brute forcing, sampling time offsets evenly at as many
-    # points as there are time steps in (t1,t2) in the input waveforms
-    if n_brute_force_δt is None:
-        n_brute_force_δt = max(sum((wa.t >= t1) & (wa.t <= t2)), sum((wb.t >= t1) & (wb.t <= t2)))
-    δt_brute_force = np.linspace(δt_lower, δt_upper, num=n_brute_force_δt)
+    ell_max = min(wa.ell_max, wb.ell_max)
 
-    if max_δSO3 is None:
-        max_δSO3 = np.pi
+    # Get time initial guess
+    # Negative sign because align1d aligns wb to wa
+    δt_IG = -align1d(wa, wb, t1, t2)
 
-    if n_brute_force_δSO3 is None:
-        n_brute_force_δSO3 = 5
+    # Get rotor initial guess
+    # negative sign because quaternionic.align aligns omegab to omegaa
+    omegaa = wa.angular_velocity
+    omegab = wb.angular_velocity
+    R_IG = -quaternionic.align(omegaa, omegab)
 
-    # pick (angle, theta, phi) such that exp(q) corresponds to the expected (angle, theta, phi)
-    δSO3_brute_force = [
-        [
-            angle / 2 * np.sin(theta) * np.cos(phi),
-            angle / 2 * np.sin(theta) * np.sin(phi),
-            angle / 2 * np.cos(theta),
-        ]
-        for phi in np.linspace(0.0, 2 * np.pi, num=n_brute_force_δSO3, endpoint=False)
-        for theta in np.linspace(0.0, max_δSO3, num=n_brute_force_δSO3, endpoint=True)
-        for angle in np.linspace(0.0, 2 * np.pi, num=n_brute_force_δSO3, endpoint=False)
-    ]
-
-    δt_δSO3_brute_force = []
-    for i in range(len(δt_brute_force)):
-        for j in range(len(δSO3_brute_force)):
-            if np.quaternion(*δSO3_brute_force[j]).norm() == 0:
-                continue
-            δt_δSO3_brute_force.append([δt_brute_force[i], *δSO3_brute_force[j]])
+    # Brute force over R_IG * exp(theta * z / 2) with δt_IG
+    δt_δso3_brute_force = []
+    for angle in np.linspace(0, 2 * np.pi, 2 * (2 * ell_max + 1), endpoint=False):
+        δt_δso3_brute_force.append([δt_IG, *np.log(R_IG * np.exp(quaternionic.array([0, 0, 0, angle / 2]))).vector])
 
     t_reference = wa.t[np.argmin(abs(wa.t - t1)) : np.argmin(abs(wa.t - t2)) + 1]
 
     # Remove certain modes, if requested
-    ell_max = min(wa.ell_max, wb.ell_max)
     if include_modes != None:
         for L in range(2, ell_max + 1):
             for M in range(-L, L + 1):
@@ -493,20 +474,23 @@ def align4d(
         if nprocs is None:
             nprocs = mp.cpu_count()
         pool = mp.Pool(processes=nprocs)
-        cost_brute_force = pool.map(cost_wrapper, δt_δSO3_brute_force)
+        cost_brute_force = pool.map(cost_wrapper, δt_δso3_brute_force)
         pool.close()
         pool.join()
     else:
-        cost_brute_force = [cost_wrapper(δt_δSO3_brute_force_item) for δt_δSO3_brute_force_item in δt_δSO3_brute_force]
+        cost_brute_force = [cost_wrapper(δt_δso3_brute_force_item) for δt_δso3_brute_force_item in δt_δso3_brute_force]
 
-    δt_δSO3 = δt_δSO3_brute_force[np.argmin(cost_brute_force)]
+    δt_δso3 = δt_δso3_brute_force[np.argmin(cost_brute_force)]
 
     # Optimize explicitly
     optimum = least_squares(
-        cost_wrapper, δt_δSO3, bounds=[(δt_lower, 0, 0, 0), (δt_upper, 2 * np.pi, np.pi, 2 * np.pi)], max_nfev=50000
+        cost_wrapper,
+        δt_δso3,
+        bounds=[(δt_lower, -np.pi, -np.pi, -np.pi), (δt_upper, np.pi, np.pi, np.pi)],
+        max_nfev=50000,
     )
     δt = optimum.x[0]
-    δSO3 = np.exp(np.quaternion(*optimum.x[1:]))
+    δso3 = np.exp(quaternionic.array([0] + list(optimum.x[1:])))
 
     wa_prime = WaveformModes(
         input_array=(wa_orig[:, wa_orig.index(2, -2) : wa_orig.index(ell_max + 1, -(ell_max + 1))].data),
@@ -517,6 +501,6 @@ def align4d(
         ell_max=ell_max,
         spin_weight=-2,
     )
-    wa_prime = wa_prime.rotate(δSO3.components)
+    wa_prime = wa_prime.rotate(δso3)
 
     return optimum.cost, wa_prime, optimum
