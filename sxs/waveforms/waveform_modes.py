@@ -876,7 +876,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         ll = self.expectation_value_LL
 
         # Solve ⟨w|LᵇLᵃ|w⟩ ωₐ = -⟨w|Lᵇ∂ₜ|w⟩ for ω
-        ω = -np.linalg.solve(ll, ldt)
+        ω = -np.linalg.solve(ll, ldt[..., np.newaxis])[..., 0]
 
         return ω
 
