@@ -563,7 +563,7 @@ class Deposit(object):
 
         To publish the new version, its files must differ from all previous versions.
 
-        This action will create a new deposit, which will be a snapshot of the current resouce,
+        This action will create a new deposit, which will be a snapshot of the current resource,
         inheriting the metadata as well as snapshot of files. The new version deposit will have a
         state similar to a new, unpublished deposit, most importantly its files will be modifiable
         as for a new deposit.
@@ -582,7 +582,7 @@ class Deposit(object):
 
         To publish the new version, its files must differ from all previous versions.
 
-        This action will create a new deposit, which will be a snapshot of the current resouce,
+        This action will create a new deposit, which will be a snapshot of the current resource,
         inheriting the metadata as well as snapshot of files. The new version deposit will have a
         state similar to a new, unpublished deposit, most importantly its files will be modifiable
         as for a new deposit.
