@@ -11,6 +11,9 @@ except ModuleNotFoundError:  # pragma: no cover
 
 __version__ = importlib_metadata.version(__name__)
 
+doi_prefix = "10.26138"
+doi_url = f"https://doi.org/{doi_prefix}/"
+
 from . import utilities
 from .utilities import (
     file_format, sxs_directory, read_config, write_config,
@@ -26,7 +29,8 @@ from .waveforms import rotating_paired_xor_multishuffle_bzip2 as rpxmb
 from .waveforms import rotating_paired_diff_multishuffle_bzip2 as rpdmb
 from .waveforms import spectre_cce_v1
 from . import catalog, metadata, horizons, waveforms, zenodo, caltechdata
-from .handlers import load, loadcontext, load_lvc
+from .simulations import Simulation, Simulations
+from .handlers import load, load_via_sxs_id, loadcontext, load_lvc
 
 # The speed of light is, of course, defined to be exactly
 speed_of_light = 299_792_458.0  # m/s
@@ -50,7 +54,3 @@ solar_mass_parameter = 1.32712440041e20  # m^3/s^2
 # precision than is warranted by the measurement.
 m_sun_in_meters = 1476.6250385063112526099633973363  # m
 m_sun_in_seconds = 4.925490949162941425997992909269e-06  # s
-
-
-doi_prefix = "10.26138"
-doi_url = f"https://doi.org/{doi_prefix}/"

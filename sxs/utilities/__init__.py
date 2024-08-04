@@ -15,8 +15,8 @@ from . import url, inspire, monotonicity, decimation, lvcnr, references
 from .downloads import download_file
 from .bitwise import diff, xor, multishuffle
 from .sxs_identifiers import (
-    sxs_identifier_regex, sxs_identifier_re, lev_regex, lev_re, sxs_id,
-    lev_number, simulation_title, sxs_id_to_url
+    sxs_identifier_regex, sxs_identifier_re, lev_regex, lev_re, sxs_id, sxs_id_and_version,
+    lev_number, simulation_title, sxs_id_to_url,
 )
 from .sxs_directories import (
     sxs_directory, read_config, write_config, sxs_path_to_system_path, cached_path
