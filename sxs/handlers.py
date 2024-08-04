@@ -1,7 +1,25 @@
 """Functions to facilitate generic handling of SXS-format data files"""
 
 import contextlib
-from . import waveforms
+from . import waveforms, doi_url
+
+
+class JSONHandler:
+    """Utility for loading and saving JSON files"""
+    @classmethod
+    def load(cls, file, **kwargs):
+        import json
+        if hasattr(file, "read"):
+            return json.load(file, **kwargs)
+        with open(file, "r") as f:
+            return json.load(f, **kwargs)
+    @classmethod
+    def save(cls, obj, file, **kwargs):
+        import json
+        if hasattr(file, "write"):
+            return json.dump(obj, file, **kwargs)
+        with open(file, "w") as f:
+            return json.dump(obj, f, **kwargs)
 
 
 def sxs_handler(format_string):
@@ -42,6 +60,8 @@ def sxs_handler(format_string):
     elif format_string.lower().startswith("waveforms"):
         format_string = re.sub(r"^waveforms\.?", "", format_string, count=1, flags=re.IGNORECASE)
         return waveforms.formats.get(format_string, waveforms.formats[None])
+    elif format_string.lower() == "json":
+        return JSONHandler
     else:
         format_list = [
             catalog.formats,
@@ -97,12 +117,14 @@ def sxs_loader(file, group=None):
         file_string = str(pathlib.Path(file).name).lower()
         if "catalog" in file_string:
             format_string = "catalog"
-        elif "metadata" in file_string:
+        elif file_string.startswith("metadata"):
             format_string = "metadata"
         elif "horizons" in file_string:
             format_string = "horizons"
         elif re.match("(rh_|rhoverm_|rpsi4_|rmpsi4_)", file_string):
             format_string = "waveforms"
+        elif file_string.endswith("json"):
+            format_string = "json"
         else:
             raise ValueError(f"File '{file}' contains no recognized format information")
     handler = sxs_handler(format_string)
@@ -110,73 +132,94 @@ def sxs_loader(file, group=None):
     return handler.load
 
 
-def load(location, download=None, cache=None, progress=None, **kwargs):
+def load(location, download=None, cache=None, progress=None, truepath=None, **kwargs):
     """Load an SXS-format dataset, optionally downloading and caching
 
-    The dataset can be the full catalog of all SXS simulations, or metadata,
-    horizon data, or a waveform from an individual simulation.
+    The dataset can be the full catalog of all SXS simulations, or
+    metadata, horizon data, or a waveform from an individual
+    simulation.
 
     Parameters
     ----------
     location : {str, pathlib.Path}
-        A local file path, URL, SXS path, or SXS path pattern.  See Notes below.
+        A local file path, URL, SXS path, or SXS path pattern.  See
+        Notes below.
     download : {None, bool}, optional
-        If this is True and the data is recognized as starting with an SXS ID but
-        cannot be found in the cache, the data will be downloaded automatically.
-        If this is None (the default) and an SXS configuration file is found with a
-        `download` key, that value will be used.  If this is False, any
-        configuration will be ignored, and no files will be downloaded.  Note that
-        if this is True but `cache` is None, `cache` will automatically be switched
-        to True.
+        If this is True and the data is recognized as starting with an
+        SXS ID but cannot be found in the cache, the data will be
+        downloaded automatically.  If this is None (the default) and
+        an SXS configuration file is found with a `download` key, that
+        value will be used.  If this is False, any configuration will
+        be ignored, and no files will be downloaded.  Note that if
+        this is True but `cache` is None, `cache` will automatically
+        be switched to True.
     cache : {None, bool}, optional
-        The cache directory is determined by `sxs.sxs_directory`, and any downloads
-        will be stored in that directory.  If this is None (the default) and
-        `download` is True it will be set to True.  If this is False, any
-        configuration will be ignored and any files will be downloaded to a
-        temporary directory that will be deleted when python exits.
+        The cache directory is determined by `sxs.sxs_directory`, and
+        any downloads will be stored in that directory.  If this is
+        None (the default) and `download` is True it will be set to
+        True.  If this is False, any configuration will be ignored and
+        any files will be downloaded to a temporary directory that
+        will be deleted when python exits.
     progress : {None, bool}, optional
-        If True, full file names will be shown and, if a nonzero Content-Length
-        header is returned, a progress bar will be shown during any downloads.
-        Default is None, which just reads the configuration value with
-        `read_config("download_progress", True)`, defaulting to True.
+        If True, full file names will be shown and, if a nonzero
+        Content-Length header is returned, a progress bar will be
+        shown during any downloads.  Default is None, which just reads
+        the configuration value with `read_config("download_progress",
+        True)`, defaulting to True.
+    truepath : {None, str}, optional
+        If the file is downloaded, this allows the output path to be
+        overridden, rather than selected automatically.  The output
+        path will be stored in `truepath` relative to the cache
+        directory.
 
     Keyword Parameters
     ------------------
-    All remaining parameters are passed to the `load` function responsible for the
-    requested data.
+    All remaining parameters are passed to the `load` function
+    responsible for the requested data.
 
     See Also
     --------
     sxs.sxs_directory : Locate configuration and cache files
-    sxs.write_config : Set defaults for `download` and `cache` parameters
+    sxs.write_config : Set defaults for `download` and `cache`
+        parameters
 
     Notes
     -----
     This function can load data in various ways.
 
-      1) Given an absolute or relative path to a local file, it just loads the data
-         directly.
+      1) Given an absolute or relative path to a local file, it just
+         loads the data directly.
 
-      2) If `location` is a valid URL including the scheme (https://, or http://),
-         it will be downloaded regardless of the `download` parameter and
-         optionally cached.
+      2) If `truepath` is set, and points to a file that exists —
+         whether absolute, relative to the current working directory,
+         or relative to the cache directory — that file will be
+         loaded.
 
-      3) Given an SXS path — like 'SXS:BBH:1234/Lev5/h_Extrapolated_N2.h5' — the
-         file is located in the catalog for details.  This function then looks in
-         the local cache directory and loads it if present.
+      3) If `location` is a valid URL including the scheme (https://,
+         or http://), it will be downloaded regardless of the
+         `download` parameter and optionally cached.
 
-      4) If the SXS path is not found in the cache directory and `download` is set
-         to `True` (when this function is called, or in the sxs config file) this
-         function attempts to download the data.  Note that `download` must be
-         explicitly set in this case, or a ValueError will be raised.
+      4) Given an SXS path — like
+         'SXS:BBH:1234/Lev5/h_Extrapolated_N2.h5' — the file is
+         located in the catalog for details.  This function then looks
+         in the local cache directory and loads it if present.
 
-    Note that downloading is switched off by default, but if it is switched on (set
-    to True), the cache is also switched on by default.
+      5) If the SXS path is not found in the cache directory and
+         `download` is set to `True` (when this function is called, or
+         in the sxs config file) this function attempts to download
+         the data.  Note that `download` must be explicitly set in
+         this case, or a ValueError will be raised.
+
+    If the file is downloaded, it will be stored in the cache
+    according to the `location`, unless `truepath` is set as noted
+    above, in which case it is stored there.  Note that downloading is
+    switched off by default, but if it is switched on (set to True),
+    the cache is also switched on by default.
 
     """
     import pathlib
     import urllib.request
-    from . import Catalog, read_config, sxs_directory
+    from . import Simulations, read_config, sxs_directory, Catalog
     from .utilities import url, download_file, sxs_path_to_system_path
 
     # Note: `download` and/or `cache` may still be `None` after this
@@ -197,7 +240,13 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
     json_path = path.with_suffix('.json')
 
     if not path.exists():
-        if h5_path.resolve().exists():
+        if truepath and (testpath := pathlib.Path(truepath).expanduser()).exists():
+            path = testpath
+
+        elif truepath and (testpath := cache_path / truepath).exists():
+            path = testpath
+
+        elif h5_path.resolve().exists():
             path = h5_path
 
         elif json_path.resolve().exists():
@@ -205,15 +254,22 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
 
         elif "scheme" in url.parse(location):
             m = url.parse(location)
-            path_name = urllib.request.url2pathname(f"{m['host']}/{m['port']}/{m['resource']}")
-            path = cache_path / path_name
+            truepath = truepath or urllib.request.url2pathname(f"{m['host']}/{m['port']}/{m['resource']}")
+            path = cache_path / truepath
             if not path.resolve().exists():
                 if download is False:  # Again, we want literal False, not casting to False
-                    raise ValueError(f"File '{path_name}' not found in cache, but downloading turned off")
+                    raise ValueError(f"File '{truepath}' not found in cache, but downloading turned off")
                 download_file(location, path, progress=progress)
 
         elif location == "catalog":
             return Catalog.load(download=download)
+
+        elif location == "simulations":
+            # print(f"{__file__}:253: Temporary loading for 'simulations'.")
+            # import json
+            # with open("/Users/boyle/Research/Code/sxs/notes/simulations.json", "r") as f:
+            #     return json.load(f)
+            return Simulations.load(download=download)
 
         else:
             # Try to find an appropriate SXS file
@@ -226,7 +282,7 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
                 print("    " + "\n    ".join(selections))
             paths = []
             for sxs_path, file_info in selections.items():
-                truepath = sxs_path_to_system_path(file_info.get("truepath", sxs_path))
+                truepath = truepath or sxs_path_to_system_path(file_info.get("truepath", sxs_path))
                 path = cache_path / truepath
                 if not path.resolve().exists():
                     download_url = file_info["download"]
@@ -241,6 +297,37 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
     loader = sxs_loader(path, kwargs.get("group", None))
 
     return loader(path, **kwargs)
+
+
+def load_via_sxs_id(sxsid, location, *, download=None, cache=None, progress=None, truepath=None, **kwargs):
+    """Load a path via a (possibly versioned) SXS ID
+    
+    Given some SXS ID like "SXS:BBH:1234" or a versioned ID like
+    "SXS:BBH:1234v2.0", we may wish to first resolve the DOI to a
+    specific Zenodo record, and then load a specific path under that
+    record — for example, we may want to export the Zenodo record as
+    JSON by appending "export/json" to the Zenodo URL, which we
+    *could* get as
+
+        load("https://zenodo.org/records/13152488/export/json")
+
+    because that's the record "SXS:BBH:1234v2.0" resolves to.
+    However, we don't want to keep track of the Zenodo URL, so we
+    just use this function instead, as
+
+        load_via_sxs_id("SXS:BBH:1234v2.0", "export/json")
+    
+    """
+    from pathlib import Path
+    import requests
+    from .utilities import sxs_path_to_system_path
+    url = f"{doi_url}{sxsid}"
+    response = requests.head(url, allow_redirects=True)
+    if response.status_code != 200:
+        raise ValueError(f"Could not load via DOI {url=}")
+    final_url = f"{response.url}/{location}"
+    truepath = truepath or Path(sxs_path_to_system_path(sxsid)) / location
+    return load(final_url, download, cache, progress, truepath, **kwargs)
 
 
 @contextlib.contextmanager

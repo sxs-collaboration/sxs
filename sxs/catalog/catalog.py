@@ -49,10 +49,19 @@ class Catalog(object):
 
         """
         import json
-        import tempfile
         import zipfile
         from .. import sxs_directory, read_config
         from ..utilities import download_file
+
+        from warnings import warn
+        deprecation_notice = """
+
+        You have called a function that uses the `Catalog` class,
+        which, as of `sxs` version 2024.0.0, has been deprecated in
+        favor of the `Simulations` interface.  See the documentation
+        for more information.
+        """
+        warn(deprecation_notice)
 
         progress = read_config("download_progress", True)
 
