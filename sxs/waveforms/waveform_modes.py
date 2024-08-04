@@ -939,6 +939,13 @@ class WaveformModes(WaveformMixin, TimeSeries):
         """
         from spherical.wigner import _rotate
 
+        if self.spin_weight is None:
+            raise ValueError(
+                "Cannot rotate a waveform with unknown spin weight.\n" +
+                "Presumably, somewhere upstream, the spin weight was\n" +
+                "not set for this waveform, when it should have been."
+            )
+
         R = quaternionic.array(quat)
         wigner = spherical.Wigner(self.ell_max, ell_min=self.ell_min)  #, mp_max=abs(self.spin_weight))
         D = np.zeros(wigner.Dsize, dtype=complex)
