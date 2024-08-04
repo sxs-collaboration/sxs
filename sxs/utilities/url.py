@@ -42,7 +42,10 @@ def parse(url):
 
     """
     match = url_regex.match(url)
-    return getattr(match, "groupdict", {})
+    if hasattr(match, "groupdict"):
+        return match.groupdict()
+    else:
+        return {}
 
 
 def validate(url):
