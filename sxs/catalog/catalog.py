@@ -61,7 +61,7 @@ class Catalog(object):
         favor of the `Simulations` interface.  See the documentation
         for more information.
         """
-        warn(deprecation_notice)
+        warn(deprecation_notice, DeprecationWarning)
 
         progress = read_config("download_progress", True)
 
