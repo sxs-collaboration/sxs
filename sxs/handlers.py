@@ -132,6 +132,17 @@ def sxs_loader(file, group=None):
     return handler.load
 
 
+def _safe_resolve_exists(path):
+    """Evaluate `path.resolve().exists()`  without throwing exception
+    
+    This is just here to work around a bug that turned up in Windows
+    on python 3.8.  It's not clear if it turns up in other versions.
+    """
+    try:
+        return path.resolve().exists()
+    except:
+        return False
+
 def load(location, download=None, cache=None, progress=None, truepath=None, **kwargs):
     """Load an SXS-format dataset, optionally downloading and caching
 
@@ -251,10 +262,10 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
         elif truepath and (testpath := cache_path / truepath).exists():
             path = testpath
 
-        elif h5_path.resolve().exists():
+        elif _safe_resolve_exists(h5_path):
             path = h5_path
 
-        elif json_path.resolve().exists():
+        elif _safe_resolve_exists(json_path):
             path = json_path
 
         elif "scheme" in url.parse(location):
