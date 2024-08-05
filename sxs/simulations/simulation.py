@@ -1,6 +1,9 @@
 from pathlib import Path
 from .. import doi_url, Metadata
-from ..utilities import sxs_id_and_version, lev_number, sxs_path_to_system_path, download_file, sxs_directory
+from ..utilities import (
+    sxs_id_and_version, lev_number, sxs_path_to_system_path,
+    download_file, sxs_directory,
+)
 from . import default_version
 
 def Simulation(location, *args, **kwargs):
