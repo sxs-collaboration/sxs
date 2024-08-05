@@ -7,9 +7,13 @@ sxs_identifier_regex = (
     r"(?P<sxs_number>[0-9]+))(?:(v|V)(?P<version>[0-9.]+))?"
 )
 lev_regex = r"Lev(?P<lev>-?[0-9]+)"
+sxs_id_version_lev_regex = sxs_identifier_regex + rf"(?:(:|/){lev_regex})?"
+sxs_id_version_lev_exact_regex = f"^{sxs_id_version_lev_regex}$"
+
 sxs_identifier_re = re.compile(sxs_identifier_regex)
 lev_re = re.compile(lev_regex)
-
+sxs_id_version_lev_re = re.compile(sxs_id_version_lev_regex)
+sxs_id_version_lev_exact_re = re.compile(sxs_id_version_lev_exact_regex)
 
 def sxs_id(s, default="", include_version=False):
     """Return the SXS ID contained in the input string
