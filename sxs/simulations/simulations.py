@@ -176,12 +176,16 @@ class Simulations(collections.OrderedDict):
         return cls.load(download=download)
 
     @property
-    @functools.lru_cache()
     def dataframe(self):
         """Return a pandas.DataFrame containing the metadata for all simulations"""
         import numpy as np
         import pandas as pd
-        simulations = pd.DataFrame.from_dict(self._dict, orient="index")
+        from datetime import datetime, timezone
+
+        if hasattr(self, "_dataframe"):
+            return self._dataframe
+
+        simulations = pd.DataFrame.from_dict(self, orient="index")
 
         def floater(x):
             try:
@@ -216,36 +220,16 @@ class Simulations(collections.OrderedDict):
                 a = np.array([np.nan, np.nan, np.nan])
             return a
 
-        def space_translation(x):
+        def datetime_from_string(x):
             try:
-                a = np.array(x["space_translation"])
+                dt = datetime.strptime(x, "%Y-%m-%dT%H:%M:%S%z")
             except:
-                a = np.array([np.nan, np.nan, np.nan])
-            return a
-
-        def space_translation_norm(x):
-            try:
-                n = np.linalg.norm(np.array(x["space_translation"]))
-            except:
-                n = np.nan
-            return n
-
-        def boost_velocity(x):
-            try:
-                a = np.array(x["boost_velocity"])
-            except:
-                a = np.array([np.nan, np.nan, np.nan])
-            return a
-
-        def boost_velocity_norm(x):
-            try:
-                n = np.linalg.norm(np.array(x["boost_velocity"]))
-            except:
-                n = np.nan
-            return n
+                dt = datetime.min.replace(tzinfo=timezone.utc)
+            return dt
 
         sims_df = pd.concat((
             simulations["object_types"].astype("category"),
+            simulations["initial_data_type"].astype("category"),
             simulations["initial_separation"].map(floater),
             simulations["initial_orbital_frequency"].map(floater),
             simulations["initial_adot"].map(floater),
@@ -263,10 +247,6 @@ class Simulations(collections.OrderedDict):
             simulations["initial_dimensionless_spin2"].map(norm).rename("initial_dimensionless_spin2_mag"),
             simulations["initial_position1"].map(three_vec),
             simulations["initial_position2"].map(three_vec),
-            simulations["com_parameters"].map(space_translation).rename("com_correction_space_translation"),
-            simulations["com_parameters"].map(space_translation_norm).rename("com_correction_space_translation_mag"),
-            simulations["com_parameters"].map(boost_velocity).rename("com_correction_boost_velocity"),
-            simulations["com_parameters"].map(boost_velocity_norm).map(norm).rename("com_correction_boost_velocity_mag"),
             simulations["reference_time"].map(floater),
             (
                 simulations["reference_position1"].map(three_vec)
@@ -300,25 +280,53 @@ class Simulations(collections.OrderedDict):
             simulations["remnant_velocity"].map(three_vec),
             simulations["remnant_velocity"].map(norm).rename("remnant_velocity_mag"),
             #simulations["final_time"].map(floater),
-            simulations["eos"],
+            simulations["EOS"].fillna(simulations["eos"]),
             simulations["initial_data_type"].astype("category"),
             #simulations["object1"].astype("category"),
             #simulations["object2"].astype("category"),
             simulations["disk_mass"].map(floater),
             simulations["ejecta_mass"].map(floater),
-            simulations["url"],
+            # simulations["url"],
             #simulations["simulation_name"],
             #simulations["alternative_names"],
-            simulations["metadata_path"],
+            # simulations["metadata_path"],
+            simulations["date_link_earliest"].map(datetime_from_string),
+            simulations["date_postprocessing"].map(datetime_from_string),
+            simulations["date_run_earliest"].map(datetime_from_string),
+            simulations["date_run_latest"].map(datetime_from_string),
+            # simulations["end_of_trajectory_time"].map(floater),
+            # simulations["merger_time"].map(floater),
+            simulations["number_of_orbits"].map(floater),
+            simulations["superseded_by"],
+            simulations["DOI_versions"],
         ), axis=1)
 
-        #  57  reference_spin1                2 non-null      object
-        #  58  reference_spin2                1 non-null      object
-        #  59  nitial_spin1                   2 non-null      object
-        #  60  initial_spin2                  2 non-null      object
-        #  61  remnant_spin                   2 non-null      object
-        #  62  initial_mass_withspin2         2 non-null      float64
+        # We have ignored the following fields present in the
+        # simulations.json file (as of 2024-08-04), listed here with
+        # the number of non-null entries:
+        #
+        # alternative_names                2778
+        # keywords                         2778
+        # point_of_contact_email           2778
+        # authors_emails                   2776
+        # simulation_bibtex_keys           2778
+        # code_bibtex_keys                 2778
+        # initial_data_bibtex_keys         2778
+        # quasicircular_bibtex_keys        2778
+        # metadata_version                 2778
+        # spec_revisions                   2778
+        # spells_revision                  2778
+        # merger_time                         9
+        # final_time                         12
+        # reference_spin1                     2
+        # reference_spin2                     1
+        # nitial_spin1                        2
+        # initial_spin2                       2
+        # remnant_spin                        2
+        # initial_mass_withspin2              2
+        # end_of_trajectory_time              3
 
+        self._dataframe = sims_df
         return sims_df
 
     table = dataframe
