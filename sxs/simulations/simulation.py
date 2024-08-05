@@ -1,10 +1,11 @@
 from pathlib import Path
+from warnings import warn
 from .. import doi_url, Metadata
 from ..utilities import (
     sxs_id_and_version, lev_number, sxs_path_to_system_path,
-    download_file, sxs_directory,
+    download_file, sxs_directory, read_config
 )
-from . import default_version
+
 
 def Simulation(location, *args, **kwargs):
     """Construct a Simulation object from a location string
@@ -20,44 +21,159 @@ def Simulation(location, *args, **kwargs):
     `Simulation_v2` object, depending on the version number.
     Hopefully, most details of the two versions will be hidden from
     the user, so that the interface is identical.
+
+    Note that some simulations are deprecated and/or superseded by
+    other simulations.  By default, this function will raise an error
+    if you try to load a deprecated or superseded simulation.  There
+    are several ways to override this behavior:
+
+        1. Pass `ignore_deprecation=True` to completely bypass even
+           checking for deprecation or supersession.  No warnings or
+           errors will be issued.
+        2. Include an explicit version number in the `location`
+           string, as in "SXS:BBH:0001v2.0".  A warning will be issued
+           that the simulation is deprecated, but it will be loaded
+           anyway.
+        3. Pass `auto_supersede=True` to automatically load the
+           superseding simulation, if there is only one.  Because no
+           superseding simulation can be *precisely* the same as the
+           deprecated one, there may be multiple superseding
+           simulations that have very similar parameters, in which
+           case an error will be raised and you must explicitly choose
+           one.  If there is only one, a warning will be issued, but
+           the superseding simulation will be loaded.
+    
+    Otherwise, a `ValueError` will be raised, with an explanation and
+    suggestions on what you might want to do.
     
     """
-    _, version = sxs_id_and_version(location)
-    if not version:
-        version = default_version
+    from .. import load
+
+    # Extract the simulation ID, version, and Lev from the location string
+    simulation_id, input_version = sxs_id_and_version(location)
+    if not simulation_id:
+        raise ValueError(f"Invalid SXS ID in '{simulation_id}'")
+    input_lev_number = lev_number(location)  # Will be `None` if not present
+
+    # Load the simulation catalog and check if simulation ID exists in the catalog
+    simulations = load("simulations")
+    if simulation_id not in simulations:
+        raise ValueError(f"Simulation '{simulation_id}' not found in simulation catalog")
+
+    # Attach metadata to this object
+    metadata = Metadata(simulations[simulation_id])
+
+    # Check if the specified version exists in the simulation catalog
+    if input_version not in metadata.DOI_versions:
+        raise ValueError(f"Version '{input_version}' not found in simulation catalog for '{simulation_id}'")
+
+    # Set various pieces of information about the simulation
+    version = input_version or max(metadata.DOI_versions)
     if not version.startswith("v"):
-        raise ValueError(f"Invalid version '{version}'")
+        raise ValueError(f"Invalid version string '{version}'")
+    sxs_id_stem = simulation_id
+    sxs_id = f"{sxs_id_stem}{version}"
+    url = f"{doi_url}{sxs_id}"
+
+    # Deal with "superseded_by" field, or "deprecated" keyword in the metadata
+    if not kwargs.get("ignore_deprecation", False):
+        auto_supersede = kwargs.get("auto_supersede", read_config("auto_supersede", False))
+        if (
+            input_version
+            and not auto_supersede
+            and ("deprecated" in metadata.get("keywords", []) or metadata.get("superseded_by", False))
+        ):
+            message = ("\n"
+                + f"Simulation '{sxs_id_stem}' is deprecated and/or superseded.\n"
+                + "Normally, this simulation should no longer be used, but you\n"
+                + f"explicitly requested version '{input_version}', so it is being used.\n"
+            )
+            warn(message, DeprecationWarning)
+        else:
+            if "superseded_by" in metadata:
+                superseded_by = metadata["superseded_by"]
+                if auto_supersede and isinstance(superseded_by, list):
+                    raise ValueError(
+                        f"`auto_supersede` is enabled, but simulation '{sxs_id}' is\n"
+                        + "superseded by multiple simulations.  You must choose one\n"
+                        + "explicitly from the list:\n"
+                        + "\n".join(f"  {s}" for s in superseded_by)
+                        + "\nAlternatively, you could pass `ignore_deprecation=True` or\n"
+                        + "specify a version to load this waveform anyway."
+                    )
+                elif auto_supersede and isinstance(superseded_by, str):
+                    message = f"Simulation '{sxs_id}' is being automatically superseded by '{superseded_by}'."
+                    warn(message, DeprecationWarning)
+                    new_location = f"{superseded_by}{input_version}"
+                    if input_lev_number:
+                        new_location += f"/Lev{input_lev_number}"
+                    return Simulation(new_location, *args, **kwargs)
+                elif isinstance(superseded_by, list):
+                    raise ValueError(
+                        f"Simulation '{sxs_id}' is superseded by multiple simulations.\n"
+                        + "Even if you enable `auto_supersede`, with multiple options, you\n"
+                        + "must choose one explicitly from the list:\n"
+                        + "\n".join(f"  {s}" for s in superseded_by)
+                        + "\nAlternatively, you could pass `ignore_deprecation=True` or\n"
+                        + "specify a version to load this waveform anyway."
+                    )
+                elif isinstance(superseded_by, str):
+                    raise ValueError(
+                        f"Simulation '{sxs_id}' is superseded by '{superseded_by}'.\n"
+                        + "Note that you could enable `auto_supersede` to automatically\n"
+                        + "load the superseding simulation.  Alternatively, you could\n"
+                        + "pass `ignore_deprecation=True` or specify a version to load\n"
+                        + "this waveform anyway."
+                    )
+                else:
+                    raise ValueError(
+                        f"Simulation '{sxs_id}' is superseded by '{superseded_by}'.\n"
+                        + "Note that you could pass `ignore_deprecation=True` or\n"
+                        + "specify a version to load this waveform anyway."
+                    )
+            if "deprecated" in metadata.get("keywords", []):
+                raise ValueError(
+                    f"Simulation '{sxs_id}' is deprecated but has no superseding simulation.\n"
+                    + "Note that you could pass `ignore_deprecation=True` or specify a version\n"
+                    + "to  to load this waveform anyway."
+                )
+
+    # We want to do this *after* deprecation checking, to avoid possibly unnecessary web requests
+    files = get_file_info(metadata, sxs_id)
+
+    # If Lev is given as part of `location`, use it; otherwise, use the highest available
+    lev_numbers = [lev for f in files if (lev:=lev_number(f))]
+    output_lev_number = input_lev_number or max(lev_numbers)
+    location = f"{sxs_id_stem}{version}/Lev{output_lev_number}"
+
+    # Finally, figure out which version of the simulation to load and dispatch
     version_number = float(version[1:])
     if 1 <= version_number < 2.0:
-        return Simulation_v1(location)
+        return Simulation_v1(
+            metadata, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
+        )
     elif 2 <= version_number < 3.0:
-        return Simulation_v2(location)
+        return Simulation_v2(
+            metadata, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
+        )
     else:
         raise ValueError(f"Version '{version}' not yet supported")
 
 
 class SimulationBase:
-    def __init__(self, location, *args, **kwargs):
-        from .. import load
-        simulation_id, version = sxs_id_and_version(location)
-        if not simulation_id:
-            raise ValueError(f"Invalid SXS ID in '{simulation_id}'")
-        simulations = load("simulations")
-        if simulation_id not in simulations:
-            raise ValueError(f"Simulation '{simulation_id}' not found in simulation catalog")
-        self.metadata = Metadata(simulations[simulation_id])
-        if version not in self.metadata.DOI_versions:
-            raise ValueError(f"Version '{version}' not found in simulation catalog for '{simulation_id}'")
-        self.version = version or default_version
-        self.id = simulation_id
-        self.sxs_id = f"{self.id}{self.version}"
-        self.url = f"{doi_url}{self.sxs_id}"
-        self.files = get_file_info(self.metadata, self.sxs_id)
-        self.highest_lev_number = max(
-            lev for f in self.files
-            if (lev:=lev_number(f))
-        )
-        self.lev_number = lev_number(location) or self.highest_lev_number
+    def __init__(self,
+        metadata, version, sxs_id_stem, sxs_id, url, files, lev_numbers, lev_number, location,
+        *args, **kwargs             
+    ):
+        self.metadata = metadata
+        self.version = version
+        self.sxs_id_stem = sxs_id_stem
+        self.sxs_id = sxs_id
+        self.url = url
+        self.files = files
+        self.lev_numbers = lev_numbers
+        self.lev_number = lev_number
+        self.location = location
 
     def __repr__(self):
         return f"""{type(self).__qualname__}("{self.sxs_id}")"""
@@ -100,7 +216,9 @@ class SimulationBase:
     h = strain
     H = strain
 
-    ## I'm not entirely sure about the conjugations and factors of 2 in shear and news
+    # I'm not entirely sure about the conjugations and factors of 2 in
+    # shear and news in our conventions.  These will have to wait for
+    # later.
     #
     # @property
     # def shear(self):
@@ -154,8 +272,8 @@ class Simulation_v1(SimulationBase):
     # This means that we have to check for both possibilities in
     # `load_horizons` and `load_waveform`.
 
-    def __init__(self, location, *args, **kwargs):
-        super().__init__(location, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.extrapolation = kwargs.get("extrapolation", "N4")
 
     @property
@@ -169,7 +287,7 @@ class Simulation_v1(SimulationBase):
         if horizons_path in self.files:
             horizons_location = self.files.get(horizons_path)["link"]
         else:
-            if (extended_horizons_path := f"{self.id}/{horizons_path}") in self.files:
+            if (extended_horizons_path := f"{self.sxs_id_stem}/{horizons_path}") in self.files:
                 horizons_location = self.files.get(extended_horizons_path)["link"]
             else:
                 raise ValueError(f"File '{horizons_path}' not found in simulation files")
@@ -205,7 +323,7 @@ class Simulation_v1(SimulationBase):
         if file_name in self.files:
             location = self.files.get(file_name)["link"]
         else:
-            if (extended_file_name := f"{self.id}/{file_name}") in self.files:
+            if (extended_file_name := f"{self.sxs_id_stem}/{file_name}") in self.files:
                 location = self.files.get(extended_file_name)["link"]
             else:
                 raise ValueError(f"File '{file_name}' not found in simulation files")
@@ -217,8 +335,8 @@ class Simulation_v1(SimulationBase):
 
 
 class Simulation_v2(SimulationBase):
-    def __init__(self, location, *args, **kwargs):
-        super().__init__(location, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.extrapolation = kwargs.get("extrapolation", "N4")
 
     @property
