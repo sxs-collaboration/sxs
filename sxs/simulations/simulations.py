@@ -7,7 +7,8 @@ import collections
 
 class Simulations(collections.OrderedDict):
     """Interface to the catalog of SXS simulations"""
-    url = "https://gist.githubusercontent.com/moble/d3fa38db9f1257c76e61006f5e182884/raw/f2b0939c2520ec3377c9f6fb5ee5236d938430f5/simulations.json"
+    last_modified_url = "https://api.github.com/repos/sxs-collaboration/sxs/contents/simulations.json?ref=simulations"
+    url = "https://github.com/sxs-collaboration/sxs/raw/simulations/simulations.json"
 
     def __init__(self, sims):
         """Initialize the Simulations dictionary
@@ -22,6 +23,34 @@ class Simulations(collections.OrderedDict):
         super(Simulations, self).__init__(
             (k, Metadata(sims[k])) for k in sorted(sims)
         )
+
+    @classmethod
+    def remote_timestamp(cls, download):
+        import requests
+        from datetime import datetime, timezone
+        if not download:
+            return datetime.min.replace(tzinfo=timezone.utc)
+        failed = False
+        try:
+            response = requests.head(
+                Simulations.last_modified_url,
+                headers={"X-GitHub-Api-Version": "2022-11-28"},
+            )
+            if response.status_code != 200 or "Last-Modified" not in response.headers:
+                failed = True
+            else:
+                remote_timestamp = datetime.strptime(
+                    response.headers["Last-Modified"], "%a, %d %b %Y %H:%M:%S GMT"
+                ).replace(tzinfo=timezone.utc)
+        except:
+            failed = True
+        if failed:
+            print(
+                f"Failed to get the remote timestamp from <{Simulations.last_modified_url}>.\n"
+                + "Assuming it is old."
+            )
+            return datetime.min.replace(tzinfo=timezone.utc)
+        return remote_timestamp
 
     @classmethod
     @functools.lru_cache()
@@ -51,6 +80,7 @@ class Simulations(collections.OrderedDict):
         Simulations.reload : Avoid caching the result of this function
 
         """
+        from datetime import datetime, timezone
         import json
         import zipfile
         from .. import sxs_directory, read_config
@@ -58,14 +88,18 @@ class Simulations(collections.OrderedDict):
 
         progress = read_config("download_progress", True)
 
+        remote_timestamp = cls.remote_timestamp(download is not False)  # Test for literal `False`
+
         cache_path = sxs_directory("cache") / "simulations.zip"
 
         if cache_path.exists():
-            if_newer = cache_path
+            local_timestamp = datetime.fromtimestamp(cache_path.stat().st_mtime, timezone.utc)
+        elif download is False:
+            raise ValueError(f"Simulations not found in '{cache_path}' and downloading was turned off")
         else:
-            if_newer = False
+            local_timestamp = datetime.min.replace(tzinfo=timezone.utc)
 
-        if download or download is None:
+        if (download or download is None) and remote_timestamp > local_timestamp:
             # 1. Download the full json file (zipped in flight, but auto-decompressed on arrival)
             # 2. Zip to a temporary file (using bzip2, which is better than the in-flight compression)
             # 3. Replace the original simulations.zip with the temporary zip file
@@ -75,7 +109,7 @@ class Simulations(collections.OrderedDict):
             temp_zip = cache_path.with_suffix(".temp.zip")
             try:
                 try:
-                    download_file(cls.url, temp_json, progress=progress, if_newer=if_newer)
+                    download_file(cls.url, temp_json, progress=progress, if_newer=False)
                 except Exception as e:
                     if download:
                         raise RuntimeError(f"Failed to download '{cls.url}'; try setting `download=False`") from e
