@@ -99,6 +99,7 @@ class Simulations(collections.OrderedDict):
         else:
             local_timestamp = datetime.min.replace(tzinfo=timezone.utc)
 
+        download_failed = False
         if (download or download is None) and remote_timestamp > local_timestamp:
             # 1. Download the full json file (zipped in flight, but auto-decompressed on arrival)
             # 2. Zip to a temporary file (using bzip2, which is better than the in-flight compression)
@@ -115,7 +116,6 @@ class Simulations(collections.OrderedDict):
                         raise RuntimeError(f"Failed to download '{cls.url}'; try setting `download=False`") from e
                     download_failed = e  # We'll try the cache
                 else:
-                    download_failed = False
                     if temp_json.exists():
                         with zipfile.ZipFile(temp_zip, "w", compression=zipfile.ZIP_BZIP2) as simulations_zip:
                             simulations_zip.write(temp_json, arcname="simulations.json")
