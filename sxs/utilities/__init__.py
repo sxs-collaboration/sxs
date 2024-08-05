@@ -15,7 +15,11 @@ from . import url, inspire, monotonicity, decimation, lvcnr, references
 from .downloads import download_file
 from .bitwise import diff, xor, multishuffle
 from .sxs_identifiers import (
-    sxs_identifier_regex, sxs_identifier_re, lev_regex, lev_re, sxs_id, sxs_id_and_version,
+    sxs_identifier_regex, sxs_identifier_re,
+    lev_regex, lev_re,
+    sxs_id_version_lev_regex, sxs_id_version_lev_re,
+    sxs_id_version_lev_exact_regex, sxs_id_version_lev_exact_re,
+    sxs_id, sxs_id_and_version,
     lev_number, simulation_title, sxs_id_to_url,
 )
 from .sxs_directories import (
