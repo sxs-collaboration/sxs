@@ -199,12 +199,17 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
          or http://), it will be downloaded regardless of the
          `download` parameter and optionally cached.
 
-      4) Given an SXS path — like
-         'SXS:BBH:1234/Lev5/h_Extrapolated_N2.h5' — the file is
+      4) Given an SXS simulation specification — like "SXS:BBH:1234",
+         "SXS:BBH:1234v2.0", "SXS:BBH:1234/Lev5", or
+         "SXS:BBH:1234v2.0/Lev5" — the simulation is loaded as an
+         `sxs.Simulation` object.
+
+      5) Given an SXS path — like
+         "SXS:BBH:1234/Lev5/h_Extrapolated_N2.h5" — the file is
          located in the catalog for details.  This function then looks
          in the local cache directory and loads it if present.
 
-      5) If the SXS path is not found in the cache directory and
+      6) If the SXS path is not found in the cache directory and
          `download` is set to `True` (when this function is called, or
          in the sxs config file) this function attempts to download
          the data.  Note that `download` must be explicitly set in
@@ -219,8 +224,8 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
     """
     import pathlib
     import urllib.request
-    from . import Simulations, read_config, sxs_directory, Catalog
-    from .utilities import url, download_file, sxs_path_to_system_path
+    from . import Simulations, Simulation, read_config, sxs_directory, Catalog
+    from .utilities import url, download_file, sxs_path_to_system_path, sxs_id_version_lev_exact_re
 
     # Note: `download` and/or `cache` may still be `None` after this
     if download is None:
@@ -265,14 +270,13 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
             return Catalog.load(download=download)
 
         elif location == "simulations":
-            # print(f"{__file__}:253: Temporary loading for 'simulations'.")
-            # import json
-            # with open("/Users/boyle/Research/Code/sxs/notes/simulations.json", "r") as f:
-            #     return json.load(f)
             return Simulations.load(download=download)
+        
+        elif sxs_id_version_lev_exact_re.match(location):
+            return Simulation(location, download=download, cache=cache, progress=progress, **kwargs)
 
         else:
-            # Try to find an appropriate SXS file
+            # Try to find an appropriate SXS file in the catalog
             catalog = Catalog.load(download=download)
             selections = catalog.select_files(location)
             if not selections:
