@@ -299,6 +299,7 @@ class Simulations(collections.OrderedDict):
             simulations["number_of_orbits"].map(floater),
             simulations["superseded_by"],
             simulations["DOI_versions"],
+            simulations["keywords"],
         ), axis=1)
 
         # We have ignored the following fields present in the
@@ -306,7 +307,6 @@ class Simulations(collections.OrderedDict):
         # the number of non-null entries:
         #
         # alternative_names                2778
-        # keywords                         2778
         # point_of_contact_email           2778
         # authors_emails                   2776
         # simulation_bibtex_keys           2778
