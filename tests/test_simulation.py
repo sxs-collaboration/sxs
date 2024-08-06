@@ -11,17 +11,17 @@ def test_superseded_by_single(loader):
     # use a simulation that still has just one.
     with pytest.raises(ValueError):
         loader(f"{simulation}")
-    with pytest.deprecated_call():
+    with pytest.warns(UserWarning):
         s = loader(f"{simulation}v2.0")
     assert s.sxs_id_stem == simulation
     s = loader(f"{simulation}", ignore_deprecation=True)
     assert s.sxs_id_stem == simulation
     s = loader(f"{simulation}v2.0", ignore_deprecation=True)
     assert s.sxs_id_stem == simulation
-    with pytest.deprecated_call():
+    with pytest.warns(UserWarning):
         s = loader(f"{simulation}", auto_supersede=True)
     assert s.sxs_id_stem != simulation
-    with pytest.deprecated_call():
+    with pytest.warns(UserWarning):
         s = loader(f"{simulation}v2.0", auto_supersede=True)
     assert s.sxs_id_stem != simulation
     s = loader(f"{simulation}", ignore_deprecation=True, auto_supersede=True)
@@ -39,7 +39,7 @@ def test_superseded_by_multiple(loader):
     # simulation that still has multiple simulations.
     with pytest.raises(ValueError):
         loader(f"{simulation}")
-    with pytest.deprecated_call():
+    with pytest.warns(UserWarning):
         s = loader(f"{simulation}v2.0")
     assert s.sxs_id_stem == simulation
     s = loader(f"{simulation}", ignore_deprecation=True)

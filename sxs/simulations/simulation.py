@@ -129,7 +129,7 @@ def Simulation(location, *args, **kwargs):
                 + "Normally, this simulation should no longer be used, but you\n"
                 + f"explicitly requested version '{input_version}', so it is being used.\n"
             )
-            warn(message, DeprecationWarning)
+            warn(message)
         else:
             if "superseded_by" in metadata:
                 superseded_by = metadata["superseded_by"]
@@ -144,7 +144,7 @@ def Simulation(location, *args, **kwargs):
                     )
                 elif auto_supersede and isinstance(superseded_by, str):
                     message = f"Simulation '{sxs_id}' is being automatically superseded by '{superseded_by}'."
-                    warn(message, DeprecationWarning)
+                    warn(message)
                     new_location = f"{superseded_by}{input_version}"
                     if input_lev_number:
                         new_location += f"/Lev{input_lev_number}"
