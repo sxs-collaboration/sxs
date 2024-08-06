@@ -308,7 +308,7 @@ class Horizons(object):
             )
 
         """
-        from scipy.integrate import simps
+        from scipy.integrate import simpson
 
         t = self.A.time
         com = self.newtonian_com
@@ -319,8 +319,8 @@ class Horizons(object):
         i_i, i_f = np.argmin(np.abs(t - t_i)), np.argmin(np.abs(t - t_f))
 
         # Find the optimum analytically
-        com_0 = simps(com[i_i : i_f + 1], t[i_i : i_f + 1], axis=0)
-        com_1 = simps((t[:, np.newaxis] * com)[i_i : i_f + 1], t[i_i : i_f + 1], axis=0)
+        com_0 = simpson(com[i_i : i_f + 1], x=t[i_i : i_f + 1], axis=0)
+        com_1 = simpson((t[:, np.newaxis] * com)[i_i : i_f + 1], x=t[i_i : i_f + 1], axis=0)
         x_i = 2 * (com_0 * (2 * t_f ** 3 - 2 * t_i ** 3) + com_1 * (-3 * t_f ** 2 + 3 * t_i ** 2)) / (t_f - t_i) ** 4
         v_i = 6 * (com_0 * (-t_f - t_i) + 2 * com_1) / (t_f - t_i) ** 3
 
