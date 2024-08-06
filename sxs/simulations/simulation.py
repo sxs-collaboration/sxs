@@ -27,24 +27,64 @@ def Simulation(location, *args, **kwargs):
     if you try to load a deprecated or superseded simulation.  There
     are several ways to override this behavior:
 
-        1. Pass `ignore_deprecation=True` to completely bypass even
-           checking for deprecation or supersession.  No warnings or
-           errors will be issued.
-        2. Include an explicit version number in the `location`
-           string, as in "SXS:BBH:0001v2.0".  A warning will be issued
-           that the simulation is deprecated, but it will be loaded
-           anyway.
-        3. Pass `auto_supersede=True` to automatically load the
-           superseding simulation, if there is only one.  Because no
-           superseding simulation can be *precisely* the same as the
-           deprecated one, there may be multiple superseding
-           simulations that have very similar parameters, in which
-           case an error will be raised and you must explicitly choose
-           one.  If there is only one, a warning will be issued, but
-           the superseding simulation will be loaded.
-    
+    1. Pass `ignore_deprecation=True` to completely bypass even
+        checking for deprecation or supersession.  No warnings or
+        errors will be issued.
+    2. Include an explicit version number in the `location`
+        string, as in "SXS:BBH:0001v2.0".  A warning will be issued
+        that the simulation is deprecated, but it will be loaded
+        anyway.
+    3. Pass `auto_supersede=True` to automatically load the
+        superseding simulation, if there is only one.  Because no
+        superseding simulation can be *precisely* the same as the
+        deprecated one, there may be multiple superseding simulations
+        that have very similar parameters, in which case an error will
+        be raised and you must explicitly choose one.  If there is
+        only one, a warning will be issued, but the superseding
+        simulation will be loaded.
+
     Otherwise, a `ValueError` will be raised, with an explanation and
     suggestions on what you might want to do.
+
+    Parameters
+    ----------
+    location : str
+        The location string for the simulation.  This must include the
+        SXS ID, but can also include the version and Lev number, as
+        described above.
+
+    Other parameters
+    ----------------
+    ignore_deprecation : bool
+        If `True`, completely bypass checking for deprecation or
+        supersession.  No warnings or errors will be issued.
+    auto_supersede : bool
+        If `True`, automatically load the superseding simulation, if
+        there is only one.  If there are multiple superseding
+        simulations, an error will be raised, and you must explicitly
+        choose one.  If there is only one, a warning will still be
+        issued, but the superseding simulation will be loaded.  Note
+        that this can also be set in the configuration file with
+        `sxs.write_config(auto_supersede=True)`.
+    extrapolation : str
+        The extrapolation order to use for the strain and Psi4 data.
+        This is only relevant for versions 1 and 2 of the data format,
+        both of which default to "N2".  Other options include "N3",
+        "N4", and "Outer".  "Nx" refers to extrapolation by
+        polynomials in 1/r with degree `x`, while "Outer" refers to
+        data extracted at the outermost extraction radius but
+        corrected for time-dilation and areal-radius effects.
+
+    Returns
+    -------
+    simulation : SimulationBase
+        A `Simulation_v1` or `Simulation_v2` object, depending on the
+        version of the simulation data.
+
+    Note that all remaining arguments (including keyword arguments)
+    are passed on to the `SimulationBase`, `Simulation_v1`, and/or
+    `Simulation_v2` constructors, though none currently recognize any
+    arguments other than those listed above.
     
     """
     from .. import load
@@ -62,6 +102,7 @@ def Simulation(location, *args, **kwargs):
 
     # Attach metadata to this object
     metadata = Metadata(simulations[simulation_id])
+    series = simulations.dataframe.loc[simulation_id]
 
     # Check if the specified version exists in the simulation catalog
     if input_version not in metadata.DOI_versions:
@@ -142,7 +183,7 @@ def Simulation(location, *args, **kwargs):
     files = get_file_info(metadata, sxs_id)
 
     # If Lev is given as part of `location`, use it; otherwise, use the highest available
-    lev_numbers = [lev for f in files if (lev:=lev_number(f))]
+    lev_numbers = sorted({lev for f in files if (lev:=lev_number(f))})
     output_lev_number = input_lev_number or max(lev_numbers)
     location = f"{sxs_id_stem}{version}/Lev{output_lev_number}"
 
@@ -150,22 +191,88 @@ def Simulation(location, *args, **kwargs):
     version_number = float(version[1:])
     if 1 <= version_number < 2.0:
         return Simulation_v1(
-            metadata, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
+            metadata, series, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
         )
     elif 2 <= version_number < 3.0:
         return Simulation_v2(
-            metadata, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
+            metadata, series, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
         )
     else:
         raise ValueError(f"Version '{version}' not yet supported")
 
 
 class SimulationBase:
+    """Base class for Simulation objects
+
+    Note that users almost certainly never need to call this function;
+    see the `Simulation` function or `sxs.load` function instead.
+    
+    Attributes
+    ----------
+    metadata : Metadata
+        Metadata object for the simulation
+    series : pandas.Series
+        The metadata, as extracted from the `simulations.dataframe`,
+        meaning that it has columns consistent with other simulations,
+        even when the underlying Metadata objects do not.  Note that
+        `metadata` is an alias for this attribute, just based on the
+        use of that name for `simulations`, but technically `pandas`
+        distinguishes a single row like this as a `Series` object.
+    version : str
+        Version number of the simulation
+    sxs_id_stem : str
+        SXS ID without the version number or Lev
+    sxs_id : str
+        SXS ID with the version number
+    location : str
+        Location string for the simulation, including the SXS ID,
+        version number, and Lev number.
+    url : str
+        URL for the DOI of the simulation
+    files : dict
+        Dictionary of file information for the simulation.  The keys
+        are of the form "Lev5:Horizons.h5", and the values are
+        dictionaries with keys "checksum", "size", and "link".
+    lev_numbers : list
+        List of available Lev numbers for the simulation.
+    lev_number : int
+        Chosen Lev number for the simulation.
+    horizons : Horizons
+        Horizons object for the simulation
+    strain : Waveform
+        Strain Waveform object for the simulation.  Note that `h` is
+        an alias for this attribute, both of which are case
+        insensitive: `Strain` and `H` are also acceptable.
+    psi4 : Waveform
+        Psi4 Waveform object for the simulation.  Note that this
+        attribute is also case insensitive: `Psi4` is also acceptable.
+    psi3 : Waveform
+        Psi3 Waveform object for the simulation.  Note that this
+        attribute is also case insensitive: `Psi3` is also acceptable.
+        In versions 1 and 2, this attribute will raise an error
+        because the data is not available.
+    psi2 : Waveform
+        Psi2 Waveform object for the simulation.  Note that this
+        attribute is also case insensitive: `Psi2` is also acceptable.
+        In versions 1 and 2, this attribute will raise an error
+        because the data is not available.
+    psi1 : Waveform
+        Psi1 Waveform object for the simulation.  Note that this
+        attribute is also case insensitive: `Psi1` is also acceptable.
+        In versions 1 and 2, this attribute will raise an error
+        because the data is not available.
+    psi0 : Waveform
+        Psi0 Waveform object for the simulation.  Note that this
+        attribute is also case insensitive: `Psi0` is also acceptable.
+        In versions 1 and 2, this attribute will raise an error
+        because the data is not available.
+    """
     def __init__(self,
-        metadata, version, sxs_id_stem, sxs_id, url, files, lev_numbers, lev_number, location,
-        *args, **kwargs             
+        metadata, series, version, sxs_id_stem, sxs_id, url, files, lev_numbers, lev_number, location,
+        *args, **kwargs
     ):
         self.metadata = metadata
+        self.series = series
         self.version = version
         self.sxs_id_stem = sxs_id_stem
         self.sxs_id = sxs_id
@@ -180,6 +287,10 @@ class SimulationBase:
 
     def __str__(self):
         return repr(self)
+    
+    @property
+    def dataframe(self):
+        return self.series
 
     @property
     def versions(self):
@@ -267,6 +378,13 @@ class SimulationBase:
 
 
 class Simulation_v1(SimulationBase):
+    """Simulation object for version 1 of the data format
+    
+    Note that users almost certainly never need to call this function;
+    see the `Simulation` function or `sxs.load` function instead.  See
+    also `SimulationBase` for the base class that this class inherits
+    from.
+    """
     # We have to deal with the fact that some early file paths on
     # Zenodo included the SXS ID as a prefix, while others did not.
     # This means that we have to check for both possibilities in
@@ -274,7 +392,7 @@ class Simulation_v1(SimulationBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.extrapolation = kwargs.get("extrapolation", "N4")
+        self.extrapolation = kwargs.get("extrapolation", "N2")
 
     @property
     def horizons_path(self):
@@ -335,9 +453,16 @@ class Simulation_v1(SimulationBase):
 
 
 class Simulation_v2(SimulationBase):
+    """Simulation object for version 2 of the data format
+        
+    Note that users almost certainly never need to call this function;
+    see the `Simulation` function or `sxs.load` function instead.  See
+    also `SimulationBase` for the base class that this class inherits
+    from.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.extrapolation = kwargs.get("extrapolation", "N4")
+        self.extrapolation = kwargs.get("extrapolation", "N2")
 
     @property
     def horizons_path(self):

@@ -4,9 +4,21 @@ import functools
 import collections
 
 
-
 class Simulations(collections.OrderedDict):
-    """Interface to the catalog of SXS simulations"""
+    """Interface to the catalog of SXS simulations
+    
+    Creation
+    --------
+    You probably don't need to create this object yourself.  The
+    easiest way to create this object is just to use the `sxs.load`
+    function:
+
+    ```python
+    import sxs
+
+    simulations = sxs.load("simulations")
+    ```
+    """
     last_modified_url = "https://api.github.com/repos/sxs-collaboration/sxs/contents/simulations.json?ref=simulations"
     url = "https://github.com/sxs-collaboration/sxs/raw/simulations/simulations.json"
 
@@ -177,7 +189,32 @@ class Simulations(collections.OrderedDict):
 
     @property
     def dataframe(self):
-        """Return a pandas.DataFrame containing the metadata for all simulations"""
+        """Create pandas.DataFrame containing metadata for all
+        simulations
+
+        Note that `pandas` is the standard Python interface for
+        heterogeneous data tables, like the one we have here.  This
+        interface allows for more convenient slicing and querying of
+        data than the list of `dict`s provided by the `Simulations`
+        object.
+        
+        This can also be a more convenient way to access the metadata
+        because the raw metadata has missing keys and mixed formats.
+        Iif a key is missing from the metadata for a particular key,
+        the dataframe will just have a `NaN` in that entry, rather
+        than raising an exception.  Other keys may have unexpected
+        entries — such as the `"reference_eccentricity"` field, which
+        is *usually* a float but may be a string like "<0.0001" if the
+        eccentricity is not known precisely, but is only bounded.  The
+        dataframe introduces a new column called
+        `"reference_eccentricity_bound"` that is always a float giving
+        an upper bound on the eccentricity.
+
+        See the `pandas` documentation for more information on how to
+        use the resulting dataframe, or the `Simulations` tutorial for
+        examples.
+        
+        """
         import numpy as np
         import pandas as pd
         from datetime import datetime, timezone

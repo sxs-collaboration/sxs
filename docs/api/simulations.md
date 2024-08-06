@@ -1,0 +1,3 @@
+# `Simulations` class
+
+::: sxs.Simulations

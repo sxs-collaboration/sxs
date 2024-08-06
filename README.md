@@ -17,13 +17,12 @@ automatically select the newest or highest-resolution dataset for a given
 simulation, or return a range of versions or resolutions.  Currently, the
 high-level objects encapsulate
 
-  * Catalog — a listing of all data produced by the SXS collaboration
+  * Simulations — a catalog of all simulations produced by the SXS collaboration
+  * Simulation — an object encapsulating all data for a single simulation
   * Metadata — data describing the simulation parameters
   * Horizons — time-series data describing the apparent horizons
   * Waveforms — time-series data describing the extrapolated gravitational-wave
     modes
-
-The complete documentation is [hosted here](https://sxs.readthedocs.io/en/stable/).
 
 
 ## Installation
@@ -83,15 +82,16 @@ interactive jupyter notebooks that are actually running this code and some
 pre-downloaded data.  The following is just a very brief overview of the `sxs`
 package's main components.
 
-There are four important objects to understand in this package:
+There are five important objects to understand in this package:
 
 ```python
 import sxs
 
-catalog = sxs.load("catalog")
-metadata = sxs.load("SXS:BBH:0123/Lev/metadata.json")
-horizons = sxs.load("SXS:BBH:0123/Lev/Horizons.h5")
-waveform = sxs.load("SXS:BBH:0123/Lev/rhOverM", extrapolation_order=2)
+simulations = sxs.load("simulations")
+sxs_bbh_1234 = sxs.load("SXS:BBH:1234")
+metadata = sxs_bbh_1234.metadata
+horizons = sxs_bbh_1234.horizons
+h = sxs_bbh_1234.h
 ```
 
 [The `catalog`
