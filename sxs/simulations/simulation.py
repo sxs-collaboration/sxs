@@ -143,7 +143,7 @@ def Simulation(location, *args, **kwargs):
                         + "specify a version to load this waveform anyway."
                     )
                 elif auto_supersede and isinstance(superseded_by, str):
-                    message = f"Simulation '{sxs_id}' is being automatically superseded by '{superseded_by}'."
+                    message = f"\nSimulation '{sxs_id}' is being automatically superseded by '{superseded_by}'."
                     warn(message)
                     new_location = f"{superseded_by}{input_version}"
                     if input_lev_number:
