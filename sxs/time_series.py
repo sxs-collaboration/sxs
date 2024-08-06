@@ -318,6 +318,65 @@ class TimeSeries(np.ndarray):
 
     t = time
 
+    @property
+    def abs(self):
+        """Absolute value of the data
+
+        Returns
+        -------
+        absolute : TimeSeries
+            Because the absolute values make no sense as mode weights, this is just a
+            plain TimeSeries object.
+
+        See Also
+        --------
+        arg
+
+        """
+        return np.abs(self)
+
+    @property
+    def arg(self):
+        """Complex phase angle of the data
+
+        Note that the result is not "unwrapped", meaning that there may be
+        discontinuities as the phase approaches ±π.
+
+        Returns
+        -------
+        phase : TimeSeries
+            Values are in the interval (-π, π].
+
+        See Also
+        --------
+        numpy.angle
+        arg_unwrapped
+
+        """
+        return np.angle(self)
+
+    @property
+    def arg_unwrapped(self):
+        """Complex phase angle of the data, unwrapped along the time axis
+
+        The result is "unwrapped", meaning that discontinuities as the phase approaches
+        ±π are removed by adding an appropriate amount to all following data points.
+
+        Returns
+        -------
+        phase : TimeSeries
+            Values at the initial time are in the interval (-π, π], but may evolve to
+            arbitrary real values.
+
+        See Also
+        --------
+        numpy.angle
+        numpy.unwrap
+        arg
+
+        """
+        return TimeSeries(np.unwrap(self.arg, axis=self.time_axis), self.time)
+
     def register_modification(self, func, **kwargs):
         """Add a record of a modification to the metadata
 
