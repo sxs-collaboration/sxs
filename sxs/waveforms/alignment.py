@@ -90,8 +90,8 @@ def align1d(wa, wb, t1, t2, n_brute_force=None):
         raise ValueError(f"(t1,t2)=({t1}, {t2}) not contained in wb.t, which spans ({wb.t[0]}, {wb.t[-1]})")
 
     # Figure out time offsets to try
-    δt_lower = max(t1 - t2, wb.t[0] - t1)
-    δt_upper = min(t2 - t1, wb.t[-1] - t2)
+    δt_lower = max(t1 - t2, t2 - wb.t[-1])
+    δt_upper = min(t2 - t1, t1 - wb.t[0])
 
     # We'll start by brute forcing, sampling time offsets evenly at as many
     # points as there are time steps in (t1,t2) in the input waveforms
@@ -222,8 +222,8 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         raise ValueError(f"(t1,t2)=({t1}, {t2}) not contained in wb.t, which spans ({wb.t[0]}, {wb.t[-1]})")
 
     # Figure out time offsets to try
-    δt_lower = max(t1 - t2, wa.t[0] - t1)
-    δt_upper = min(t2 - t1, wa.t[-1] - t2)
+    δt_lower = max(t1 - t2, t2 - wa.t[-1])
+    δt_upper = min(t2 - t1, t1 - wa.t[0])
 
     # We'll start by brute forcing, sampling time offsets evenly at as many
     # points as there are time steps in (t1,t2) in the input waveforms
@@ -428,9 +428,9 @@ def align4d(
         raise ValueError(f"(t1,t2)=({t1}, {t2}) not contained in wb.t, which spans ({wb.t[0]}, {wb.t[-1]})")
 
     # Figure out time offsets to try
-    δt_lower = max(-max_δt, max(t1 - t2, wa.t[0] - t1))
-    δt_upper = min(max_δt, min(t2 - t1, wa.t[-1] - t2))
-
+    δt_lower = max(t1 - t2, t2 - wa.t[-1])
+    δt_upper = min(t2 - t1, t1 - wa.t[0])
+        
     ell_max = min(wa.ell_max, wb.ell_max)
 
     # Get time initial guess
@@ -482,6 +482,9 @@ def align4d(
 
     δt_δso3 = δt_δso3_brute_force[np.argmin(cost_brute_force)]
 
+    print(δt_δso3, flush=True)
+    print([(δt_lower, -np.pi, -np.pi, -np.pi), (δt_upper, np.pi, np.pi, np.pi)], flush=True)
+    
     # Optimize explicitly
     optimum = least_squares(
         cost_wrapper,
@@ -491,7 +494,7 @@ def align4d(
     )
     δt = optimum.x[0]
     δso3 = np.exp(quaternionic.array([0] + list(optimum.x[1:])))
-
+    
     wa_prime = WaveformModes(
         input_array=(wa_orig[:, wa_orig.index(2, -2) : wa_orig.index(ell_max + 1, -(ell_max + 1))].data),
         time=wa_orig.t - δt,
