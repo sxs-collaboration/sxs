@@ -428,8 +428,8 @@ def align4d(
         raise ValueError(f"(t1,t2)=({t1}, {t2}) not contained in wb.t, which spans ({wb.t[0]}, {wb.t[-1]})")
 
     # Figure out time offsets to try
-    δt_lower = max(t1 - t2, t2 - wa.t[-1])
-    δt_upper = min(t2 - t1, t1 - wa.t[0])
+    δt_lower = max(-max_δt, max(t1 - t2, t2 - wa.t[-1]))
+    δt_upper = min(max_δt, min(t2 - t1, t1 - wa.t[0]))
         
     ell_max = min(wa.ell_max, wb.ell_max)
 
@@ -481,9 +481,6 @@ def align4d(
         cost_brute_force = [cost_wrapper(δt_δso3_brute_force_item) for δt_δso3_brute_force_item in δt_δso3_brute_force]
 
     δt_δso3 = δt_δso3_brute_force[np.argmin(cost_brute_force)]
-
-    print(δt_δso3, flush=True)
-    print([(δt_lower, -np.pi, -np.pi, -np.pi), (δt_upper, np.pi, np.pi, np.pi)], flush=True)
     
     # Optimize explicitly
     optimum = least_squares(
