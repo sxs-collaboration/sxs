@@ -1,229 +1,153 @@
 """Search the INSPIRE database
 
-Documentation can be found here: <https://inspirehep.net/info/hep/api>
+Documentation can be found here: <https://github.com/inspirehep/rest-api-doc>
 
 """
 
-from functools import lru_cache
+import warnings
 
-api_url = "https://inspirehep.net/search"
+api_url = "https://inspirehep.net/api/{record_type}"
 
 
-@lru_cache()
-def query(pattern, output_format='recjson', output_tags=None, records_in_groups_of=None, jump_to_records=None):
-    """Search the INSPIRE database
+def inspire2doi(inspire_bibtex_key, raise_exceptions=False):
+    try:
+        result = query(inspire_bibtex_key, fields="dois.value,arxiv_eprints")
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:
+        warnings.warn(f"Error querying for INSPIRE key {inspire_bibtex_key}")
+        if raise_exceptions:
+            raise e
+    else:
+        if not result:
+            warnings.warn(f"No entry found for INSPIRE key {inspire_bibtex_key}")
+            if raise_exceptions:
+                raise ValueError(f"No entry found for INSPIRE key {inspire_bibtex_key}")
+        else:
+            try:
+                return result[0]["metadata"]["dois"][0]["value"]
+            except Exception as e:
+                # DOI not present; INSPIRE only has an arXiv number, so we'll convert to an arXiv DOI
+                try:
+                    eprint_value = result[0]["metadata"]["arxiv_eprints"][0]["value"]
+                    # https://info-arxiv-org.proxy.library.cornell.edu/help/arxiv_identifier.html
+                    # says that identifiers starting with 9107 to 0703 need their category included
+                    if eprint_value.startswith("9") or int(eprint_value[:4])<704:
+                        category = result[0]["metadata"]["arxiv_eprints"][0]["categories"][0]
+                        return f"10.48550/arXiv.{category}/{eprint_value}"
+                    else:
+                        return f"10.48550/arXiv.{eprint_value}"
+                except Exception as e:
+                    warnings.warn(f"Unexpected result format for INSPIRE key {inspire_bibtex_key}: \n{result}")
+                    if raise_exceptions:
+                        raise e
 
-    API documentation: <https://inspirehep.net/info/hep/api>
-    Search documentation: <https://inspirehep.net/info/hep/search-tips>
+
+def query(
+    query,
+    sort="mostrecent",
+    page=1,
+    size=1000,
+    fields=None,
+    page_limit=10,
+    record_type="literature"
+):
+    """Fetch records from the INSPIRE API.
 
     Parameters
     ----------
-    pattern : str
-        This is the query in the Inspire search syntax. All search features and
-        operators familiar from the Inspire web interface and documented in the
-        online help are supported and complex queries are possible.  Documentation
-        here: <https://inspirehep.net/info/hep/search-tips>.
-    output_format : str, optional [defaults to 'recjson']
-        The format of the response sent back to the client. There are two choices,
-        'xm' for (MARC-)XML or 'recjson' for JSON. The XML response format is
-        MARCXML or fragments thereof when individual fields are selected via the
-        output_tags parameter
-    output_tags : str, optional [defaults to None]
-        If present, this selects (filter) specific tags from the response. If
-        output_format is 'xm', this option takes a comma separated list of MARC
-        tags; valid MARC tags for Inspire records can be found here
-        <https://twiki.cern.ch/twiki/bin/view/Inspire/DevelopmentRecordMarkup>.  If
-        output_format is 'recjson', this is similar to selecting MARC tags, however
-        by name instead of numerical value.  In addition the JSON response can
-        contain derived or dynamically calculated values which are not available in
-        MARC.  If this argument is None, the default output will be returned, which
-        generally includes all available information for each record.
-    records_in_groups_of : int, optional [defaults to None]
-        If present, this parameter specifies the number of records per chunk for
-        long responses. Note that the default setting is 25 records per chunk. The
-        maximum number is 250.
-    jump_to_records : int, optional [defaults to None]
-        Long responses are split into several chunks. To access subsequent chunks
-        specify the record offset with this parameter.
-
+    query : str
+        The search query.  For details, see
+        https://github.com/inspirehep/rest-api-doc/tree/master#search-query
+    fields : str, optional
+        The fields to retrieve from INSPIRE.  This can be a
+        comma-separated list of field names.  For example, to
+        retrieve the list of DOIs: "dois.value".  Other options at
+        https://inspire-schemas.readthedocs.io/en/latest/schemas/elements/reference.html
+        Note that other fields will also be returned for each record,
+        even when you just ask for one — including "id", "links",
+        "metadata", "created", and "updated".  The default value of
+        None will return all fields.
+    sort : str, optional
+        The sorting order. Default is "mostrecent".
+    size : int, optional
+        The number of records per page. Default is 1000.
+    page : int, optional
+        The starting page number. Default is 1.
+    page_limit : int, optional
+        Optional limit to the number of pages to collect.
+    record_type : str, optional
+        The type of record to fetch (e.g., "literature"). Default is
+        "literature".  Other options can be found here:
+        https://github.com/inspirehep/rest-api-doc/tree/master#obtaining-a-record
+    
     Returns
     -------
-    json : list or dict
-        Usually, this will be a list of the results from the query, even if there
-        is only one.  Each result will be a dictionary mapping the requested
-        'output_tags' to their corresponding values.
+    list
+        The JSON response from the API.
 
     Raises
     ------
     requests.exceptions.HTTPError :
-        If the HTTP request to INSPIRE failed for any reason
+        If the HTTP request to INSPIRE failed
 
     """
     import sys
     import requests
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
 
+    session = requests.Session()
+    collected_results = []
+
+    ## Retry automatically on certain types of errors
+    retry = Retry(
+        total=10,
+        backoff_factor=0.1,
+        status_forcelist=[
+            413,  # Request Entity Too Large
+            429,  # Too Many Requests
+            500,  # Internal Server Error
+            502,  # Bad Gateway
+            503,  # Service Unavailable
+            504,  # Gateway Timeout
+        ],
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+
+    url = api_url.format(record_type=record_type)
     params = {
-        'p': pattern,
-        'of': output_format,
+        "q": query,
+        "sort": sort,
+        "size": size,
+        "page": page,
     }
-    if output_tags is not None:
-        params['ot'] = output_tags
-    if records_in_groups_of is not None:
-        params['rg'] = records_in_groups_of
-    if jump_to_records is not None:
-        params['jrec'] = jump_to_records
-    
-    r = requests.get(api_url, params=params)
-    if r.status_code != 200:
-        print('An error occurred when trying to access <{0}>.'.format(api_url), file=sys.stderr)
+    if fields:
+        params["fields"] = fields
+
+    while params["page"] - page <= page_limit:
+        response = session.get(url, params=params)
+        if response.status_code != 200:
+            print(f"An error occurred when trying to access <{api_url}>.", file=sys.stderr)
+            try:
+                print(response.json(), file=sys.stderr)
+            except:
+                pass
+            response.raise_for_status()
+            raise RuntimeError()  # Will only happen if the response was not strictly an error
+
         try:
-            print(r.json(), file=sys.stderr)
-        except:
-            pass
-        r.raise_for_status()
-        raise RuntimeError()  # Will only happen if the response was not strictly an error
-    return r.json()
+            json_response = response.json()
+        except ValueError:
+            print(f"Response from {url} does not contain valid JSON; returning early.")
+            return collected_results
 
+        new_hits = json_response.get("hits", {}).get("hits", [])
+        if not new_hits:
+            break
+        collected_results.extend(new_hits)
 
-def extract_bibtex_key(system_control_numbers):
-    """Get bibtex key from 'system_control_numbers' field
-    
-    Unfortunately, this seems to be the only way to get the bibtex key.  I have
-    seen suggestions around the github issues for inspirehep/invenio that this
-    should always be present
+        params["page"] += 1
 
-    """
-    if isinstance(system_control_numbers, dict):
-        system_control_numbers = [system_control_numbers,]
-    bibtex_keys = [number.get('value', '') for number in system_control_numbers
-                   if number.get('institute', '') in ['INSPIRETeX', 'SPIRESTeX']]
-    bibtex_keys = [key for key in bibtex_keys if key]
-    if not bibtex_keys:
-        return ''
-    return bibtex_keys[0]
-
-
-def extract_doi(doi):
-    """Ensure that 'doi' is a single string
-    
-    Occasionally, INSPIRE returns a list of identical DOIs.  This just extracts the
-    first element if it is such a list, or returns the input otherwise.
-
-    """
-    if isinstance(doi, list) and len(doi)>0:
-        return doi[0]
-    return doi
-
-
-def extract_doi_url(doi):
-    """Ensure that 'doi' is a single string
-    
-    Occasionally, INSPIRE returns a list of identical DOIs.  This just extracts the
-    first element if it is such a list, or returns the input otherwise.
-
-    """
-    doi = extract_doi(doi)
-    if doi:
-        return 'https://dx.doi.org/' + doi
-    else:
-        return doi
-
-
-def extract_arxiv_url(system_control_numbers):
-    """Extract any arxiv URLs from the system_control_number field
-
-    """
-    if isinstance(system_control_numbers, dict):
-        system_control_numbers = [system_control_numbers,]
-    arxiv_urls = [
-        number['value'].replace('oai:arXiv.org:', 'https://arxiv.org/abs/')
-        for number in system_control_numbers if number.get('institute', '') == 'arXiv' and 'value' in number
-    ]
-    if not arxiv_urls:
-        return ''
-    return arxiv_urls[0]
-
-
-def map_bibtex_keys_to_doi(bibtex_keys):
-    """Map a list of INSPIRE bibtex keys to DOIs
-
-    This function queries the INSPIRE database, searching for each of the input
-    bibtex keys, and extracting the corresponding DOIs (if present on INSPIRE).
-
-    Parameter
-    ---------
-    bibtex_keys : str, or list of str
-        Each string should be precisely one bibtex key from INSPIRE.  Note that any
-        bibtex keys that are not found by INSPIRE are simply ignored.
-
-    Returns
-    -------
-    key_to_doi : dict
-        The output is a dictionary mapping each input bibtex key itself to the
-        corresponding DOI.  These are raw DOIs; to get a URL, just append the DOI
-        to 'https://dx.doi.org/', which will resolve to the appropriate web page
-        for that DOI.  Note that any record that is found by its bibtex key but
-        does not have a DOI will simply be absent from this dictionary.
-
-    Raises
-    ------
-    requests.exceptions.HTTPError
-        If the HTTP request to INSPIRE failed for any reason.
-
-    """
-    if not isinstance(bibtex_keys, list):
-        bibtex_keys = [bibtex_keys,]
-    pattern = 'find texkey ' + ' or texkey '.join(bibtex_keys)
-    output_tags = 'system_control_number,doi'
-    results = query(pattern, output_tags=output_tags)
-    mapping = {
-        bibtex_key: doi
-        for result in results
-        for bibtex_key in [extract_bibtex_key(result['system_control_number']),]
-        for doi in [extract_doi(result['doi']),]
-        if bibtex_key and doi
-    }
-    return mapping
-
-
-def map_bibtex_keys_to_identifiers(bibtex_keys):
-    """Map a list of INSPIRE bibtex keys to DOIs, arxiv numbers, or URLs
-
-    This function queries the INSPIRE database, searching for each of the input
-    bibtex keys, and extracting the corresponding DOIs (if present on INSPIRE).
-    Failing that
-
-    Parameter
-    ---------
-    bibtex_keys : str, or list of str
-        Each string should be precisely one bibtex key from INSPIRE.  Note that any
-        bibtex keys that are not found by INSPIRE are simply ignored.
-
-    Returns
-    -------
-    key_to_identifier : dict
-        The output is a dictionary mapping each input bibtex key itself to the
-        corresponding DOI URL, arxiv URL, or other URL.
-
-    Raises
-    ------
-    requests.exceptions.HTTPError
-        If the HTTP request to INSPIRE failed for any reason.
-
-    """
-    if not bibtex_keys:
-        return {}
-    if not isinstance(bibtex_keys, list):
-        bibtex_keys = [bibtex_keys,]
-    pattern = 'find texkey ' + ' or texkey '.join(bibtex_keys)
-    output_tags = 'system_control_number,doi'
-    results = query(pattern, output_tags=output_tags)
-    mapping = {
-        bibtex_key: (doi if doi else arxiv)
-        for result in results
-        for bibtex_key in [extract_bibtex_key(result['system_control_number']),]
-        for doi in [extract_doi_url(result['doi']),]
-        for arxiv in [extract_arxiv_url(result['system_control_number']),]
-        if bibtex_key and (bool(doi) or bool(arxiv))
-    }
-    return mapping
+    return collected_results

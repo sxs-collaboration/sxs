@@ -38,6 +38,7 @@ from .smooth_functions import (
     transition_to_constant, transition_to_constant_inplace,
     bump_function, bump_function_inplace
 )
+from .inspire import inspire2doi
 
 
 def version_info():
