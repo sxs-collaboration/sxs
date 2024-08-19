@@ -74,6 +74,14 @@ def Simulation(location, *args, **kwargs):
         polynomials in 1/r with degree `x`, while "Outer" refers to
         data extracted at the outermost extraction radius but
         corrected for time-dilation and areal-radius effects.
+    download : bool
+        If `True`, download the information about the files from the
+        Zenodo/CaltechDATA record.  If `False`, only use the file
+        information that is already available (which will raise an
+        error if the file information has not previously been
+        downloaded).  If not present, use the value from the
+        configuration file, defaulting to `True` if it is not
+        configured.
 
     Returns
     -------
@@ -184,7 +192,7 @@ def Simulation(location, *args, **kwargs):
     kwargs["deprecated"] = deprecated
 
     # We want to do this *after* deprecation checking, to avoid possibly unnecessary web requests
-    files = get_file_info(metadata, sxs_id)
+    files = get_file_info(metadata, sxs_id, download=kwargs.get("download", None))
 
     # If Lev is given as part of `location`, use it; otherwise, use the highest available
     lev_numbers = sorted({lev for f in files if (lev:=lev_number(f))})
@@ -516,16 +524,18 @@ class Simulation_v2(SimulationBase):
         h5_truepath = sxs_id_path / sxs_path_to_system_path(h5_path)
         json_truepath = sxs_id_path / sxs_path_to_system_path(json_path)
         if not json_truepath.exists():
+            if not read_config("download", True):
+                raise ValueError(f"{json_truepath} not found and download is disabled")
             download_file(json_location, sxs_directory("cache") / json_truepath)
         return load(h5_location, truepath=h5_truepath, group=group, metadata=self.metadata)
 
 
-def get_file_info(metadata, sxs_id):
+def get_file_info(metadata, sxs_id, download=None):
     from .. import load_via_sxs_id
     if "files" in metadata:
         return metadata["files"]
     truepath = Path(sxs_path_to_system_path(sxs_id)) / "zenodo_metadata.json"
-    record = load_via_sxs_id(sxs_id, "export/json", truepath=truepath)
+    record = load_via_sxs_id(sxs_id, "export/json", truepath=truepath, download=download)
     entries = record["files"]["entries"]
     return {
         str(filename): {
