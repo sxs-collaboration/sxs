@@ -380,6 +380,30 @@ class Horizons(object):
     nhat = n̂
 
     @property
+    def λ⃗(self):
+        """Time-derivative of separation vector
+
+        This function can be spelled `λ⃗` or `lambdavec`, interchangeably.
+
+        Returns
+        -------
+        λ⃗ : ndarray
+            This has shape (self.A.n_times, 3), representing the components of the
+            vector as a function of time.
+
+        See Also
+        --------
+        n⃗, nvec, separation : (Non-normalized) separation vector between two horizons
+        n̂, nhat : Normalized separation vector
+        λ̂, lambdahat : Normalized version of this vector
+        ℓ̂, ellhat : Normalized angular-velocity vector
+
+        """
+        return self.n⃗.dot
+    
+    lambdavec = λ⃗
+
+    @property
     def λ̂(self):
         """Time-derivative of normalized separation vector
 
@@ -403,7 +427,7 @@ class Horizons(object):
         post-Newtonian theory and similar treatments.
 
         """
-        λ⃗ = self.n̂.dot
+        λ⃗ = self.λ⃗
         return λ⃗ / np.linalg.norm(λ⃗, axis=1)[:, np.newaxis]
 
     lambdahat = λ̂
@@ -435,3 +459,25 @@ class Horizons(object):
         return TimeSeries(np.cross(self.n̂, self.λ̂), time=self.n̂.time)
 
     ellhat = ℓ̂
+
+    def R(self):
+        """Frame Rotor taking (x̂, ŷ, ẑ) onto (n̂, λ̂, ℓ̂) at each
+        
+        For example, if λ̂ᵢ is the value of λ̂ at time tᵢ, and Rᵢ the
+        corresponding output from this function, then we have
+        
+            λ̂ᵢ = Rᵢ * quaternionic.y / Rᵢ
+        """
+        import numpy as np
+        import quaternionic
+        reference_frame = np.array([quaternionic.x.vector, quaternionic.y.vector, quaternionic.z.vector])
+        target_frame = np.array([self.n̂, self.λ̂, self.ℓ̂])
+        R = quaternionic.array([
+            quaternionic.align(
+                target_frame[:, i, :],
+                reference_frame
+            )
+            for i in range(target_frame.shape[1])
+        ])
+        quaternionic.unflip_rotors(R, inplace=True)
+        return R
