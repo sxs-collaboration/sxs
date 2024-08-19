@@ -322,6 +322,7 @@ class SimulationBase:
         if not hasattr(self, "_horizons"):
             self._horizons = self.load_horizons()
         return self._horizons
+    Horizons = horizons
 
     @property
     def strain(self):
