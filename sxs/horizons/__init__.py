@@ -460,13 +460,23 @@ class Horizons(object):
 
     ellhat = ℓ̂
 
+    @property
     def R(self):
-        """Frame Rotor taking (x̂, ŷ, ẑ) onto (n̂, λ̂, ℓ̂) at each
+        """Frame Rotor taking (x̂, ŷ, ẑ) onto (n̂, λ̂, ℓ̂) at each instant
         
         For example, if λ̂ᵢ is the value of λ̂ at time tᵢ, and Rᵢ the
         corresponding output from this function, then we have
         
             λ̂ᵢ = Rᵢ * quaternionic.y / Rᵢ
+
+        Returns
+        -------
+        R : quaternionic.array
+            This has shape (self.A.n_times, 4), representing the rotor
+            at each time.  Note that this is *not* a TimeSeries
+            object, as is returned by several other functions in this
+            class.  However, the corresponding times are available as
+            `R.time`.
         """
         import numpy as np
         import quaternionic
@@ -480,4 +490,43 @@ class Horizons(object):
             for i in range(target_frame.shape[1])
         ])
         quaternionic.unflip_rotors(R, inplace=True)
+        R.time = self.A.time
         return R
+
+    @property
+    def Ω⃗(self):
+        """Angular velocity vector of the binary
+
+        This function can be spelled `Ω⃗`, `ω⃗`, `OmegaVec`, or
+        `omegaVec`, interchangeably.
+
+        Returns
+        -------
+        Ω⃗ : TimeSeries
+            This represents the angular velocity as a function of time.
+        """
+        R = self.R
+        return TimeSeries(R.to_angular_velocity(R.time), time=R.time)
+    
+    ω⃗ = Ω⃗
+    OmegaVec = Ω⃗
+    omegaVec = Ω⃗
+
+    @property
+    def Ω(self):
+        """Magnitude of the angular velocity of the binary
+
+        This function can be spelled `Ω`, `ω`, `Omega`, or `omega`,
+        interchangeably.
+
+        Returns
+        -------
+        Ω : TimeSeries
+            This represents the magnitude of the angular velocity as a
+            function of time.
+        """
+        return TimeSeries(np.linalg.norm(self.Ω⃗, axis=1), time=self.A.time)
+    
+    ω = Ω
+    Omega = Ω
+    omega = Ω
