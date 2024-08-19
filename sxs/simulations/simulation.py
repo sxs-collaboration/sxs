@@ -117,12 +117,13 @@ def Simulation(location, *args, **kwargs):
     url = f"{doi_url}{sxs_id}"
 
     # Deal with "superseded_by" field, or "deprecated" keyword in the metadata
+    deprecated = ("deprecated" in metadata.get("keywords", []) or metadata.get("superseded_by", False))
     if not kwargs.get("ignore_deprecation", False):
         auto_supersede = kwargs.get("auto_supersede", read_config("auto_supersede", False))
         if (
             input_version
             and not auto_supersede
-            and ("deprecated" in metadata.get("keywords", []) or metadata.get("superseded_by", False))
+            and deprecated
         ):
             message = ("\n"
                 + f"Simulation '{sxs_id_stem}' is deprecated and/or superseded.\n"
@@ -178,6 +179,9 @@ def Simulation(location, *args, **kwargs):
                     + "Note that you could pass `ignore_deprecation=True` or specify a version\n"
                     + "to  to load this waveform anyway."
                 )
+
+    # Note the deprecation status in the kwargs, even if ignoring deprecation
+    kwargs["deprecated"] = deprecated
 
     # We want to do this *after* deprecation checking, to avoid possibly unnecessary web requests
     files = get_file_info(metadata, sxs_id)
@@ -281,6 +285,7 @@ class SimulationBase:
         self.lev_numbers = lev_numbers
         self.lev_number = lev_number
         self.location = location
+        self.deprecated = kwargs.get("deprecated", False)
 
     def __repr__(self):
         return f"""{type(self).__qualname__}("{self.sxs_id}")"""

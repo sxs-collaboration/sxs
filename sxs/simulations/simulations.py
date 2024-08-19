@@ -339,6 +339,11 @@ class Simulations(collections.OrderedDict):
             simulations["keywords"],
         ), axis=1)
 
+        sims_df["deprecated"] = (
+            ~sims_df.superseded_by.isna()
+            | sims_df["keywords"].map(lambda ks: "deprecated" in ks)
+        )
+
         # We have ignored the following fields present in the
         # simulations.json file (as of 2024-08-04), listed here with
         # the number of non-null entries:
