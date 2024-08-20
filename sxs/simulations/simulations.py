@@ -217,7 +217,6 @@ class Simulations(collections.OrderedDict):
         """
         import numpy as np
         import pandas as pd
-        from datetime import datetime, timezone
 
         if hasattr(self, "_dataframe"):
             return self._dataframe
@@ -259,9 +258,9 @@ class Simulations(collections.OrderedDict):
 
         def datetime_from_string(x):
             try:
-                dt = datetime.strptime(x, "%Y-%m-%dT%H:%M:%S%z")
+                dt = pd.to_datetime(x).tz_convert("UTC")
             except:
-                dt = datetime.min.replace(tzinfo=timezone.utc)
+                dt = pd.to_datetime("1970-1-1").tz_localize("UTC")
             return dt
 
         sims_df = pd.concat((
