@@ -437,18 +437,20 @@ def align4d(
     # Negative sign because align1d aligns wb to wa
     δt_IG = -align1d(wa, wb, t1, t2)
 
+    t_reference = wb.t[np.argmin(abs(wb.t - t1)) : np.argmin(abs(wb.t - t2)) + 1]
+    wa_interp = wa.interpolate(t_reference + δt_IG)
+    wb_interp = wb.interpolate(t_reference)
+    
     # Get rotor initial guess
     # negative sign because quaternionic.align aligns omegab to omegaa
-    omegaa = wa.angular_velocity
-    omegab = wb.angular_velocity
+    omegaa = wa_interp.angular_velocity
+    omegab = wb_interp.angular_velocity
     R_IG = -quaternionic.align(omegaa, omegab)
-
+    
     # Brute force over R_IG * exp(theta * z / 2) with δt_IG
     δt_δso3_brute_force = []
     for angle in np.linspace(0, 2 * np.pi, 2 * (2 * ell_max + 1), endpoint=False):
         δt_δso3_brute_force.append([δt_IG, *np.log(R_IG * np.exp(quaternionic.array([0, 0, 0, angle / 2]))).vector])
-
-    t_reference = wa.t[np.argmin(abs(wa.t - t1)) : np.argmin(abs(wa.t - t2)) + 1]
 
     # Remove certain modes, if requested
     if include_modes != None:
