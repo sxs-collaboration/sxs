@@ -265,7 +265,6 @@ class Simulations(collections.OrderedDict):
 
         sims_df = pd.concat((
             simulations["object_types"].astype("category"),
-            simulations["initial_data_type"].astype("category"),
             simulations["initial_separation"].map(floater),
             simulations["initial_orbital_frequency"].map(floater),
             simulations["initial_adot"].map(floater),
