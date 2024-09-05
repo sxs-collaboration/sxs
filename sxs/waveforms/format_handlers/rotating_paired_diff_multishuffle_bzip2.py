@@ -573,7 +573,7 @@ def load(
     if metadata is None:
         if metadata_path.exists():
             metadata = Metadata.from_file(metadata_path)
-        else if metadata_path.with_suffix(".txt").exists():
+        elif metadata_path.with_suffix(".txt").exists():
             metadata = Metadata.from_file(metadata_path.with_suffix(".txt"))
         else:
             invalid(f"\nMetadata files {metadata_path}/.txt cannot be found, but at least one is expected for this data format.")
