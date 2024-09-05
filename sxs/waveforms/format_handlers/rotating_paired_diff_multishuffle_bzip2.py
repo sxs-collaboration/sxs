@@ -571,10 +571,12 @@ def load(
         w = w.to_inertial_frame()
 
     if metadata is None:
-        if not metadata_path.exists():
-            invalid(f'\nMetadata file "{metadata_path}" cannot be found, but is expected for this data format.')
-        else:
+        if metadata_path.exists():
             metadata = Metadata.from_file(metadata_path)
+        elif metadata_path.with_suffix(".txt").exists():
+            metadata = Metadata.from_file(metadata_path.with_suffix(".txt"))
+        else:
+            invalid(f"\nMetadata files {metadata_path}/.txt cannot be found, but at least one is expected for this data format.")
 
     dtb = kwargs.pop("drop_times_before", 0)
     if dtb=="begin":
