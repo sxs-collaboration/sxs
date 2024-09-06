@@ -282,7 +282,7 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
 
         elif location == "simulations":
             return Simulations.load(download=download)
-        
+
         elif sxs_id_version_lev_exact_re.match(location):
             return Simulation(location, download=download, cache=cache, progress=progress, **kwargs)
 
@@ -311,7 +311,12 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
 
     loader = sxs_loader(path, kwargs.get("group", None))
 
-    return loader(path, **kwargs)
+    loaded = loader(path, **kwargs)
+    try:
+        loaded.__file__ = str(path)
+    except:
+        pass
+    return loaded
 
 
 def load_via_sxs_id(sxsid, location, *, download=None, cache=None, progress=None, truepath=None, **kwargs):
