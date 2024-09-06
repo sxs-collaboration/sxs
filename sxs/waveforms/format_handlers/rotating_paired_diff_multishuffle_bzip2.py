@@ -435,7 +435,7 @@ def load(
     # This means we need to change the suffix *before* the resolve() call.
     h5_path = pathlib.Path(file_name_str).with_suffix(".h5").expanduser().resolve()
     json_path = pathlib.Path(file_name_str).with_suffix(".json").expanduser().resolve()
-    metadata_path = (pathlib.Path(file_name_str).parent / "metadata.json").expanduser().resolve()
+    metadata_path = (pathlib.Path(file_name_str).parent / "metadata").expanduser().resolve()
 
     # This will be used for validation
     h5_size = h5_path.stat().st_size
@@ -571,12 +571,10 @@ def load(
         w = w.to_inertial_frame()
 
     if metadata is None:
-        if metadata_path.exists():
+        try:
             metadata = Metadata.from_file(metadata_path)
-        elif metadata_path.with_suffix(".txt").exists():
-            metadata = Metadata.from_file(metadata_path.with_suffix(".txt"))
-        else:
-            invalid(f"\nMetadata files {metadata_path}/.txt cannot be found, but at least one is expected for this data format.")
+        except ValueError as e:
+            invalid(f"\n{e},\nbut one is expected for this data format.")
 
     dtb = kwargs.pop("drop_times_before", 0)
     if dtb=="begin":
