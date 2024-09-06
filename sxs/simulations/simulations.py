@@ -157,7 +157,9 @@ class Simulations(collections.OrderedDict):
         except Exception as e:
             raise ValueError(f"Failed to open '{cache_path}' as a ZIP file") from e
 
-        return cls(simulations)
+        sims = cls(simulations)
+        sims.__file__ = str(cache_path)
+        return sims
 
     @classmethod
     def reload(cls, download=True):

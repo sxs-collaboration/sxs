@@ -95,7 +95,8 @@ def Simulation(location, *args, **kwargs):
     arguments other than those listed above.
     
     """
-    from .. import load
+    from .. import load, sxs_directory
+    from ..utilities import sxs_path_to_system_path
 
     # Extract the simulation ID, version, and Lev from the location string
     simulation_id, input_version = sxs_id_and_version(location)
@@ -202,15 +203,17 @@ def Simulation(location, *args, **kwargs):
     # Finally, figure out which version of the simulation to load and dispatch
     version_number = float(version[1:])
     if 1 <= version_number < 2.0:
-        return Simulation_v1(
+        sim = Simulation_v1(
             metadata, series, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
         )
     elif 2 <= version_number < 3.0:
-        return Simulation_v2(
+        sim = Simulation_v2(
             metadata, series, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
         )
     else:
         raise ValueError(f"Version '{version}' not yet supported")
+    sim.__file__ = str(sxs_directory("cache") / sxs_path_to_system_path(sim.sxs_id))
+    return sim
 
 
 class SimulationBase:
