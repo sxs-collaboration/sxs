@@ -94,23 +94,24 @@ horizons = sxs_bbh_1234.horizons
 h = sxs_bbh_1234.h
 ```
 
-[The `catalog`
-object](https://sxs.readthedocs.io/en/main/api/sxs.catalog.catalog/#sxs.catalog.catalog.Catalog)
-contains information about every simulation in the catalog, including all
-available data files, and information about how to get them.  You probably
-don't need to actually know about details like where to get the data, but
-`catalog` can help you find the simulations you care about.  Most importantly,
-`catalog.simulations` is a `dict` object, where the keys are names of
-simulations (like "SXS:BBH:0123") and the values are the same types as [the
+[The `simulations`
+object](https://sxs.readthedocs.io/en/main/api/simulations/) contains
+information about every simulation in the catalog, including all
+available data files, and information about how to get them.  You
+probably don't need to actually know about details like where to get
+the data, but `simulations` can help you find the simulations you care
+about.  It is a `dict` object, where the keys are names of simulations
+(like "SXS:BBH:0123") and the values are the same types as [the
 `metadata`
 object](https://sxs.readthedocs.io/en/main/api/sxs.metadata.metadata/#sxs.metadata.metadata.Metadata),
-which contains metadata about that simulation — things like mass ratio, spins,
-etc.  This `metadata` reflects the actual output of the simulations, which
-leads to some inconsistencies in their formats.  A more consistent interface
-(though it is biased toward returning NaNs where a human might glean more
-information) is provided by `catalog.table`, which returns a
-[`pandas`](https://pandas.pydata.org/docs/) `DataFrame` with specific data
-types for each column.
+which contains metadata about that simulation — things like mass
+ratio, spins, etc.  This `metadata` reflects the actual output of the
+simulations, which leads to some inconsistencies in their formats.  A
+more consistent interface (though it is biased toward returning NaNs
+where a human might glean more information) is provided by
+`simulations.dataframe`, which returns a
+[`pandas`](https://pandas.pydata.org/docs/) `DataFrame` with specific
+data types for each column.
 
 The actual data itself is primarily contained in the next two objects.  [The
 `horizons`
