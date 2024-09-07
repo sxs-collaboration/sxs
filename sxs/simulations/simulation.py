@@ -299,16 +299,17 @@ class SimulationBase:
         self.deprecated = kwargs.get("deprecated", False)
 
     def __repr__(self):
-        chi1 = self.metadata.reference_dimensionless_spin1
-        chi2 = self.metadata.reference_dimensionless_spin2
+        chi1 = self.series["reference_dimensionless_spin1"]
+        chi2 = self.series["reference_dimensionless_spin2"]
+        e = self.metadata.reference_eccentricity
         construction = f"""{type(self).__qualname__}("{self.location}")\n# """
         if self.deprecated:
             construction += "DEPRECATED "
-        construction += f"{self.metadata.number_of_orbits:.3g}-orbit "
+        construction += f"n_orbits={self.metadata.number_of_orbits:.3g} "
         construction += f"q={self.metadata.reference_mass_ratio:.3g} "
         construction += f"""chi1=[{", ".join(f"{c:.3g}" for c in chi1)}] """
         construction += f"""chi2=[{", ".join(f"{c:.3g}" for c in chi2)}] """
-        construction += f"e={self.metadata.reference_eccentricity:.3g} simulation"
+        construction += f"e={e:.3g} simulation" if type(e) is float else f"{e=} simulation"
         return construction
 
     def __str__(self):
