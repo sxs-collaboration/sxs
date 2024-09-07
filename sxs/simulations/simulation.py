@@ -341,6 +341,8 @@ class SimulationBase:
 
     @property
     def horizons(self):
+        if self.horizons_path not in self.files:
+            raise ValueError(f"Horizons data is not available for simulation {self.sxs_id}")
         if not hasattr(self, "_horizons"):
             self._horizons = self.load_horizons()
         return self._horizons
