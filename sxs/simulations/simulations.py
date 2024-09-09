@@ -54,7 +54,8 @@ class Simulations(collections.OrderedDict):
                 remote_timestamp = datetime.strptime(
                     response.headers["Last-Modified"], "%a, %d %b %Y %H:%M:%S GMT"
                 ).replace(tzinfo=timezone.utc)
-        except:
+        except Exception as e:
+            print("Got exception while trying to get the remote timestamp:", e)
             failed = True
         if failed:
             print(
