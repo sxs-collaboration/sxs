@@ -2,6 +2,14 @@ import pytest
 import sxs
 
 
+def test_sxs_load_v2():
+    s = sxs.load("SXS:BBH:0001v2.0")
+    assert s.sxs_id_stem == "SXS:BBH:0001"
+    assert s.version == "v2.0"
+    s.h
+    s.horizons
+
+
 @pytest.mark.parametrize("loader", [sxs.Simulation, sxs.load])
 def test_superseded_by_single(loader):
     simulation = "SXS:BBH:0001"
