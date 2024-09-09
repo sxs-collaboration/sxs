@@ -19,6 +19,7 @@ from .sxs_identifiers import (
     lev_regex, lev_re,
     sxs_id_version_lev_regex, sxs_id_version_lev_re,
     sxs_id_version_lev_exact_regex, sxs_id_version_lev_exact_re,
+    sxs_path_regex, sxs_path_re,
     sxs_id, sxs_id_and_version,
     lev_number, simulation_title, sxs_id_to_url,
 )

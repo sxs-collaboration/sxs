@@ -1,19 +1,24 @@
 """Simple regexes to understand SXS IDs"""
 
 import re
+import os
 
 sxs_identifier_regex = (
     r"(?P<sxs_identifier>SXS:(?P<simulation_type>BBH|BHNS|NSNS)(?:_ExtCCE)?:"
     r"(?P<sxs_number>[0-9]+))(?:(v|V)(?P<version>[0-9.]+))?"
 )
 lev_regex = r"Lev(?P<lev>-?[0-9]+)"
-sxs_id_version_lev_regex = sxs_identifier_regex + rf"(?:(:|/){lev_regex})?"
+sxs_id_version_lev_regex = sxs_identifier_regex + rf"(?:(:|/|{os.sep}){lev_regex})?"
 sxs_id_version_lev_exact_regex = f"^{sxs_id_version_lev_regex}$"
+
+file_regex = r"(?P<file>[a-zA-Z0-9_]+\.[a-zA-Z0-9]+)"
+sxs_path_regex = sxs_id_version_lev_regex + rf"(?:(:|/|{os.sep}){file_regex})?"
 
 sxs_identifier_re = re.compile(sxs_identifier_regex)
 lev_re = re.compile(lev_regex)
 sxs_id_version_lev_re = re.compile(sxs_id_version_lev_regex)
 sxs_id_version_lev_exact_re = re.compile(sxs_id_version_lev_exact_regex)
+sxs_path_re = re.compile(sxs_path_regex)
 
 def sxs_id(s, default="", include_version=False):
     """Return the SXS ID contained in the input string
