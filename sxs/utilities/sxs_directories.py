@@ -232,7 +232,6 @@ def sxs_path_to_system_path(path):
     """
     if _platform_system == "Windows":
         return sxs_path_re.sub(lambda s: s.group(0).replace(":", "_"), str(path))
-        # return sxs_identifier_re.sub(lambda s: s.group(0).replace(":", "_"), str(path))
     else:
         return path
 

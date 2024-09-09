@@ -96,7 +96,6 @@ def Simulation(location, *args, **kwargs):
     
     """
     from .. import load, sxs_directory
-    from ..utilities import sxs_path_to_system_path
 
     # Extract the simulation ID, version, and Lev from the location string
     simulation_id, input_version = sxs_id_and_version(location)
@@ -333,10 +332,10 @@ class SimulationBase:
 
     def load_horizons(self):
         from .. import load
-        sxs_id_path = Path(sxs_path_to_system_path(self.sxs_id))
+        sxs_id_path = Path(self.sxs_id)
         horizons_path = self.horizons_path
         horizons_location = self.files.get(horizons_path)["link"]
-        horizons_truepath = sxs_id_path / sxs_path_to_system_path(horizons_path)
+        horizons_truepath = Path(sxs_path_to_system_path(sxs_id_path / horizons_path))
         return load(horizons_location, truepath=horizons_truepath)
 
     @property
@@ -430,7 +429,7 @@ class Simulation_v1(SimulationBase):
     
     def load_horizons(self):
         from .. import load
-        sxs_id_path = Path(sxs_path_to_system_path(self.sxs_id))
+        sxs_id_path = Path(self.sxs_id)
         horizons_path = self.horizons_path
         if horizons_path in self.files:
             horizons_location = self.files.get(horizons_path)["link"]
@@ -439,7 +438,7 @@ class Simulation_v1(SimulationBase):
                 horizons_location = self.files.get(extended_horizons_path)["link"]
             else:
                 raise ValueError(f"File '{horizons_path}' not found in simulation files")
-        horizons_truepath = sxs_id_path / sxs_path_to_system_path(horizons_path)
+        horizons_truepath = Path(sxs_path_to_system_path(sxs_id_path / horizons_path))
         return load(horizons_location, truepath=horizons_truepath)
 
     @property
@@ -475,8 +474,8 @@ class Simulation_v1(SimulationBase):
                 location = self.files.get(extended_file_name)["link"]
             else:
                 raise ValueError(f"File '{file_name}' not found in simulation files")
-        sxs_id_path = Path(sxs_path_to_system_path(self.sxs_id))
-        truepath = sxs_id_path / sxs_path_to_system_path(file_name)
+        sxs_id_path = Path(self.sxs_id)
+        truepath = Path(sxs_path_to_system_path(sxs_id_path / file_name))
         w = load(location, truepath=truepath, extrapolation_order=group)
         w.metadata = self.metadata
         return w
@@ -522,13 +521,13 @@ class Simulation_v2(SimulationBase):
         # Note that `name` should not have the file ending on input,
         # but we will strip it regardless with `.stem`.
         file_name = Path(file_name).stem
-        sxs_id_path = Path(sxs_path_to_system_path(self.sxs_id))
-        h5_path = f"{file_name}.h5"
-        json_path = f"{file_name}.json"
+        sxs_id_path = Path(self.sxs_id)
+        h5_path = file_name.with_suffix(".h5")
+        json_path = file_name.with_suffix(".json")
         h5_location = self.files.get(h5_path)["link"]
         json_location = self.files.get(json_path)["link"]
-        h5_truepath = sxs_id_path / sxs_path_to_system_path(h5_path)
-        json_truepath = sxs_id_path / sxs_path_to_system_path(json_path)
+        h5_truepath = Path(sxs_path_to_system_path(sxs_id_path / h5_path))
+        json_truepath = Path(sxs_path_to_system_path(sxs_id_path / json_path))
         if not json_truepath.exists():
             if not read_config("download", True):
                 raise ValueError(f"{json_truepath} not found and download is disabled")
