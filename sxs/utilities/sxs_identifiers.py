@@ -3,16 +3,18 @@
 import re
 import os
 
+sep_regex = r"(:|/)" if os.sep == "/" else r"(:|/|\\)"
+
 sxs_identifier_regex = (
     r"(?P<sxs_identifier>SXS:(?P<simulation_type>BBH|BHNS|NSNS)(?:_ExtCCE)?:"
     r"(?P<sxs_number>[0-9]+))(?:(v|V)(?P<version>[0-9.]+))?"
 )
 lev_regex = r"Lev(?P<lev>-?[0-9]+)"
-sxs_id_version_lev_regex = sxs_identifier_regex + rf"(?:(:|/|{os.sep}){lev_regex})?"
+sxs_id_version_lev_regex = sxs_identifier_regex + rf"(?:{sep_regex}{lev_regex})?"
 sxs_id_version_lev_exact_regex = f"^{sxs_id_version_lev_regex}$"
 
 file_regex = r"(?P<file>[a-zA-Z0-9_]+\.[a-zA-Z0-9]+)"
-sxs_path_regex = sxs_id_version_lev_regex + rf"(?:(:|/|{os.sep}){file_regex})?"
+sxs_path_regex = sxs_id_version_lev_regex + rf"(?:{sep_regex}{file_regex})?"
 
 sxs_identifier_re = re.compile(sxs_identifier_regex)
 lev_re = re.compile(lev_regex)
