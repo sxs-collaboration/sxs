@@ -522,8 +522,8 @@ class Simulation_v2(SimulationBase):
         # but we will replace it regardless with `.with_suffix`.
         file_name = Path(file_name)
         sxs_id_path = Path(self.sxs_id)
-        h5_path = file_name.with_suffix(".h5")
-        json_path = file_name.with_suffix(".json")
+        h5_path = str(file_name.with_suffix(".h5"))
+        json_path = str(file_name.with_suffix(".json"))
         h5_location = self.files.get(h5_path)["link"]
         json_location = self.files.get(json_path)["link"]
         h5_truepath = Path(sxs_path_to_system_path(sxs_id_path / h5_path))
