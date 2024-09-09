@@ -56,3 +56,19 @@ def test_xmb_format():
             d_spec = getattr(h_spec, attr)
             d_xmb = getattr(h_xmb, attr)
             assert np.array_equal(d_spec, d_xmb)
+
+
+def test_horizon_existence():
+    bhbh = sxs.load("SXS:BBH:0001", auto_supersede=True)
+    bhbh_horizon = bhbh.horizons
+    assert bhbh_horizon.A is not None
+    assert bhbh_horizon.B is not None
+    assert bhbh_horizon.C is not None
+    bhns = sxs.load("SXS:BHNS:0001", auto_supersede=True)
+    bhns_horizon = bhns.horizons
+    assert bhns_horizon.A is not None
+    assert bhns_horizon.B is None
+    assert bhns_horizon.C is None
+    nsns = sxs.load("SXS:NSNS:0001", auto_supersede=True)
+    with pytest.raises(ValueError, match="Horizons data is not available for simulation"):
+        nsns_horizon = nsns.horizons
