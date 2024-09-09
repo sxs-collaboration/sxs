@@ -256,10 +256,10 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
     json_path = path.with_suffix('.json')
 
     if not path.exists():
-        if truepath and (testpath := pathlib.Path(truepath).expanduser()).exists():
+        if truepath and (testpath := pathlib.Path(sxs_path_to_system_path(truepath)).expanduser()).exists():
             path = testpath
 
-        elif truepath and (testpath := cache_path / truepath).exists():
+        elif truepath and (testpath := cache_path / sxs_path_to_system_path(truepath)).exists():
             path = testpath
 
         elif _safe_resolve_exists(h5_path):
@@ -271,7 +271,7 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
         elif "scheme" in url.parse(location):
             m = url.parse(location)
             truepath = truepath or urllib.request.url2pathname(f"{m['host']}/{m['port']}/{m['resource']}")
-            path = cache_path / truepath
+            path = cache_path / sxs_path_to_system_path(truepath)
             if not path.resolve().exists():
                 if download is False:  # Again, we want literal False, not casting to False
                     raise ValueError(f"File '{truepath}' not found in cache, but downloading turned off")
@@ -298,7 +298,7 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
             paths = []
             for sxs_path, file_info in selections.items():
                 truepath = truepath or sxs_path_to_system_path(file_info.get("truepath", sxs_path))
-                path = cache_path / truepath
+                path = cache_path / sxs_path_to_system_path(truepath)
                 if not path.resolve().exists():
                     download_url = file_info["download"]
                     download_file(download_url, path, progress=progress)
