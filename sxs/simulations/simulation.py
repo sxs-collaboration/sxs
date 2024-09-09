@@ -519,8 +519,8 @@ class Simulation_v2(SimulationBase):
     def load_waveform(self, file_name, group):
         from .. import load
         # Note that `name` should not have the file ending on input,
-        # but we will strip it regardless with `.stem`.
-        file_name = Path(file_name).stem
+        # but we will replace it regardless with `.with_suffix`.
+        file_name = Path(file_name)
         sxs_id_path = Path(self.sxs_id)
         h5_path = file_name.with_suffix(".h5")
         json_path = file_name.with_suffix(".json")
