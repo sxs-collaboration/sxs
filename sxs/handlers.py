@@ -313,8 +313,12 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
 
     loaded = loader(path, **kwargs)
     try:
+        # If this is the kind of thing that accepts arbitrary
+        # attributes, record the path from which it was loaded.
         loaded.__file__ = str(path)
     except:
+        # Some things — especially built-ins like `dict` — don't
+        # accept arbitrary attributes, so we just skip it.
         pass
     return loaded
 

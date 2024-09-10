@@ -434,6 +434,8 @@ class Simulation_v1(SimulationBase):
         if horizons_path in self.files:
             horizons_location = self.files.get(horizons_path)["link"]
         else:
+            # Some simulations used the SXS ID as a prefix in file paths
+            # within the Zenodo upload in version 1.x of the catalog.
             if (extended_horizons_path := f"{self.sxs_id_stem}/{horizons_path}") in self.files:
                 horizons_location = self.files.get(extended_horizons_path)["link"]
             else:
@@ -470,6 +472,8 @@ class Simulation_v1(SimulationBase):
         if file_name in self.files:
             location = self.files.get(file_name)["link"]
         else:
+            # Some simulations used the SXS ID as a prefix in file paths
+            # within the Zenodo upload in version 1.x of the catalog.
             if (extended_file_name := f"{self.sxs_id_stem}/{file_name}") in self.files:
                 location = self.files.get(extended_file_name)["link"]
             else:
@@ -528,7 +532,7 @@ class Simulation_v2(SimulationBase):
         json_location = self.files.get(json_path)["link"]
         h5_truepath = Path(sxs_path_to_system_path(sxs_id_path / h5_path))
         json_truepath = Path(sxs_path_to_system_path(sxs_id_path / json_path))
-        if not json_truepath.exists():
+        if not Path(json_location).exists() and not json_truepath.exists():
             if not read_config("download", True):
                 raise ValueError(f"{json_truepath} not found and download is disabled")
             download_file(json_location, sxs_directory("cache") / json_truepath)
