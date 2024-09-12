@@ -20,6 +20,17 @@ try:
 except:
     requires_sympy = pytest.mark.skip(reason="sympy is missing")
 
+GITHUB_ACTIONS_MACOS = (
+    os.getenv("GITHUB_ACTIONS", "") == "true"
+    and os.getenv("RUNNER_OS", "") == "macOS"
+)
+
+if GITHUB_ACTIONS_MACOS:
+    skip_macOS_GH_actions_downloads = pytest.mark.skip(
+        reason="macOS runners on GitHub Actions have connectivity problems"
+    )
+else:
+    skip_macOS_GH_actions_downloads = lambda f: f
 
 
 def pytest_addoption(parser):
