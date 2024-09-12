@@ -1,5 +1,6 @@
 import pytest
 import sxs
+from .conftest import skip_macOS_GH_actions_downloads
 
 
 def test_sxs_load_v2():
@@ -10,6 +11,7 @@ def test_sxs_load_v2():
     s.horizons
 
 
+@skip_macOS_GH_actions_downloads
 @pytest.mark.parametrize("loader", [sxs.Simulation, sxs.load])
 def test_superseded_by_single(loader):
     simulation = "SXS:BBH:0001"
@@ -38,6 +40,7 @@ def test_superseded_by_single(loader):
     assert s.sxs_id_stem == simulation
 
 
+@skip_macOS_GH_actions_downloads
 @pytest.mark.parametrize("loader", [sxs.Simulation, sxs.load])
 def test_superseded_by_multiple(loader):
     simulation = "SXS:BBH:0030"
