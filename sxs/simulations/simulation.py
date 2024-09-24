@@ -334,14 +334,22 @@ class SimulationBase:
         from .. import load
         sxs_id_path = Path(self.sxs_id)
         horizons_path = self.horizons_path
-        horizons_location = self.files.get(horizons_path)["link"]
+        if horizons_path in self.files:
+            horizons_location = self.files.get(horizons_path)["link"]
+        else:
+            # Some simulations used the SXS ID as a prefix in file paths
+            # within the Zenodo upload in version 1.x of the catalog.
+            if (extended_location := f"{self.sxs_id_stem}/{horizons_path}") in self.files:
+                horizons_location = self.files.get(extended_location)["link"]
+            else:
+                raise ValueError(
+                    f"File '{horizons_path}' not found in simulation files for {self.location}"
+                )
         horizons_truepath = Path(sxs_path_to_system_path(sxs_id_path / horizons_path))
         return load(horizons_location, truepath=horizons_truepath)
 
     @property
     def horizons(self):
-        if self.horizons_path not in self.files:
-            raise ValueError(f"Horizons data is not available for simulation {self.sxs_id}")
         if not hasattr(self, "_horizons"):
             self._horizons = self.load_horizons()
         return self._horizons
@@ -434,10 +442,14 @@ class Simulation_v1(SimulationBase):
         if horizons_path in self.files:
             horizons_location = self.files.get(horizons_path)["link"]
         else:
+            # Some simulations used the SXS ID as a prefix in file paths
+            # within the Zenodo upload in version 1.x of the catalog.
             if (extended_horizons_path := f"{self.sxs_id_stem}/{horizons_path}") in self.files:
                 horizons_location = self.files.get(extended_horizons_path)["link"]
             else:
-                raise ValueError(f"File '{horizons_path}' not found in simulation files")
+                raise ValueError(
+                    f"File '{horizons_path}' not found in simulation files for {self.location}"
+                )
         horizons_truepath = Path(sxs_path_to_system_path(sxs_id_path / horizons_path))
         return load(horizons_location, truepath=horizons_truepath)
 
@@ -465,19 +477,31 @@ class Simulation_v1(SimulationBase):
             extrapolation
         )
 
-    def load_waveform(self, file_name, group):
+    def load_waveform(self, file_name, group, transform_to_inertial=True):
+        # Note: `transform_to_inertial` is a slightly unnatural argument in version 1,
+        # since the data are actually stored in the inertial frame.  If the value is
+        # `False`, we will transform the data to the corotating frame, which is what
+        # the corresponding argument in version 2 achieves naturally (since the data
+        # are stored in the corotating frame in that version).
         from .. import load
         if file_name in self.files:
             location = self.files.get(file_name)["link"]
         else:
+            # Some simulations used the SXS ID as a prefix in file paths
+            # within the Zenodo upload in version 1.x of the catalog.
             if (extended_file_name := f"{self.sxs_id_stem}/{file_name}") in self.files:
                 location = self.files.get(extended_file_name)["link"]
             else:
                 raise ValueError(f"File '{file_name}' not found in simulation files")
         sxs_id_path = Path(self.sxs_id)
         truepath = Path(sxs_path_to_system_path(sxs_id_path / file_name))
-        w = load(location, truepath=truepath, extrapolation_order=group)
+        w = load(
+            location, truepath=truepath, extrapolation_order=group,
+            transform_to_inertial=transform_to_inertial
+        )
         w.metadata = self.metadata
+        if not transform_to_inertial:
+            w = w.to_corotating_frame()
         return w
 
 
@@ -516,7 +540,7 @@ class Simulation_v2(SimulationBase):
             f"/rMPsi4_Asymptotic_GeometricUnits_CoM_Mem/{extrapolation}"
         )
 
-    def load_waveform(self, file_name, group):
+    def load_waveform(self, file_name, group, transform_to_inertial=True):
         from .. import load
         # Note that `name` should not have the file ending on input,
         # but we will replace it regardless with `.with_suffix`.
@@ -528,11 +552,14 @@ class Simulation_v2(SimulationBase):
         json_location = self.files.get(json_path)["link"]
         h5_truepath = Path(sxs_path_to_system_path(sxs_id_path / h5_path))
         json_truepath = Path(sxs_path_to_system_path(sxs_id_path / json_path))
-        if not json_truepath.exists():
+        if not Path(json_location).exists() and not json_truepath.exists():
             if not read_config("download", True):
                 raise ValueError(f"{json_truepath} not found and download is disabled")
             download_file(json_location, sxs_directory("cache") / json_truepath)
-        return load(h5_location, truepath=h5_truepath, group=group, metadata=self.metadata)
+        return load(
+            h5_location, truepath=h5_truepath, group=group, metadata=self.metadata,
+            transform_to_inertial=transform_to_inertial
+        )
 
 
 def get_file_info(metadata, sxs_id, download=None):
