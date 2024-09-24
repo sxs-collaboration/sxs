@@ -70,5 +70,5 @@ def test_horizon_existence():
     assert bhns_horizon.B is None
     assert bhns_horizon.C is None
     nsns = sxs.load("SXS:NSNS:0001", auto_supersede=True)
-    with pytest.raises(ValueError, match="Horizons data is not available for simulation"):
+    with pytest.raises(ValueError, match="File '.*?' not found in simulation files for"):
         nsns_horizon = nsns.horizons
