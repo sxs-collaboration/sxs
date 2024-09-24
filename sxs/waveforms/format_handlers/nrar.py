@@ -140,6 +140,11 @@ def load(file, **kwargs):
     m_is_scaled_out : bool, optional
         True if the mass is scaled out of the data, so that the data does not
         change when the total mass changes (presumably for vacuum systems only).
+    transform_to_inertial : bool, optional
+        This is a slightly unnatural argument for this format, because the data is
+        already in the inertial frame.  It is included for compatibility with the
+        RPDMB loader.  Here, the default value is `True`, meaning that nothing is
+        done.  If set to `False`, the data is transformed to the corotating frame.
 
     """
     import pathlib
@@ -379,6 +384,8 @@ def load(file, **kwargs):
         except KeyError as e:
             raise ValueError("\nThis H5 file appears to have not stored all the required information.\n\n") from e
 
+    transform_to_inertial = kwargs.pop("transform_to_inertial", True)
+
     if kwargs:
         import pprint
         warnings.warn("\nUnused kwargs passed to this function:\n{}".format(pprint.pformat(kwargs, width=1)))
@@ -398,6 +405,9 @@ def load(file, **kwargs):
     )
     if metadata:
         w.metadata = metadata
+
+    if not transform_to_inertial:
+        w = w.to_corotating_frame()
 
     return w
 
