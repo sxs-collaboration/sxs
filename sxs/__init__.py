@@ -44,7 +44,7 @@ parsec_in_meters = 3.0856775814913672789139379577965e16  # m
 
 # The value of the solar mass parameter G*M_sun is known to higher accuracy than either of its
 # factors.  The value here is taken from the publication "2021 Selected Astronomical Constants",
-# which can be found at <https://asa.hmnao.com/static/files/2021/Astronomical_Constants_2021.pdf>.
+# which can be found at <https://aa.usno.navy.mil/downloads/publications/Constants_2021.pdf>.
 # In the TDB (Barycentric Dynamical Time) time scale — which seems to be the more relevant one and
 # looks like the more standard one for LIGO — we have
 solar_mass_parameter = 1.32712440041e20  # m^3/s^2
