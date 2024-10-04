@@ -423,7 +423,7 @@ class SimulationBase:
         `f_ref`.
 
         Parameters
-        ==========
+        ----------
         t_ref : float, optional
             The reference time at which the waveform frame is specified.
             This is measured in units of M, and defined relative to the
@@ -456,7 +456,7 @@ class SimulationBase:
             including all modes up to and including this ell value.
 
         Returns
-        =======
+        -------
         times : float array
             Uniformly spaced 1D array of times, in units of M, at which
             the waveform and dynamics quantities are returned.  Aligned
