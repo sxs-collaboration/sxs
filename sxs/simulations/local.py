@@ -142,6 +142,8 @@ def write_local_simulations(annex_dir, output_file=None):
     output_file : (str or Path, optional)
         The path to the file to be written.  By default, the file is
         written to `sxs_directory("cache") / "local_simulations.json"`.
+        N.B.: If you specify a different file, `sxs.load` will not
+        automatically find it.
 
     Returns
     -------
