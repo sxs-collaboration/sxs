@@ -84,13 +84,15 @@ def local_simulations(annex_dir):
           each file that would be uploaded if the simulation were
           published.
 
-    Args:
-        annex_dir (str or Path): The path to the annex directory to be
-        processed.
+    Parameters
+    ----------
+    annex_dir : (str or Path)
+        The path to the annex directory to be processed.
 
-    Returns:
-        dict: A dictionary containing the processed simulations
-        metadata.
+    Returns
+    -------
+    dict :
+        A dictionary containing the processed metadata.
     """
     from os import walk
 
@@ -130,18 +132,31 @@ def local_simulations(annex_dir):
     return simulations
 
 
-def write_local_simulations(annex_dir):
+def write_local_simulations(annex_dir, output_file=None):
     """Write the local simulations to a file for use when loading `Simulations`
 
-    Args:
-        annex_dir (str or Path): The path to the annex directory to be
-        processed.
+    Parameters
+    ----------
+    annex_dir : (str or Path)
+        The path to the annex directory to be processed.
+    output_file : (str or Path, optional)
+        The path to the file to be written.  By default, the file is
+        written to `sxs_directory("cache") / "local_simulations.json"`.
 
-    Returns:
+    Returns
+    -------
         None
     """
     from json import dump
 
+    # Process the annex directory to find all simulations
     simulations = local_simulations(annex_dir)
-    with open(sxs_directory("cache") / "local_simulations.json", "w") as f:
+
+    # Write the simulations to file
+    if output_file is None:
+        output_file = sxs_directory("cache") / "local_simulations.json"
+    else:
+        output_file = Path(output_file)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    with output_file.open("w") as f:
         dump(simulations, f, indent=2, separators=(",", ": "), ensure_ascii=True)

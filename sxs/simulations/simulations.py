@@ -64,6 +64,55 @@ class Simulations(collections.OrderedDict):
             )
             return datetime.min.replace(tzinfo=timezone.utc)
         return remote_timestamp
+    
+    @classmethod
+    def local(cls, directory=None, *, download=None):
+        """Load the local catalog of SXS simulations
+        
+        This function loads the standard public catalog, but also
+        includes any local simulations found in the given directory.
+        If no directory is provided, it will look for the local
+        simulations file in the sxs cache directory.
+
+        Parameters
+        ----------
+        directory : {None, str, Path}, optional
+            A directory containing subdirectories of SXS simulations.
+            See `sxs.local_simulations` for details about what is
+            expected in this directory.  If None (the default), it
+            will look for the local simulations file in the sxs cache
+            directory.
+        download : {None, bool}, optional
+            Passed to `Simulations.load` when loading the public set
+            of simulations.
+
+        See Also
+        --------
+        sxs.local_simulations : Search for local simulations
+        sxs.write_local_simulations : Write local simulations to a file
+        
+        """
+        import json
+        from .local import write_local_simulations
+        from .. import sxs_directory
+
+        local_path = sxs_directory("cache") / "local_simulations.json"
+        if directory is not None:
+            write_local_simulations(directory)
+        if not local_path.exists():
+            if directory is not None:
+                raise ValueError(f"Writing local simulations for {directory=} failed")
+            else:
+                raise ValueError(
+                    f"Local simulations file not found, but no `directory` was provided.\n"
+                    + "If called from `sxs.load`, just pass the name of the directory."
+                )
+        with local_path.open("r") as f:
+            local_simulations = json.load(f)
+        simulations = cls.load(download)
+        simulations.update(local_simulations)
+        simulations.__file__ = str(local_path)
+        return simulations
 
     @classmethod
     @functools.lru_cache()
