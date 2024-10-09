@@ -174,8 +174,7 @@ class Simulations(collections.OrderedDict):
         return simulations
 
     @classmethod
-    @functools.lru_cache()
-    def load(cls, download=None):
+    def load(cls, download=None, *, local=False):
         """Load the catalog of SXS simulations
 
         Note that — unlike most SXS data files — the simulations file is updated
@@ -195,6 +194,12 @@ class Simulations(collections.OrderedDict):
             if that fails, and only raise an error if the simulations is not found in the
             cache.  Note that this ignores the sxs configuration file entirely.
 
+        Keyword-only Parameters
+        -----------------------
+        local : {None, bool}, optional
+            If True, this function will load local simulations from the sxs cache.  To
+            prepare the cache, you may wish to call `sxs.write_local_simulations`.
+
         See Also
         --------
         sxs.sxs_directory : Locate cache directory
@@ -206,6 +211,13 @@ class Simulations(collections.OrderedDict):
         import zipfile
         from .. import sxs_directory, read_config
         from ..utilities import download_file
+
+        if hasattr(cls, "_simulations"):
+            return cls._simulations
+
+        if local:
+            cls._simulations = cls.local(download=download)
+            return cls._simulations
 
         progress = read_config("download_progress", True)
 
@@ -268,6 +280,8 @@ class Simulations(collections.OrderedDict):
 
         sims = cls(simulations)
         sims.__file__ = str(cache_path)
+
+        cls._simulations = sims
         return sims
 
     @classmethod
