@@ -2,6 +2,58 @@
 
 import functools
 import collections
+import pandas as pd
+
+class SimulationsDataFrame(pd.DataFrame):
+    @property
+    def BHBH(self):
+        """Restrict dataframe to just binary black hole systems"""
+        return type(self)(self[self["object_types"] == "BHBH"])
+    BBH = BHBH
+    
+    @property
+    def BHNS(self):
+        """Restrict dataframe to just black hole-neutron star systems"""
+        return type(self)(self[self["object_types"] == "BHNS"])
+    NSBH = BHNS
+    
+    @property
+    def NSNS(self):
+        """Restrict dataframe to just binary neutron star systems"""
+        return type(self)(self[self["object_types"] == "NSNS"])
+    BNS = NSNS
+
+    @property
+    def noneccentric(self):
+        """Restrict dataframe to just non-eccentric systems (e<1e-3)"""
+        return type(self)(self[self["reference_eccentricity"] < 1e-3])
+
+    @property
+    def eccentric(self):
+        """Restrict dataframe to just eccentric systems (e>=1e-3)"""
+        return type(self)(self[self["reference_eccentricity"] >= 1e-3])
+    
+    @property
+    def nonprecessing(self):
+        """Restrict dataframe to just nonprecessing systems
+        
+        The criterion used here is that the sum of the x-y components
+        of the spins is less than 1e-3 at the reference time.
+        """
+        return type(self)(self[
+            (self["reference_chi1_perp"] + self["reference_chi2_perp"]) < 1e-3
+        ])
+    
+    @property
+    def precessing(self):
+        """Restrict dataframe to just precessing systems
+        
+        The criterion used here is that the sum of the x-y components
+        of the spins is at least 1e-3 at the reference time.
+        """
+        return type(self)(self[
+            (self["reference_chi1_perp"] + self["reference_chi2_perp"]) >= 1e-3
+        ])
 
 
 class Simulations(collections.OrderedDict):
@@ -322,7 +374,7 @@ class Simulations(collections.OrderedDict):
                 dt = pd.to_datetime("1970-1-1").tz_localize("UTC")
             return dt
 
-        sims_df = pd.concat((
+        sims_df = SimulationsDataFrame(pd.concat((
             simulations["reference_time"].map(floater),
             simulations["reference_mass_ratio"].map(floater),
             simulations["reference_dimensionless_spin1"].map(three_vec),
@@ -394,7 +446,7 @@ class Simulations(collections.OrderedDict):
             simulations["date_run_earliest"].map(datetime_from_string),
             simulations["date_run_latest"].map(datetime_from_string),
             simulations["date_postprocessing"].map(datetime_from_string),
-        ), axis=1)
+        ), axis=1))
 
         sims_df.insert(0, "deprecated", (
             ~sims_df.superseded_by.isna()
