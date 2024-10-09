@@ -97,14 +97,20 @@ def Simulation(location, *args, **kwargs):
     """
     from .. import load, sxs_directory
 
+    # Load the simulation catalog
+    simulations = load("simulations")
+
     # Extract the simulation ID, version, and Lev from the location string
     simulation_id, input_version = sxs_id_and_version(location)
     if not simulation_id:
-        raise ValueError(f"Invalid SXS ID in '{simulation_id}'")
+        if location in simulations:
+            simulation_id = location.split("/Lev")[0]
+            input_version = "v0.0"
+        else:
+            raise ValueError(f"Invalid SXS ID in '{simulation_id}'")
     input_lev_number = lev_number(location)  # Will be `None` if not present
 
-    # Load the simulation catalog and check if simulation ID exists in the catalog
-    simulations = load("simulations")
+    # Check if simulation ID exists in the catalog
     if simulation_id not in simulations:
         raise ValueError(f"Simulation '{simulation_id}' not found in simulation catalog")
 
@@ -113,7 +119,7 @@ def Simulation(location, *args, **kwargs):
     series = simulations.dataframe.loc[simulation_id]
 
     # Check if the specified version exists in the simulation catalog
-    if input_version not in metadata.DOI_versions:
+    if input_version != "v0.0" and input_version not in metadata.DOI_versions:
         raise ValueError(f"Version '{input_version}' not found in simulation catalog for '{simulation_id}'")
 
     # Set various pieces of information about the simulation
@@ -205,7 +211,7 @@ def Simulation(location, *args, **kwargs):
         sim = Simulation_v1(
             metadata, series, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
         )
-    elif 2 <= version_number < 3.0:
+    elif 2 <= version_number < 3.0 or version == "v0.0":
         sim = Simulation_v2(
             metadata, series, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
         )
