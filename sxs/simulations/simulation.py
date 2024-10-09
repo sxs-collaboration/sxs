@@ -103,7 +103,7 @@ def Simulation(location, *args, **kwargs):
     # Extract the simulation ID, version, and Lev from the location string
     simulation_id, input_version = sxs_id_and_version(location)
     if not simulation_id:
-        if location in simulations:
+        if location.split("/Lev")[0] in simulations:
             simulation_id = location.split("/Lev")[0]
             input_version = "v0.0"
         else:
