@@ -110,7 +110,14 @@ class Simulations(collections.OrderedDict):
         with local_path.open("r") as f:
             local_simulations = json.load(f)
         simulations = cls.load(download)
+        doi_versions = {
+            k: v["DOI_versions"]
+            for k,v in simulations.items()
+            if "DOI_versions" in v
+        }
         simulations.update(local_simulations)
+        for k,v in doi_versions.items():
+            simulations[k]["DOI_versions"] = v
         simulations.__file__ = str(local_path)
         return simulations
 

@@ -119,6 +119,7 @@ def local_simulations(annex_dir):
                 [d for d in dirnames if d.startswith("Lev")]
             )[-1]
             metadata = Metadata.load(dirpath / highest_lev / "metadata")
+            metadata = metadata.add_standard_parameters()
 
             metadata["files"] = {
                 p2i(file.relative_to(dirpath)): {"link": str(file)}
