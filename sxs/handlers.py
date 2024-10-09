@@ -286,6 +286,9 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
         elif location == "local_simulations":
             return Simulations.local(download=download)
 
+        elif location == "dataframe":
+            return Simulations.load(download=download).dataframe
+
         elif sxs_id_version_lev_exact_re.match(location):
             return Simulation(location, download=download, cache=cache, progress=progress, **kwargs)
 
