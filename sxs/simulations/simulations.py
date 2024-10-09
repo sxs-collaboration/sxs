@@ -174,36 +174,45 @@ class Simulations(collections.OrderedDict):
         return simulations
 
     @classmethod
-    def load(cls, download=None, *, local=False):
+    def load(cls, download=None, *, local=False, annex_dir=None):
         """Load the catalog of SXS simulations
 
-        Note that — unlike most SXS data files — the simulations file is updated
-        frequently.  As a result, this function — unlike the loading functions for most
-        SXS data files — will download the simulations by default each time it is called.
-        However, also note that this function is itself cached, meaning that the same
-        dict will be returned on each call in a given python session.  If you want to
-        avoid that behavior, use `Simulations.reload`.
+        Note that — unlike most SXS data files — the simulations file
+        is updated frequently.  As a result, this function — unlike
+        the loading functions for most SXS data files — will download
+        the simulations by default each time it is called.  However,
+        also note that this function is itself cached, meaning that
+        the same dict will be returned on each call in a given python
+        session.  If you want to avoid that behavior, use
+        `Simulations.reload`.
 
         Parameters
         ----------
         download : {None, bool}, optional
-            If False, this function will look for the simulations in the sxs cache and
-            raise an error if it is not found.  If True, this function will download
-            the simulations and raise an error if the download fails.  If None (the
-            default), it will try to download the file, warn but fall back to the cache
-            if that fails, and only raise an error if the simulations is not found in the
-            cache.  Note that this ignores the sxs configuration file entirely.
+            If False, this function will look for the simulations in
+            the sxs cache and raise an error if it is not found.  If
+            True, this function will download the simulations and
+            raise an error if the download fails.  If None (the
+            default), it will try to download the file, warn but fall
+            back to the cache if that fails, and only raise an error
+            if the simulations is not found in the cache.  Note that
+            this ignores the sxs configuration file entirely.
 
         Keyword-only Parameters
         -----------------------
         local : {None, bool}, optional
-            If True, this function will load local simulations from the sxs cache.  To
-            prepare the cache, you may wish to call `sxs.write_local_simulations`.
+            If True, this function will load local simulations from
+            the sxs cache.  To prepare the cache, you may wish to call
+            `sxs.write_local_simulations`.
+        annex_dir : {None, str, Path}, optional
+            If provided and `local=True`, this function will load
+            local simulations from the given directory.  This is
+            equivalent to calling `Simulations.local(directory)`.
 
         See Also
         --------
-        sxs.sxs_directory : Locate cache directory
-        Simulations.reload : Avoid caching the result of this function
+        sxs.sxs_directory : Locate cache directory Simulations.reload
+        : Avoid caching the result of this function
 
         """
         from datetime import datetime, timezone
@@ -215,8 +224,8 @@ class Simulations(collections.OrderedDict):
         if hasattr(cls, "_simulations"):
             return cls._simulations
 
-        if local:
-            cls._simulations = cls.local(download=download)
+        if local or annex_dir is not None:
+            cls._simulations = cls.local(annex_dir, download=download)
             return cls._simulations
 
         progress = read_config("download_progress", True)

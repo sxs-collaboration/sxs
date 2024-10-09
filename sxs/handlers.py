@@ -281,13 +281,18 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
             return Catalog.load(download=download)
 
         elif location == "simulations":
-            return Simulations.load(download=download)
-
-        elif location == "local_simulations":
-            return Simulations.local(download=download)
+            return Simulations.load(
+                download=download,
+                local=kwargs.get("local", False),
+                annex_dir=kwargs.get("annex_dir", None)
+            )
 
         elif location == "dataframe":
-            return Simulations.load(download=download).dataframe
+            return Simulations.load(
+                download=download,
+                local=kwargs.get("local", False),
+                annex_dir=kwargs.get("annex_dir", None)
+            ).dataframe
 
         elif sxs_id_version_lev_exact_re.match(location):
             return Simulation(location, download=download, cache=cache, progress=progress, **kwargs)
