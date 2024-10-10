@@ -119,6 +119,8 @@ def Simulation(location, *args, **kwargs):
     series = simulations.dataframe.loc[simulation_id]
 
     # Check if the specified version exists in the simulation catalog
+    if not hasattr(metadata, "DOI_versions"):
+        input_version = "v0.0"
     if input_version != "v0.0" and input_version not in metadata.DOI_versions:
         raise ValueError(f"Version '{input_version}' not found in simulation catalog for '{simulation_id}'")
 
