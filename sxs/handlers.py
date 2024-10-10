@@ -236,7 +236,7 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
     import pathlib
     import urllib.request
     from . import Simulations, Simulation, read_config, sxs_directory, Catalog
-    from .utilities import url, download_file, sxs_path_to_system_path, sxs_id_version_lev_exact_re
+    from .utilities import url, download_file, sxs_path_to_system_path, sxs_id_version_lev_exact_re, lev_path_re
 
     # Note: `download` and/or `cache` may still be `None` after this
     if download is None:
@@ -304,7 +304,7 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
                 local=kwargs.get("local", False),
                 annex_dir=kwargs.get("annex_dir", None)
             )
-            if location.split("/Lev")[0] in simulations:
+            if lev_path_re.sub("", location) in simulations:
                 return Simulation(
                     location, download=download, cache=cache, progress=progress, **kwargs
                 )
