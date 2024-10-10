@@ -298,6 +298,17 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
             return Simulation(location, download=download, cache=cache, progress=progress, **kwargs)
 
         else:
+            # Try to find an appropriate SXS file in the simulations
+            simulations = Simulations.load(
+                download=download,
+                local=kwargs.get("local", False),
+                annex_dir=kwargs.get("annex_dir", None)
+            )
+            if location.split("/Lev")[0] in simulations:
+                return Simulation(
+                    location, download=download, cache=cache, progress=progress, **kwargs
+                )
+
             # Try to find an appropriate SXS file in the catalog
             catalog = Catalog.load(download=download)
             selections = catalog.select_files(location)
