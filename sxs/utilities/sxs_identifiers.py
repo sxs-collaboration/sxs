@@ -18,6 +18,7 @@ sxs_path_regex = sxs_id_version_lev_regex + rf"(?:{sep_regex}{file_regex})?"
 
 sxs_identifier_re = re.compile(sxs_identifier_regex)
 lev_re = re.compile(lev_regex)
+lev_path_re = re.compile(f"{sep_regex}{lev_regex}")
 sxs_id_version_lev_re = re.compile(sxs_id_version_lev_regex)
 sxs_id_version_lev_exact_re = re.compile(sxs_id_version_lev_exact_regex)
 sxs_path_re = re.compile(sxs_path_regex)
