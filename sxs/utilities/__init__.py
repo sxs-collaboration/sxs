@@ -16,7 +16,7 @@ from .downloads import download_file
 from .bitwise import diff, xor, multishuffle
 from .sxs_identifiers import (
     sxs_identifier_regex, sxs_identifier_re,
-    lev_regex, lev_re,
+    lev_regex, lev_re, lev_path_re,
     sxs_id_version_lev_regex, sxs_id_version_lev_re,
     sxs_id_version_lev_exact_regex, sxs_id_version_lev_exact_re,
     sxs_path_regex, sxs_path_re,
