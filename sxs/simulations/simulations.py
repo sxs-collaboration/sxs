@@ -70,6 +70,20 @@ class Simulations(collections.OrderedDict):
 
     simulations = sxs.load("simulations")
     ```
+
+    Note SXS members may also wish to read a local copy of the
+    simulation annex, which can be done with
+    ```python
+    simulations = sxs.load("simulations", annex_dir="/path/to/SimulationAnnex.git")
+    ```
+    which will re-read the annex (which may take about a minute), or
+    ```python
+    simulations = sxs.load("simulations", local=True)
+    ```
+    if the annex has not been updated since the last time you
+    used the `annex_dir` argument.  Once you have done this,
+    calls to `sxs.load` will automatically use this local copy
+    of the simulations.
     """
     last_modified_url = "https://api.github.com/repos/sxs-collaboration/sxs/contents/simulations.json?ref=simulations"
     url = "https://github.com/sxs-collaboration/sxs/raw/simulations/simulations.json"
