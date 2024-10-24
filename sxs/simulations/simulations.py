@@ -70,6 +70,19 @@ class SimulationsDataFrame(pd.DataFrame):
             np.isfinite(df["reference_eccentricity"])
             & np.isfinite(df["remnant_mass"])
         ])
+    
+    @property
+    def hyperbolic(self):
+        """Restrict dataframe to just hyperbolic systems
+        
+        The criterion used here is that the (normalized) ADM mass is
+        greater than 1.
+        """
+        total_mass = self["initial_mass1"] + self["initial_mass2"]
+        normalized_ADM = self["initial_ADM_energy"] / total_mass
+        return type(self)(self[
+            np.isfinite(total_mass) & (total_mass > 0) & (normalized_ADM > 1)
+        ])
 
 
 class Simulations(collections.OrderedDict):
