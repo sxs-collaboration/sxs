@@ -1,7 +1,7 @@
 """Container interface to the catalog of SXS simulations"""
 
-import functools
 import collections
+import numpy as np
 import pandas as pd
 
 class SimulationsDataFrame(pd.DataFrame):
@@ -26,12 +26,12 @@ class SimulationsDataFrame(pd.DataFrame):
     @property
     def noneccentric(self):
         """Restrict dataframe to just non-eccentric systems (e<1e-3)"""
-        return type(self)(self[self["reference_eccentricity"] < 1e-3])
+        return type(self)(self[self["reference_eccentricity_bound"] < 1e-3])
 
     @property
     def eccentric(self):
         """Restrict dataframe to just eccentric systems (e>=1e-3)"""
-        return type(self)(self[self["reference_eccentricity"] >= 1e-3])
+        return type(self)(self[self["reference_eccentricity_bound"] >= 1e-3])
     
     @property
     def nonprecessing(self):
@@ -53,6 +53,21 @@ class SimulationsDataFrame(pd.DataFrame):
         """
         return type(self)(self[
             (self["reference_chi1_perp"] + self["reference_chi2_perp"]) >= 1e-3
+        ])
+    
+    @property
+    def IMR(self):
+        """Restrict dataframe to just BBH systems with inspiral, merger, and ringdown
+        
+        The criteria used here are just that the reference
+        eccentricity and remnant mass are actual (finite)
+        numbers.  Currently, at least, the existence of a
+        measured eccentricity means that the system is not
+        hyperbolic or head-on.
+        """
+        return type(self)(self[
+            np.isfinite(self["reference_eccentricity"])
+            & np.isfinite(self["remnant_mass"])
         ])
 
 
