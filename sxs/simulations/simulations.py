@@ -6,10 +6,10 @@ import pandas as pd
 
 class SimulationsDataFrame(pd.DataFrame):
     @property
-    def BHBH(self):
+    def BBH(self):
         """Restrict dataframe to just binary black hole systems"""
         return type(self)(self[self["object_types"] == "BHBH"])
-    BBH = BHBH
+    BHBH = BBH
     
     @property
     def BHNS(self):
@@ -65,9 +65,10 @@ class SimulationsDataFrame(pd.DataFrame):
         measured eccentricity means that the system is not
         hyperbolic or head-on.
         """
-        return type(self)(self[
-            np.isfinite(self["reference_eccentricity"])
-            & np.isfinite(self["remnant_mass"])
+        df = self.BBH
+        return type(df)(df[
+            np.isfinite(df["reference_eccentricity"])
+            & np.isfinite(df["remnant_mass"])
         ])
 
 
