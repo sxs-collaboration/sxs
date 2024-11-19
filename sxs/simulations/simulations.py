@@ -57,13 +57,17 @@ class SimulationsDataFrame(pd.DataFrame):
     
     @property
     def IMR(self):
-        """Restrict dataframe to just BBH systems with inspiral, merger, and ringdown
+        """Restrict dataframe to just BBH IMR systems
         
+        "IMR" stands for inspiral, merger, and ringdown.  Systems that
+        will *not* be in this group include simulations that
+        correspond to physical IMR systems, but were not continued
+        through the merger.
+
         The criteria used here are just that the reference
-        eccentricity and remnant mass are actual (finite)
-        numbers.  Currently, at least, the existence of a
-        measured eccentricity means that the system is not
-        hyperbolic or head-on.
+        eccentricity and remnant mass are actual (finite) numbers.
+        Currently, at least, the existence of a measured eccentricity
+        means that the system is not hyperbolic or head-on.
         """
         df = self.BBH
         return type(df)(df[
