@@ -3,6 +3,7 @@
 import re
 import numbers
 from collections.abc import MutableMapping
+import warnings
 import numpy as np
 from scipy.interpolate import CubicSpline
 from scipy.optimize import minimize_scalar
@@ -1127,6 +1128,9 @@ class WaveformModes(WaveformMixin, TimeSeries):
             raised.
 
         """
+        if self.frame_type == "corotating":
+            warnings.warn("This waveform is already in a corotating frame; returning original.")
+            return self
         frame, omega = self.corotating_frame(
             R0=R0,
             tolerance=tolerance,
