@@ -683,8 +683,6 @@ class Simulation_v1(SimulationBase):
             transform_to_inertial=transform_to_inertial
         )
         w.metadata = self.metadata
-        if not transform_to_inertial:
-            w = w.to_corotating_frame()
         return w
 
 
