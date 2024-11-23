@@ -202,6 +202,7 @@ def to_lvc_conventions(
     # If `phi_ref` and `inclination` are not None, return polarizations
     if phi_ref is not None:
         hp, hc = h.evaluate(inclination, π/2 - phi_ref).ndarray.view((float, 2)).T
+        hc *= -1  # Because h = hp - i hc
         return h.t, hp, hc, dynamics_dict
     else:
         # Could do `dict(WaveformModesDict(h))` to convert to a plain dict

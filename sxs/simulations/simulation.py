@@ -593,7 +593,10 @@ class SimulationBase:
 
         """
         from ..waveforms.format_handlers.lvc import to_lvc_conventions
-        strain = self.load_waveform(*self.strain_path, transform_to_inertial=False)
+        strain = self.load_waveform(
+            *self.strain_path,
+            transform_to_inertial=False,
+        )
         return to_lvc_conventions(strain, self.horizons, **kwargs)
 
 
