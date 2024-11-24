@@ -148,6 +148,7 @@ def load(file, **kwargs):
 
     """
     import pathlib
+    import tarfile
     import re
     import h5py
     import quaternionic
@@ -161,41 +162,53 @@ def load(file, **kwargs):
     w_attributes = {}
 
     # Get an h5py handle to the desired part of the h5 file
-    file_str = str(file)
-    split = file_str.rsplit(".h5", 1)  # Raises ValueError if ".h5" is not in the string
-    if len(split) != 2:
-        split = file_str.rsplit(".hdf5", 1)
-        file_ending = ".hdf5"
-    else:
-        file_ending = ".h5"
-    if len(split) != 2:
-        raise ValueError(f"Could not find a valid HDF5 filename ending in '{file_str}'")
-    file_str, root_group = split
-    file_str = file_str + file_ending
-    if not root_group:
+    if isinstance(file, tarfile.ExFileObject):
+        file_path = file
+        file_name = pathlib.Path(file.name).name
+        file_str = f"{file_name}"
+        file_dir = pathlib.Path(file.name).parent
         root_group = kwargs.pop("h5_group", "")
-    if not root_group:
-        extrapolation_order = kwargs.pop("extrapolation_order", None)
-        if extrapolation_order is None:
-            warning = "\nCould not find root group as `h5_group` or as `extrapolation_order`; returning all groups"
-            warnings.warn(warning)
-        elif extrapolation_order is Ellipsis:
-            pass
-        elif isinstance(extrapolation_order, str):
-            root_group = extrapolation_order
-        elif extrapolation_order == -1:
-            root_group = "OutermostExtraction.dir"
+    else:
+        file_str = str(file)
+        split = file_str.rsplit(".h5", 1)  # Raises ValueError if ".h5" is not in the string
+        if len(split) != 2:
+            split = file_str.rsplit(".hdf5", 1)
+            file_ending = ".hdf5"
         else:
-            root_group = f"Extrapolated_N{extrapolation_order}.dir"
+            file_ending = ".h5"
+        if len(split) != 2:
+            raise ValueError(f"Could not find a valid HDF5 filename ending in '{file_str}'")
+        file_str, root_group = split
+        file_str = file_str + file_ending
+        if not root_group:
+            root_group = kwargs.pop("h5_group", "")
+        if not root_group:
+            extrapolation_order = kwargs.pop("extrapolation_order", None)
+            if extrapolation_order is None:
+                warning = "\nCould not find root group as `h5_group` or as `extrapolation_order`; returning all groups"
+                warnings.warn(warning)
+            elif extrapolation_order is Ellipsis:
+                pass
+            elif isinstance(extrapolation_order, str):
+                root_group = extrapolation_order
+            elif extrapolation_order == -1:
+                root_group = "OutermostExtraction.dir"
+            else:
+                root_group = f"Extrapolated_N{extrapolation_order}.dir"
 
-    file_path = pathlib.Path(file_str).expanduser().resolve()
-    file_name = file_path.name
-    file_dir = file_path.parent
+        file_path = pathlib.Path(file_str).expanduser().resolve()
+        file_name = file_path.name
+        file_dir = file_path.parent
 
     with h5py.File(file_path, "r") as f_h5:
         if root_group:
             if root_group not in f_h5:
-                raise ValueError(f"Input root group '{root_group}' was not found in '{file_path}'")
+                message = [
+                    f"Input root group '{root_group}' was not found in '{file_path}'",
+                    "Available groups are:",
+                ]
+                f_h5.visit(lambda s: message.append(f"\t{s}"))
+                raise ValueError("\n".join(message))
             f = f_h5[root_group]
         else:
             return KeyPassingDict(**{
