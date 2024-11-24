@@ -164,6 +164,7 @@ def test_corotating_frame():
     R0 = quaternionic.array.random().normalized
     R_in = R0 * np.exp(quaternionic.array([0, 0, 0, omega / 2]) * w.t)
     w_rot = w.copy().rotate(R_in.conjugate())
+    w_rot._metadata["frame_type"] = "inertial"
     R_out = w_rot.corotating_frame(R0=R0, tolerance=1e-12)
     assert np.allclose(R_in.ndarray, R_out.ndarray, atol=1e-10, rtol=0.0), (
         f"\nR_in = {R_in}\n"
