@@ -1,6 +1,7 @@
 from ... import sxs_directory
 from . import nrar
 
+
 def load(file, **kwargs):
     """Load a waveform from a GR-Athena++ `tar` file.
 
@@ -13,11 +14,11 @@ def load(file, **kwargs):
     ================
     subfile : str
         The name of the subfile within the `tar` file to read.
-        Default is "rh_Asymptotic_GeometricUnits.h5".  Other
-        potentially useful values replace "rh" with "rPsi4" and/or
-        "Asymptotic" with "CCE" or "FiniteRadii".
+        Default is "rh_CCE_GeometricUnits.h5".  Other potentially
+        useful values replace "rh" with "rPsi4" and/or "CCE" with
+        "Asymptotic" or "FiniteRadii".
     radius : str
-        The extraction radius to use.  Default is "100.00".
+        The extraction radius to use.  Default is "50.00".
     
     Notes
     =====
@@ -59,19 +60,22 @@ def load(file, **kwargs):
     * "120.00"
     * "140.00"
 
-    Note the two 0s after the decimal point.  The `FiniteRadii` and
+    (Note the two 0s after the decimal point.)  The `FiniteRadii` and
     `Asymptotic` data generally contain all of the above radii, while
     the `CCE` data generally contains only the "50.00" and "100.00"
-    radius.
+    radius.  The catalog paper uses "50.00" as the radius when
+    discussing properties of the waveforms, possibly because CCE only
+    "exhibits convergence behavior" for data from that radius.  They
+    also use "100.00" for "extrapolated" waveforms some times.  The
+    default used here is "50.00".
 
     """
-
     from pathlib import Path
     import tarfile
 
     resolution = Path(file).stem
-    subfile = kwargs.pop("subfile", "rh_Asymptotic_GeometricUnits.h5")
-    radius = kwargs.pop("radius", "100.00")
+    subfile = kwargs.pop("subfile", "rh_CCE_GeometricUnits.h5")
+    radius = kwargs.pop("radius", "50.00")
 
     with tarfile.open(file, "r") as tf:
         tf_names = [tfi.name for tfi in tf]
