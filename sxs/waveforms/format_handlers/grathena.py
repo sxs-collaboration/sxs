@@ -77,6 +77,11 @@ def load(file, **kwargs):
     subfile = kwargs.pop("subfile", "rh_CCE_GeometricUnits.h5")
     radius = kwargs.pop("radius", "50.00")
 
+    if subfile.startswith("rPsi4"):
+        data_type = "psi4"
+    elif subfile.startswith("rh"):
+        data_type = "h"
+
     with tarfile.open(file, "r") as tf:
         tf_names = [tfi.name for tfi in tf]
         index = tf_names.index(f"{resolution}/{subfile}")
@@ -84,8 +89,8 @@ def load(file, **kwargs):
         w = nrar.load(
             h5file,
             h5_group=radius,
-            frame_type=nrar.Inertial,
-            data_type=nrar.h,
+            frame_type="inertial",
+            data_type=data_type,
             m_is_scaled_out=True,
             r_is_scaled_out=True,
         )
