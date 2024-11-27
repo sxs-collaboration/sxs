@@ -78,9 +78,9 @@ def load(file, **kwargs):
     radius = kwargs.pop("radius", "50.00")
 
     if subfile.startswith("rPsi4"):
-        data_type = "psi4"
+        data_type = nrar.psi4
     elif subfile.startswith("rh"):
-        data_type = "h"
+        data_type = nrar.h
 
     with tarfile.open(file, "r") as tf:
         tf_names = [tfi.name for tfi in tf]
@@ -89,7 +89,7 @@ def load(file, **kwargs):
         w = nrar.load(
             h5file,
             h5_group=radius,
-            frame_type="inertial",
+            frame_type=nrar.Inertial,
             data_type=data_type,
             m_is_scaled_out=True,
             r_is_scaled_out=True,
