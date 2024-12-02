@@ -95,4 +95,10 @@ def load(file, **kwargs):
             r_is_scaled_out=True,
         )
 
+    w._metadata["frame_type"] = "inertial"
+    if subfile.startswith("rPsi4"):
+        w._metadata["data_type"] = "psi4"
+    elif subfile.startswith("rh"):
+        w._metadata["data_type"] = "h"
+
     return w
