@@ -136,7 +136,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 sl = key[1]
                 if sl.step is None or sl.step==1:
                     ell1, m1 = self.LM[sl.start or 0]  # in case sl.start is None
-                    ell2, m2 = self.LM[sl.stop or 0 -1] # in case sl.stop is None
+                    ell2, m2 = self.LM[(sl.stop or 0)-1] # in case sl.stop is None
                     if ell1 <= ell2 and m1 == -ell1 and m2 == ell2:
                         # The sliced object has valid ell_min and ell_max values,
                         # so we can interpret it as a WaveformModes object; we
