@@ -22,7 +22,7 @@ dependencies = [
   "scipy >=1.7",
   "numba >=0.55; implementation_name == 'cpython'",
   "quaternionic >=1.0",
-  "spherical >=1.0",
+  "spherical >=1.0.15",
   "h5py >=3",
   "inflection >=0.5.1",
   "requests >=2.24.0",
