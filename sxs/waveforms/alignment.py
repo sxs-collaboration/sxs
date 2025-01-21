@@ -133,7 +133,7 @@ def _cost2d(δt_δϕ, args):
     return np.sqrt(diff / normalization)
 
 
-def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, include_modes=None, nprocs=None):
+def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, max_δt=np.inf, use_δΨ=False, include_modes=None, nprocs=None):
     """Align waveforms by shifting in time and phase
 
     This function determines the optimal time and phase offset to apply to `wa` by
@@ -165,7 +165,7 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         Waveforms to be aligned
     t1 : float
     t2 : float
-        Beginning and end of integration interval
+        Beginning and end of integration interval.
     n_brute_force_δt : int, optional
         Number of evenly spaced δt values between (t1-t2) and (t2-t1) to sample
         for the initial guess.  By default, this is just the maximum number of
@@ -178,6 +178,10 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         is not the default because, even though it is formally the right
         thing to do, it takes much longer to produce the same result
         as just using 5, which is much faster.
+    max_δt : float, optional
+        Max δt to allow for when choosing the initial guess.
+    use_δΨ : float, optional
+        Whether or not to allow for a h -> -h transformation.
     include_modes: list, optional
         A list containing the (ell, m) modes to be included in the L² norm.
     nprocs: int, optional
@@ -222,14 +226,14 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
         raise ValueError(f"(t1,t2)=({t1}, {t2}) not contained in wb.t, which spans ({wb.t[0]}, {wb.t[-1]})")
 
     # Figure out time offsets to try
-    δt_lower = max(t1 - t2, t2 - wa.t[-1])
-    δt_upper = min(t2 - t1, t1 - wa.t[0])
-
+    δt_lower = max(-max_δt, max(t1 - t2, t2 - wa.t[-1]))
+    δt_upper = min(max_δt, min(t2 - t1, t1 - wa.t[0]))
+    
     # We'll start by brute forcing, sampling time offsets evenly at as many
     # points as there are time steps in (t1,t2) in the input waveforms
     if n_brute_force_δt is None:
         n_brute_force_δt = max(sum((wa.t >= t1) & (wa.t <= t2)), sum((wb.t >= t1) & (wb.t <= t2)))
-    δt_brute_force = np.linspace(δt_lower, δt_upper, num=n_brute_force_δt)
+    δt_brute_force = np.array(list(np.linspace(δt_lower, δt_upper, num=n_brute_force_δt)) + [0.0])
 
     if n_brute_force_δϕ is None:
         n_brute_force_δϕ = 2 * wa.ell_max + 1
@@ -261,7 +265,10 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, includ
 
     optimums = []
     wa_primes = []
-    for δΨ_factor in [-1, +1]:
+    δΨ_factors = [1]
+    if use_δΨ:
+        δΨ_factors = [-1, +1]
+    for δΨ_factor in δΨ_factors:
         # Optimize by brute force with multiprocessing
         cost_wrapper = partial(_cost2d, args=[modes_A, modes_B, t_reference, m, δΨ_factor, normalization])
 
@@ -340,6 +347,7 @@ def align4d(
     n_brute_force_δso3=None,
     max_δt=np.inf,
     include_modes=None,
+    align2d_first=False,
     nprocs=None,
 ):
     """Align waveforms by optimizing over a time translation and an SO(3) rotation.
@@ -386,6 +394,9 @@ def align4d(
         Max δt to allow for when choosing the initial guess.
     include_modes: list, optional
         A list containing the (ell, m) modes to be included in the L² norm.
+    align2d_first : bool, optional
+        Do a 2d align first for an initial guess, with no SO(3) initial guess
+        (besides the phase returned by the 2d solve)
     nprocs: int, optional
         Number of cpus to use. Default is maximum number.
         If -1 is provided, then no multiprocessing is performed.
@@ -433,20 +444,36 @@ def align4d(
         
     ell_max = min(wa.ell_max, wb.ell_max)
 
-    # Get time initial guess
-    # Negative sign because align1d aligns wb to wa
-    δt_IG = -align1d(wa, wb, t1, t2)
-
     t_reference = wb.t[np.argmin(abs(wb.t - t1)) : np.argmin(abs(wb.t - t2)) + 1]
-    wa_interp = wa.interpolate(t_reference + δt_IG)
-    wb_interp = wb.interpolate(t_reference)
     
-    # Get rotor initial guess
-    # negative sign because quaternionic.align aligns omegab to omegaa
-    omegaa = wa_interp.angular_velocity
-    omegab = wb_interp.angular_velocity
-    R_IG = -quaternionic.align(omegaa, omegab)
-    
+    if not align2d_first:
+        # Get time initial guess
+        # Negative sign because align1d aligns wb to wa
+        δt_IG = -align1d(wa, wb, t1, t2)
+        
+        wa_interp = wa.interpolate(t_reference + δt_IG)
+        wb_interp = wb.interpolate(t_reference)
+        
+        # Get rotor initial guess
+        # negative sign because quaternionic.align aligns omegab to omegaa
+        omegaa = wa_interp.angular_velocity
+        omegab = wb_interp.angular_velocity
+        R_IG = -quaternionic.align(omegaa, omegab)
+    else:
+        _, _, res = align2d(wa, wb, t1, t2, max_δt=50, n_brute_force_δt=1000, nprocs=nprocs)
+        δt_IG = res.x[0]
+
+        wa_interp = wa.interpolate(t_reference + δt_IG)
+        wb_interp = wb.interpolate(t_reference)
+
+        # Get rotor initial guess
+        # negative sign because quaternionic.align aligns omegab to omegaa
+        omegaa = wa_interp.angular_velocity
+        omegab = wb_interp.angular_velocity
+        R_IG = -quaternionic.align(omegaa, omegab)
+        
+        R_IG = quaternionic.array([0, 0, 0, res.x[1] / 2]) * R_IG
+                
     # Brute force over R_IG * exp(theta * z / 2) with δt_IG
     δt_δso3_brute_force = []
     for angle in np.linspace(0, 2 * np.pi, 2 * (2 * ell_max + 1), endpoint=False):
