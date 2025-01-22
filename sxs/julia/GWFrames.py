@@ -1,3 +1,4 @@
+import numpy as np
 import quaternionic
 from .. import WaveformModes
 from . import PostNewtonian
@@ -46,17 +47,25 @@ def PNWaveform(
         **kwargs
     )
 
+    coorbital_frame = quaternionic.array(w1.frame.to_numpy())
+    frame = np.array([quaternionic.one]) if inertial else coorbital_frame
+    frame_type = "inertial" if inertial else "coorbital"
+
     w = WaveformModes(
-        w1.data,
-        time=w1.t,
+        w1.data.to_numpy(),
+        time=w1.t.to_numpy(),
         modes_axis=1,
-        ell_min=2,
-        ell_max=8,
+        ell_min=ell_min,
+        ell_max=ell_max,
+        spin_weight=-2,
+        frame=frame,
+        frame_type=frame_type,
+        data_type="h",
         M1=w1.M1.to_numpy(),
         M2=w1.M2.to_numpy(),
         chi1=w1.chi1.to_numpy(),
         chi2=w1.chi2.to_numpy(),
-        frame=quaternionic.array(w1.frame.to_numpy()),
+        coorbital_frame=coorbital_frame,
         v=w1.v.to_numpy(),
         orbital_phase=w1.Phi.to_numpy(),
     )
@@ -66,7 +75,7 @@ def PNWaveform(
     w.M2 = w._metadata["M2"]
     w.chi1 = w._metadata["chi1"]
     w.chi2 = w._metadata["chi2"]
-    #w.frame = w._metadata["frame"]  ## Already done
+    w.coorbital_frame = w._metadata["coorbital_frame"]
     w.v = w._metadata["v"]
     w.orbital_phase = w._metadata["orbital_phase"]
 

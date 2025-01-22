@@ -308,7 +308,7 @@ class Horizons(object):
             )
 
         """
-        from scipy.integrate import simps
+        from scipy.integrate import simpson
 
         t = self.A.time
         com = self.newtonian_com
@@ -319,8 +319,8 @@ class Horizons(object):
         i_i, i_f = np.argmin(np.abs(t - t_i)), np.argmin(np.abs(t - t_f))
 
         # Find the optimum analytically
-        com_0 = simps(com[i_i : i_f + 1], t[i_i : i_f + 1], axis=0)
-        com_1 = simps((t[:, np.newaxis] * com)[i_i : i_f + 1], t[i_i : i_f + 1], axis=0)
+        com_0 = simpson(com[i_i : i_f + 1], x=t[i_i : i_f + 1], axis=0)
+        com_1 = simpson((t[:, np.newaxis] * com)[i_i : i_f + 1], x=t[i_i : i_f + 1], axis=0)
         x_i = 2 * (com_0 * (2 * t_f ** 3 - 2 * t_i ** 3) + com_1 * (-3 * t_f ** 2 + 3 * t_i ** 2)) / (t_f - t_i) ** 4
         v_i = 6 * (com_0 * (-t_f - t_i) + 2 * com_1) / (t_f - t_i) ** 3
 
@@ -380,6 +380,30 @@ class Horizons(object):
     nhat = n̂
 
     @property
+    def λ⃗(self):
+        """Time-derivative of separation vector
+
+        This function can be spelled `λ⃗` or `lambdavec`, interchangeably.
+
+        Returns
+        -------
+        λ⃗ : ndarray
+            This has shape (self.A.n_times, 3), representing the components of the
+            vector as a function of time.
+
+        See Also
+        --------
+        n⃗, nvec, separation : (Non-normalized) separation vector between two horizons
+        n̂, nhat : Normalized separation vector
+        λ̂, lambdahat : Normalized version of this vector
+        ℓ̂, ellhat : Normalized angular-velocity vector
+
+        """
+        return self.n⃗.dot
+    
+    lambdavec = λ⃗
+
+    @property
     def λ̂(self):
         """Time-derivative of normalized separation vector
 
@@ -403,7 +427,7 @@ class Horizons(object):
         post-Newtonian theory and similar treatments.
 
         """
-        λ⃗ = self.n̂.dot
+        λ⃗ = self.λ⃗
         return λ⃗ / np.linalg.norm(λ⃗, axis=1)[:, np.newaxis]
 
     lambdahat = λ̂
@@ -435,3 +459,74 @@ class Horizons(object):
         return TimeSeries(np.cross(self.n̂, self.λ̂), time=self.n̂.time)
 
     ellhat = ℓ̂
+
+    @property
+    def R(self):
+        """Frame Rotor taking (x̂, ŷ, ẑ) onto (n̂, λ̂, ℓ̂) at each instant
+        
+        For example, if λ̂ᵢ is the value of λ̂ at time tᵢ, and Rᵢ the
+        corresponding output from this function, then we have
+        
+            λ̂ᵢ = Rᵢ * quaternionic.y / Rᵢ
+
+        Returns
+        -------
+        R : quaternionic.array
+            This has shape (self.A.n_times, 4), representing the rotor
+            at each time.  Note that this is *not* a TimeSeries
+            object, as is returned by several other functions in this
+            class.  However, the corresponding times are available as
+            `R.time`.
+        """
+        import numpy as np
+        import quaternionic
+        reference_frame = np.array([quaternionic.x.vector, quaternionic.y.vector, quaternionic.z.vector])
+        target_frame = np.array([self.n̂, self.λ̂, self.ℓ̂])
+        R = quaternionic.array([
+            quaternionic.align(
+                target_frame[:, i, :],
+                reference_frame
+            )
+            for i in range(target_frame.shape[1])
+        ])
+        quaternionic.unflip_rotors(R, inplace=True)
+        R.time = self.A.time
+        return R
+
+    @property
+    def Ω⃗(self):
+        """Angular velocity vector of the binary
+
+        This function can be spelled `Ω⃗`, `ω⃗`, `OmegaVec`, or
+        `omegaVec`, interchangeably.
+
+        Returns
+        -------
+        Ω⃗ : TimeSeries
+            This represents the angular velocity as a function of time.
+        """
+        R = self.R
+        return TimeSeries(R.to_angular_velocity(R.time), time=R.time)
+    
+    ω⃗ = Ω⃗
+    OmegaVec = Ω⃗
+    omegaVec = Ω⃗
+
+    @property
+    def Ω(self):
+        """Magnitude of the angular velocity of the binary
+
+        This function can be spelled `Ω`, `ω`, `Omega`, or `omega`,
+        interchangeably.
+
+        Returns
+        -------
+        Ω : TimeSeries
+            This represents the magnitude of the angular velocity as a
+            function of time.
+        """
+        return TimeSeries(np.linalg.norm(self.Ω⃗, axis=1), time=self.A.time)
+    
+    ω = Ω
+    Omega = Ω
+    omega = Ω

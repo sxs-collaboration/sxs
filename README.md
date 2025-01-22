@@ -17,13 +17,12 @@ automatically select the newest or highest-resolution dataset for a given
 simulation, or return a range of versions or resolutions.  Currently, the
 high-level objects encapsulate
 
-  * Catalog — a listing of all data produced by the SXS collaboration
+  * Simulations — a catalog of all simulations produced by the SXS collaboration
+  * Simulation — an object encapsulating all data for a single simulation
   * Metadata — data describing the simulation parameters
   * Horizons — time-series data describing the apparent horizons
   * Waveforms — time-series data describing the extrapolated gravitational-wave
     modes
-
-The complete documentation is [hosted here](https://sxs.readthedocs.io/en/stable/).
 
 
 ## Installation
@@ -83,34 +82,36 @@ interactive jupyter notebooks that are actually running this code and some
 pre-downloaded data.  The following is just a very brief overview of the `sxs`
 package's main components.
 
-There are four important objects to understand in this package:
+There are five important objects to understand in this package:
 
 ```python
 import sxs
 
-catalog = sxs.load("catalog")
-metadata = sxs.load("SXS:BBH:0123/Lev/metadata.json")
-horizons = sxs.load("SXS:BBH:0123/Lev/Horizons.h5")
-waveform = sxs.load("SXS:BBH:0123/Lev/rhOverM", extrapolation_order=2)
+simulations = sxs.load("simulations")
+sxs_bbh_1234 = sxs.load("SXS:BBH:1234")
+metadata = sxs_bbh_1234.metadata
+horizons = sxs_bbh_1234.horizons
+h = sxs_bbh_1234.h
 ```
 
-[The `catalog`
-object](https://sxs.readthedocs.io/en/main/api/sxs.catalog.catalog/#sxs.catalog.catalog.Catalog)
-contains information about every simulation in the catalog, including all
-available data files, and information about how to get them.  You probably
-don't need to actually know about details like where to get the data, but
-`catalog` can help you find the simulations you care about.  Most importantly,
-`catalog.simulations` is a `dict` object, where the keys are names of
-simulations (like "SXS:BBH:0123") and the values are the same types as [the
+[The `simulations`
+object](https://sxs.readthedocs.io/en/main/api/simulations/) contains
+information about every simulation in the catalog, including all
+available data files, and information about how to get them.  You
+probably don't need to actually know about details like where to get
+the data, but `simulations` can help you find the simulations you care
+about.  It is a `dict` object, where the keys are names of simulations
+(like "SXS:BBH:0123") and the values are the same types as [the
 `metadata`
 object](https://sxs.readthedocs.io/en/main/api/sxs.metadata.metadata/#sxs.metadata.metadata.Metadata),
-which contains metadata about that simulation — things like mass ratio, spins,
-etc.  This `metadata` reflects the actual output of the simulations, which
-leads to some inconsistencies in their formats.  A more consistent interface
-(though it is biased toward returning NaNs where a human might glean more
-information) is provided by `catalog.table`, which returns a
-[`pandas`](https://pandas.pydata.org/docs/) `DataFrame` with specific data
-types for each column.
+which contains metadata about that simulation — things like mass
+ratio, spins, etc.  This `metadata` reflects the actual output of the
+simulations, which leads to some inconsistencies in their formats.  A
+more consistent interface (though it is biased toward returning NaNs
+where a human might glean more information) is provided by
+`simulations.dataframe`, which returns a
+[`pandas`](https://pandas.pydata.org/docs/) `DataFrame` with specific
+data types for each column.
 
 The actual data itself is primarily contained in the next two objects.  [The
 `horizons`

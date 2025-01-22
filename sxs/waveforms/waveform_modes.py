@@ -3,6 +3,7 @@
 import re
 import numbers
 from collections.abc import MutableMapping
+import warnings
 import numpy as np
 from scipy.interpolate import CubicSpline
 from scipy.optimize import minimize_scalar
@@ -135,7 +136,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 sl = key[1]
                 if sl.step is None or sl.step==1:
                     ell1, m1 = self.LM[sl.start or 0]  # in case sl.start is None
-                    ell2, m2 = self.LM[sl.stop-1]
+                    ell2, m2 = self.LM[(sl.stop or 0)-1] # in case sl.stop is None
                     if ell1 <= ell2 and m1 == -ell1 and m2 == ell2:
                         # The sliced object has valid ell_min and ell_max values,
                         # so we can interpret it as a WaveformModes object; we
@@ -876,7 +877,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         ll = self.expectation_value_LL
 
         # Solve ⟨w|LᵇLᵃ|w⟩ ωₐ = -⟨w|Lᵇ∂ₜ|w⟩ for ω
-        ω = -np.linalg.solve(ll, ldt)
+        ω = -np.linalg.solve(ll, ldt[..., np.newaxis])[..., 0]
 
         return ω
 
@@ -938,6 +939,13 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         """
         from spherical.wigner import _rotate
+
+        if self.spin_weight is None:
+            raise ValueError(
+                "Cannot rotate a waveform with unknown spin weight.\n" +
+                "Presumably, somewhere upstream, the spin weight was\n" +
+                "not set for this waveform, when it should have been."
+            )
 
         R = quaternionic.array(quat)
         wigner = spherical.Wigner(self.ell_max, ell_min=self.ell_min)  #, mp_max=abs(self.spin_weight))
@@ -1120,6 +1128,9 @@ class WaveformModes(WaveformMixin, TimeSeries):
             raised.
 
         """
+        if self.frame_type == "corotating":
+            warnings.warn("This waveform is already in a corotating frame; returning original.")
+            return self
         frame, omega = self.corotating_frame(
             R0=R0,
             tolerance=tolerance,

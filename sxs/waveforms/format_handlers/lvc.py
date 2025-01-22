@@ -2,7 +2,8 @@ import numpy as np
 from scipy.optimize import root_scalar
 from scipy.interpolate import CubicSpline, UnivariateSpline
 import quaternionic
-from ... import jit
+
+from ... import jit, TimeSeries
 from ..waveform_modes import WaveformModesDict
 
 from numpy import exp
@@ -159,10 +160,10 @@ def to_lvc_conventions(
 
     # Transform to inertial-frame waveform, spins, and omega to `t_ref` frame
     h = h.to_inertial_frame()
-    omega = np.array([R_adjustment.rotate(v) for v in omega])
-    chi1 = np.array([R_adjustment.rotate(v) for v in chi1])
-    chi2 = np.array([R_adjustment.rotate(v) for v in chi2])
-    chi_remnant = np.array([R_adjustment.rotate(v) for v in horizons.C.chi_inertial])
+    omega = R_adjustment.rotate(omega)
+    chi1 = TimeSeries(R_adjustment.rotate(chi1), t_chi)
+    chi2 = TimeSeries(R_adjustment.rotate(chi2), t_chi)
+    chi_remnant = TimeSeries(R_adjustment.rotate(horizons.C.chi_inertial), t_remnant)
 
     # If requested, interpolate to time step `dt`, ensuring that `t=0` is preserved
     if dt is not None:
@@ -201,8 +202,9 @@ def to_lvc_conventions(
     # If `phi_ref` and `inclination` are not None, return polarizations
     if phi_ref is not None:
         hp, hc = h.evaluate(inclination, π/2 - phi_ref).ndarray.view((float, 2)).T
-        return t, hp, hc, dynamics_dict
+        hc *= -1  # Because h = hp - i hc
+        return h.t, hp, hc, dynamics_dict
     else:
         # Could do `dict(WaveformModesDict(h))` to convert to a plain dict
         hlm_dict = WaveformModesDict(h)
-        return t, hlm_dict, dynamics_dict
+        return h.t, hlm_dict, dynamics_dict

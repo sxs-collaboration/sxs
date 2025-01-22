@@ -1,7 +1,25 @@
 """Functions to facilitate generic handling of SXS-format data files"""
 
 import contextlib
-from . import waveforms
+from . import waveforms, doi_url
+
+
+class JSONHandler:
+    """Utility for loading and saving JSON files"""
+    @classmethod
+    def load(cls, file, **kwargs):
+        import json
+        if hasattr(file, "read"):
+            return json.load(file, **kwargs)
+        with open(file, "r") as f:
+            return json.load(f, **kwargs)
+    @classmethod
+    def save(cls, obj, file, **kwargs):
+        import json
+        if hasattr(file, "write"):
+            return json.dump(obj, file, **kwargs)
+        with open(file, "w") as f:
+            return json.dump(obj, f, **kwargs)
 
 
 def sxs_handler(format_string):
@@ -42,6 +60,8 @@ def sxs_handler(format_string):
     elif format_string.lower().startswith("waveforms"):
         format_string = re.sub(r"^waveforms\.?", "", format_string, count=1, flags=re.IGNORECASE)
         return waveforms.formats.get(format_string, waveforms.formats[None])
+    elif format_string.lower() == "json":
+        return JSONHandler
     else:
         format_list = [
             catalog.formats,
@@ -97,12 +117,14 @@ def sxs_loader(file, group=None):
         file_string = str(pathlib.Path(file).name).lower()
         if "catalog" in file_string:
             format_string = "catalog"
-        elif "metadata" in file_string:
+        elif file_string.startswith("metadata"):
             format_string = "metadata"
         elif "horizons" in file_string:
             format_string = "horizons"
         elif re.match("(rh_|rhoverm_|rpsi4_|rmpsi4_)", file_string):
             format_string = "waveforms"
+        elif file_string.endswith("json"):
+            format_string = "json"
         else:
             raise ValueError(f"File '{file}' contains no recognized format information")
     handler = sxs_handler(format_string)
@@ -110,74 +132,111 @@ def sxs_loader(file, group=None):
     return handler.load
 
 
-def load(location, download=None, cache=None, progress=None, **kwargs):
+def _safe_resolve_exists(path):
+    """Evaluate `path.resolve().exists()`  without throwing exception
+    
+    This is just here to work around a bug that turned up in Windows
+    on python 3.8.  It's not clear if it turns up in other versions.
+    """
+    try:
+        return path.resolve().exists()
+    except:
+        return False
+
+def load(location, download=None, cache=None, progress=None, truepath=None, **kwargs):
     """Load an SXS-format dataset, optionally downloading and caching
 
-    The dataset can be the full catalog of all SXS simulations, or metadata,
-    horizon data, or a waveform from an individual simulation.
+    The dataset can be the full catalog of all SXS simulations, or
+    metadata, horizon data, or a waveform from an individual
+    simulation.
 
     Parameters
     ----------
     location : {str, pathlib.Path}
-        A local file path, URL, SXS path, or SXS path pattern.  See Notes below.
+        A local file path, URL, SXS path, or SXS path pattern.  See
+        Notes below.
     download : {None, bool}, optional
-        If this is True and the data is recognized as starting with an SXS ID but
-        cannot be found in the cache, the data will be downloaded automatically.
-        If this is None (the default) and an SXS configuration file is found with a
-        `download` key, that value will be used.  If this is False, any
-        configuration will be ignored, and no files will be downloaded.  Note that
-        if this is True but `cache` is None, `cache` will automatically be switched
-        to True.
+        If this is True and the data is recognized as starting with an
+        SXS ID but cannot be found in the cache, the data will be
+        downloaded automatically.  If this is None (the default) and
+        an SXS configuration file is found with a `download` key, that
+        value will be used.  If this is False, any configuration will
+        be ignored, and no files will be downloaded.  Note that if
+        this is True but `cache` is None, `cache` will automatically
+        be switched to True.
     cache : {None, bool}, optional
-        The cache directory is determined by `sxs.sxs_directory`, and any downloads
-        will be stored in that directory.  If this is None (the default) and
-        `download` is True it will be set to True.  If this is False, any
-        configuration will be ignored and any files will be downloaded to a
-        temporary directory that will be deleted when python exits.
+        The cache directory is determined by `sxs.sxs_directory`, and
+        any downloads will be stored in that directory.  If this is
+        None (the default) and `download` is True it will be set to
+        True.  If this is False, any configuration will be ignored and
+        any files will be downloaded to a temporary directory that
+        will be deleted when python exits.
     progress : {None, bool}, optional
-        If True, full file names will be shown and, if a nonzero Content-Length
-        header is returned, a progress bar will be shown during any downloads.
-        Default is None, which just reads the configuration value with
-        `read_config("download_progress", True)`, defaulting to True.
+        If True, full file names will be shown and, if a nonzero
+        Content-Length header is returned, a progress bar will be
+        shown during any downloads.  Default is None, which just reads
+        the configuration value with `read_config("download_progress",
+        True)`, defaulting to True.
+    truepath : {None, str}, optional
+        If the file is downloaded, this allows the output path to be
+        overridden, rather than selected automatically.  The output
+        path will be stored in `truepath` relative to the cache
+        directory.
 
     Keyword Parameters
     ------------------
-    All remaining parameters are passed to the `load` function responsible for the
-    requested data.
+    All remaining parameters are passed to the `load` function
+    responsible for the requested data.
 
     See Also
     --------
     sxs.sxs_directory : Locate configuration and cache files
-    sxs.write_config : Set defaults for `download` and `cache` parameters
+    sxs.write_config : Set defaults for `download` and `cache`
+        parameters
 
     Notes
     -----
     This function can load data in various ways.
 
-      1) Given an absolute or relative path to a local file, it just loads the data
-         directly.
+      1) Given an absolute or relative path to a local file, it just
+         loads the data directly.
 
-      2) If `location` is a valid URL including the scheme (https://, or http://),
-         it will be downloaded regardless of the `download` parameter and
-         optionally cached.
+      2) If `truepath` is set, and points to a file that exists —
+         whether absolute, relative to the current working directory,
+         or relative to the cache directory — that file will be
+         loaded.
 
-      3) Given an SXS path — like 'SXS:BBH:1234/Lev5/h_Extrapolated_N2.h5' — the
-         file is located in the catalog for details.  This function then looks in
-         the local cache directory and loads it if present.
+      3) If `location` is a valid URL including the scheme (https://,
+         or http://), it will be downloaded regardless of the
+         `download` parameter and optionally cached.
 
-      4) If the SXS path is not found in the cache directory and `download` is set
-         to `True` (when this function is called, or in the sxs config file) this
-         function attempts to download the data.  Note that `download` must be
-         explicitly set in this case, or a ValueError will be raised.
+      4) Given an SXS simulation specification — like "SXS:BBH:1234",
+         "SXS:BBH:1234v2.0", "SXS:BBH:1234/Lev5", or
+         "SXS:BBH:1234v2.0/Lev5" — the simulation is loaded as an
+         `sxs.Simulation` object.
 
-    Note that downloading is switched off by default, but if it is switched on (set
-    to True), the cache is also switched on by default.
+      5) Given an SXS path — like
+         "SXS:BBH:1234/Lev5/h_Extrapolated_N2.h5" — the file is
+         located in the catalog for details.  This function then looks
+         in the local cache directory and loads it if present.
+
+      6) If the SXS path is not found in the cache directory and
+         `download` is set to `True` (when this function is called, or
+         in the sxs config file) this function attempts to download
+         the data.  Note that `download` must be explicitly set in
+         this case, or a ValueError will be raised.
+
+    If the file is downloaded, it will be stored in the cache
+    according to the `location`, unless `truepath` is set as noted
+    above, in which case it is stored there.  Note that downloading is
+    switched off by default, but if it is switched on (set to True),
+    the cache is also switched on by default.
 
     """
     import pathlib
     import urllib.request
-    from . import Catalog, read_config, sxs_directory
-    from .utilities import url, download_file, sxs_path_to_system_path
+    from . import Simulations, Simulation, read_config, sxs_directory, Catalog
+    from .utilities import url, download_file, sxs_path_to_system_path, sxs_id_version_lev_exact_re, lev_path_re
 
     # Note: `download` and/or `cache` may still be `None` after this
     if download is None:
@@ -197,26 +256,60 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
     json_path = path.with_suffix('.json')
 
     if not path.exists():
-        if h5_path.resolve().exists():
+        if truepath and (testpath := pathlib.Path(sxs_path_to_system_path(truepath)).expanduser()).exists():
+            path = testpath
+
+        elif truepath and (testpath := cache_path / sxs_path_to_system_path(truepath)).exists():
+            path = testpath
+
+        elif _safe_resolve_exists(h5_path):
             path = h5_path
 
-        elif json_path.resolve().exists():
+        elif _safe_resolve_exists(json_path):
             path = json_path
 
         elif "scheme" in url.parse(location):
             m = url.parse(location)
-            path_name = urllib.request.url2pathname(f"{m['host']}/{m['port']}/{m['resource']}")
-            path = cache_path / path_name
+            truepath = truepath or urllib.request.url2pathname(f"{m['host']}/{m['port']}/{m['resource']}")
+            path = cache_path / sxs_path_to_system_path(truepath)
             if not path.resolve().exists():
                 if download is False:  # Again, we want literal False, not casting to False
-                    raise ValueError(f"File '{path_name}' not found in cache, but downloading turned off")
+                    raise ValueError(f"File '{truepath}' not found in cache, but downloading turned off")
                 download_file(location, path, progress=progress)
 
         elif location == "catalog":
             return Catalog.load(download=download)
 
+        elif location == "simulations":
+            return Simulations.load(
+                download=download,
+                local=kwargs.get("local", False),
+                annex_dir=kwargs.get("annex_dir", None)
+            )
+
+        elif location == "dataframe":
+            return Simulations.load(
+                download=download,
+                local=kwargs.get("local", False),
+                annex_dir=kwargs.get("annex_dir", None)
+            ).dataframe
+
+        elif sxs_id_version_lev_exact_re.match(location):
+            return Simulation(location, download=download, cache=cache, progress=progress, **kwargs)
+
         else:
-            # Try to find an appropriate SXS file
+            # Try to find an appropriate SXS file in the simulations
+            simulations = Simulations.load(
+                download=download,
+                local=kwargs.get("local", False),
+                annex_dir=kwargs.get("annex_dir", None)
+            )
+            if lev_path_re.sub("", location) in simulations:
+                return Simulation(
+                    location, download=download, cache=cache, progress=progress, **kwargs
+                )
+
+            # Try to find an appropriate SXS file in the catalog
             catalog = Catalog.load(download=download)
             selections = catalog.select_files(location)
             if not selections:
@@ -226,8 +319,8 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
                 print("    " + "\n    ".join(selections))
             paths = []
             for sxs_path, file_info in selections.items():
-                truepath = sxs_path_to_system_path(file_info.get("truepath", sxs_path))
-                path = cache_path / truepath
+                truepath = truepath or sxs_path_to_system_path(file_info.get("truepath", sxs_path))
+                path = cache_path / sxs_path_to_system_path(truepath)
                 if not path.resolve().exists():
                     download_url = file_info["download"]
                     download_file(download_url, path, progress=progress)
@@ -240,7 +333,43 @@ def load(location, download=None, cache=None, progress=None, **kwargs):
 
     loader = sxs_loader(path, kwargs.get("group", None))
 
-    return loader(path, **kwargs)
+    loaded = loader(path, **kwargs)
+    try:
+        loaded.__file__ = str(path)
+    except:
+        pass
+    return loaded
+
+
+def load_via_sxs_id(sxsid, location, *, download=None, cache=None, progress=None, truepath=None, **kwargs):
+    """Load a path via a (possibly versioned) SXS ID
+    
+    Given some SXS ID like "SXS:BBH:1234" or a versioned ID like
+    "SXS:BBH:1234v2.0", we may wish to first resolve the DOI to a
+    specific Zenodo record, and then load a specific path under that
+    record — for example, we may want to export the Zenodo record as
+    JSON by appending "export/json" to the Zenodo URL, which we
+    *could* get as
+
+        load("https://zenodo.org/records/13152488/export/json")
+
+    because that's the record "SXS:BBH:1234v2.0" resolves to.
+    However, we don't want to keep track of the Zenodo URL, so we
+    just use this function instead, as
+
+        load_via_sxs_id("SXS:BBH:1234v2.0", "export/json")
+    
+    """
+    from pathlib import Path
+    import requests
+    from .utilities import sxs_path_to_system_path
+    url = f"{doi_url}{sxsid}"
+    response = requests.head(url, allow_redirects=True)
+    if response.status_code != 200:
+        raise ValueError(f"Could not load via DOI {url=}")
+    final_url = f"{response.url}/{location}"
+    truepath = truepath or Path(sxs_path_to_system_path(sxsid)) / location
+    return load(final_url, download, cache, progress, truepath, **kwargs)
 
 
 @contextlib.contextmanager
@@ -291,175 +420,9 @@ def load_lvc(
 ):
     r"""Load an SXS waveform in LVC convention.
 
-    Returns an SXS waveform (modes or polarizations) and dynamics
-    (including angular velocities, frame quaternions, and spins) in
-    the inertial frame that coincides with the waveform-defined frame
-    defined at a reference time `t_ref` or reference frequency
-    `f_ref`.
-
-    Parameters
-    ==========
-    sxs_id : str
-        The SXS ID of the simulation to use — e.g., "SXS:BBH:1234".
-    t_ref : float, optional
-        The reference time at which the waveform frame is specified.
-        This is measured in units of M, and defined relative to the
-        epoch time (see below).  Either `t_ref` or `f_ref` must be
-        specified.  If `t_ref` is given, it is used to compute
-        `f_ref`.
-    f_ref : float, optional
-        The reference frequency, in units of cycles/M, at which the
-        waveform frame is specified.  Either `t_ref` or `f_ref` must
-        be specified.  If `f_ref` is given, it is used to compute
-        `t_ref`.
-    dt : float, optional
-        The time step, in units of M, to which to interpolate the
-        waveform.
-    f_low : float, optional
-        The lower frequency bound, in units of cycles/M, for the
-        waveform.
-    ell_max : int, optional
-        The maximum ell to include in the waveform.
-    phi_ref : float, optional
-        The binary's phase in the coprecessing frame, measured at
-        `t_ref`. Should be between 0 and $2\pi$.
-    inclination : float, optional
-        Angle between the binary's angular momentum and the line of
-        sight of the observer, measured at `t_ref`.  Should be between
-        0 and $\pi$.
-    ell_max_epoch : int, optional
-        The maximum ell to include in the epoch time calculation,
-        which sets t=0 at the maximum of the L^2 norm, calculated by
-        including all modes up to and including this ell value.
-
-    Returns
-    =======
-    times : float array
-        Uniformly spaced 1D array of times, in units of M, at which
-        the waveform and dynamics quantities are returned.  Aligned
-        such that peak of waveform modes with ell=2 is at t=0.
-    hlm_dict : dict [optional]
-        Dictionary of waveform modes in the inertial frame that
-        coincides with the waveform-defined coprecessing frame at
-        `f_ref`.  Each mode in the dictionary is a 1D array of
-        complex-valued floats with values corresponding to each time
-        node.  Keys:[(ell,m)] for all ell<=ell_max and -ell<=m<=+ell.
-        This is returned only if the input values of `phi_ref` and
-        `inclination` are both None.
-    hp, hc : float arrays [optional]
-        1D-arrays of real-valued GW polarizations evaluated in the
-        frame of the observer at each time node.  Polarizations are
-        computed using all modes up to ell=ell_max, with one value at
-        each time node.  These are returned only if either of the
-        input values of `phi_ref` and `inclination` is not None.
-    dynamics_dict : dict
-        Dictionary of real-valued arrays of dynamics quantities:
-            * "t_ref": The reference time at which the waveform frame
-              is specified.
-            * "f_ref": The waveform's frequency at `t_ref`.
-            * "t_low": The earliest time in the waveform.
-            * "f_low": The waveform's frequency at `t_low`.
-            * "chi1_ref": Cartesian spin components for the more
-              massive object, evaluated at `t_ref` in the
-              waveform-defined inertial frame.
-            * "chi2_ref": Cartesian spin components for the less
-              massive object, evaluated at `t_ref` in the
-              waveform-defined inertial frame.
-            * "frame_quat": Quaternions describing the instantaneous
-              transformation from the inertial frame to the corotating
-              frame at each time node as described in arXiv:1905.09300
-              and using conventions in Appendix B of arXiv:1110.2965.
-              Array of shape (len(times),4) with four quaternion
-              components at each time node.  The first element at each
-              time node is the scalar part.
-            * "frame_omega": Angular velocity vector of the corotating
-              frame at each time node.  Array of shape (len(times),3)
-              with three components at each time node.
-            * "times_spins": The times, in units of M, at which `chi`
-              and `chi2` are returned.  Note that these are coordinate
-              times deep within the dynamic region of the simulation,
-              and so cannot be precisely related to the times in the
-              asymptotic waveform.
-            * "chi1": Cartesian spin components for the more massive
-              object, evaluated in the waveform-defined inertial
-              frame.  Array of shape (len(times_spins),3) which
-              contains the Cartesian spin components
-              \{chi_{1x},chi_{1y},chi_{1z}\} at each time node.
-            * "chi2": Cartesian spin components for the less massive
-              object, evaluated in the waveform-defined inertial
-              frame.  Array of shape (len(times_spins),3) which
-              contains the Cartesian spin components
-              \{chi_{2x},chi_{2y},chi_{2z}\} at each time node.
-            * "times_remnant": The times, in units of M, at which
-              `chi_remnant` and `mass_remnant` are returned.  Note
-              that these are coordinate times deep within the dynamic
-              region of the simulation, and so cannot be precisely
-              related to the times in the asymptotic waveform.
-            * "chi_remnant": Cartesian spin components for the remnant
-              black hole, evaluated in the waveform-defined inertial
-              frame.  Array of shape (len(times_remnant),3) which
-              contains the Cartesian spin components
-              \{chi_{rx},chi_{ry},chi_{rz}\}.
-            * "mass_remnant": The Christodoulou mass of the remnant
-              black hole as a function of time.  Array of shape
-              (len(times_remnant),).
-
-    See also
-    ========
-    sxs.load : General-purpose function to load SXS data in native
-        format
-    sxs.waveforms.to_lvc_conventions : Inner function that does all
-        the work for this function
-
-    Conventions
-    ===========
-    We assume geometric units for time (units of M) and frequency
-    (units of cycles/M), with total mass M equal to 1.
-    
-    Epoch time is defined by the peak of the $L^2$ norm of the modes:
-
-        $$t_e = \argmax_t \sum_\ell \sum_m |h_{\ell,m}(t)|^2,$$
-
-    where the sum over $\ell$ ranges from 2 to `ell_max_epoch`.  All
-    time axes are then adjusted so that $t_e = 0$.
-
-    Frequencies are measured from the waveform, rather than orbital
-    trajectories, in terms of the angular-velocity vector given by
-    equation (7) of arXiv:1302.2919.  The frequency is defined as the
-    magnitude of this vector divided by $2\pi$.
-
-    Waveforms, spins, dynamics, times, inclination angle and GW
-    reference phase are all defined in the inertial frame that
-    coincides with the "waveform-defined frame" at the reference time.
-    This frame is chosen so that the $z$ axis is aligned with the
-    dominant principal axis of the matrix given by equation (2a) of
-    arXiv:1109.5224, except that the strain is used in place of
-    $\psi_4$.  That axis is only determined up to a sign, so we choose
-    the positive $z$ axis to be more parallel than antiparallel to the
-    angular velocity.  Rotation about the $z$ axis is chosen to
-    approximate the condition that the more massive black hole is
-    located on the positive $x$ axis at the reference time, but can be
-    written solely in terms of the waveform modes:
-
-        * $\Im{h_{2,2} + \bar{h}_{2,-2}} = 0$
-        * $\Re{h_{2,2} + \bar{h}_{2,-2}} < 0$
-        * $\Im{h_{2,1} + \bar{h}_{2,-1}} < 0$
-
-    The first two conditions are necessary for cases of symmetric
-    systems in which $h_{2,\pm 1}=0$; the last condition breaks the
-    degeneracy of the first two under rotation about the $z$ axis by
-    $\pi$.  For configurations that are symmetric under that rotation,
-    $h_{2,1}$ will be zero, so this condition will be impossible to
-    apply, but the symmetry of the system will mean that there is no
-    difference in the result.
-
-    Quaternion conventions are described in Appendix B of
-    arXiv:1110.2965.  In particular, we use the convention that
-
-        Q = q_0 + vec(q) = (q_0, q_1, q_2, q_3)
-
-    where q_0 is the scalar part.
-
+    This is a deprecated function that is a thin wrapper around the
+    method `sxs.WaveformModes.to_lvk`.  It is recommended that you use
+    that method directly.
     """
     lev = kwargs.pop("lev", "Lev")  # If number is unspecified, load chooses highest
     waveform_name = kwargs.pop("waveform_name", "Strain_N2.h5")

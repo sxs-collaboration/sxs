@@ -15,8 +15,13 @@ from . import url, inspire, monotonicity, decimation, lvcnr, references
 from .downloads import download_file
 from .bitwise import diff, xor, multishuffle
 from .sxs_identifiers import (
-    sxs_identifier_regex, sxs_identifier_re, lev_regex, lev_re, sxs_id,
-    lev_number, simulation_title, sxs_id_to_url
+    sxs_identifier_regex, sxs_identifier_re,
+    lev_regex, lev_re, lev_path_re,
+    sxs_id_version_lev_regex, sxs_id_version_lev_re,
+    sxs_id_version_lev_exact_regex, sxs_id_version_lev_exact_re,
+    sxs_path_regex, sxs_path_re,
+    sxs_id, sxs_id_and_version,
+    lev_number, simulation_title, sxs_id_to_url,
 )
 from .sxs_directories import (
     sxs_directory, read_config, write_config, sxs_path_to_system_path, cached_path
@@ -34,6 +39,7 @@ from .smooth_functions import (
     transition_to_constant, transition_to_constant_inplace,
     bump_function, bump_function_inplace
 )
+from .inspire import inspire2doi
 
 
 def version_info():

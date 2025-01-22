@@ -17,14 +17,15 @@ nav:
   - Home: "index.md"
   - Tutorials:
     - "tutorials/00-Introduction.ipynb"
-    - "tutorials/02-Catalog.ipynb"
-    - "tutorials/01-Metadata.ipynb"
+    - "tutorials/01-Simulations_and_Metadata.ipynb"
+    - "tutorials/02-Simulation.ipynb"
     - "tutorials/03-Horizons.ipynb"
     - "tutorials/04-Waveforms.ipynb"
     - "tutorials/05-PreprocessingForFFTs.ipynb"
   - API:
     - "Load": "api/load.md"
-    - "Catalog": "api/catalog.md"
+    - "Simulations": "api/simulations.md"
+    - "Simulation": "api/simulation.md"
     - "Metadata": "api/metadata.md"
     - "Time Series": "api/time_series.md"
     - "Horizons": "api/horizons.md"

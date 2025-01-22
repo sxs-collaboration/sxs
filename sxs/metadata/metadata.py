@@ -90,7 +90,7 @@ class Metadata(collections.OrderedDict):
                 else:
                     return cls.from_json_file(json_path)
             else:
-                raise ValueError(f"Could not find file named '{file_name}', '{json_path}', or '{txt_path}'")
+                raise ValueError(f"Could not find file named '{json_path}' or '{txt_path}'")
 
     load = from_file
 

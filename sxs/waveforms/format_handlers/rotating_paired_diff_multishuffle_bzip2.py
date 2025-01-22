@@ -322,7 +322,7 @@ def save(
 def load(
         file_name, ignore_validation=None, check_md5=True,
         transform_to_inertial=True, convert_from_conjugate_pairs=True,
-        compression=bz2, diff=diff, formats=None,
+        compression=bz2, diff=diff, formats=None, metadata=None,
         **kwargs
 ):
     """Load a waveform in RPDMB format
@@ -390,6 +390,9 @@ def load(
         reported in the metadata.  If `None`, the default, t=0 will be
         used if present in the data, and the first time step
         otherwise.
+    metadata : Metadata, optional
+        If given, this metadata will be used instead of attempting to
+        load the metadata from an accompanying file.
 
     Note that the keyword parameters will be overridden by
     corresponding entries in the JSON file, if they exist.  If the
@@ -432,7 +435,7 @@ def load(
     # This means we need to change the suffix *before* the resolve() call.
     h5_path = pathlib.Path(file_name_str).with_suffix(".h5").expanduser().resolve()
     json_path = pathlib.Path(file_name_str).with_suffix(".json").expanduser().resolve()
-    metadata_path = (pathlib.Path(file_name_str).parent / "metadata.json").expanduser().resolve()
+    metadata_path = (pathlib.Path(file_name_str).parent / "metadata").expanduser().resolve()
 
     # This will be used for validation
     h5_size = h5_path.stat().st_size
@@ -567,11 +570,11 @@ def load(
     if transform_to_inertial:
         w = w.to_inertial_frame()
 
-    if not metadata_path.exists():
-        invalid(f'\nMetadata file "{metadata_path}" cannot be found, but is expected for this data format.')
-        metadata = None
-    else:
-        metadata = Metadata.from_file(metadata_path)
+    if metadata is None:
+        try:
+            metadata = Metadata.from_file(metadata_path)
+        except ValueError as e:
+            invalid(f"\n{e},\nbut one is expected for this data format.")
 
     dtb = kwargs.pop("drop_times_before", 0)
     if dtb=="begin":

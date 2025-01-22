@@ -3,9 +3,8 @@
 import re
 import platform
 import functools
-from .sxs_identifiers import sxs_identifier_regex
+from .sxs_identifiers import sxs_path_re
 
-_sxs_identifier_regex = re.compile(sxs_identifier_regex)
 _platform_system = platform.system()
 
 
@@ -215,12 +214,14 @@ def sxs_directory(directory_type, persistent=True):
 
 
 def sxs_path_to_system_path(path):
-    """Translate SXS path to a system-compatible path
+    r"""Translate SXS path to a system-compatible path
 
     Parameters
     ----------
     path : str
-        SXS-style path to a file — for example, "SXS:BBH:0123/Lev4/Horizons.h5"
+        SXS-style path to a file — for example, r"SXS:BBH:0123\Lev4:Horizons.h5"
+        becomes r"SXS_BBH_0123\Lev4_Horizons.h5" on Windows.  Other systems can
+        handle the original path, so are not changed.
 
     Notes
     -----
@@ -230,7 +231,7 @@ def sxs_path_to_system_path(path):
 
     """
     if _platform_system == "Windows":
-        return _sxs_identifier_regex.sub(lambda s: s.group(0).replace(":", "_"), str(path))
+        return sxs_path_re.sub(lambda s: s.group(0).replace(":", "_"), str(path))
     else:
         return path
 

@@ -98,9 +98,9 @@ def load(file_name, **kwargs):
             if (match:=regex.match(legend_entry)):
                 ell, m = int(match[2]), int(match[3])
                 if match[1] == "Real":
-                    data[:, spherical.Yindex(ell, m)] += h5[:, i][indices]
+                    data[:, spherical.Yindex(ell, m, ell_min=ell_min)] += h5[:, i][indices]
                 elif match[1] == "Imag":
-                    data[:, spherical.Yindex(ell, m)] += 1j * h5[:, i][indices]
+                    data[:, spherical.Yindex(ell, m, ell_min=ell_min)] += 1j * h5[:, i][indices]
                 else:
                     raise ValueError(f"Unrecognized legend entry '{legend_entry}'")
 
