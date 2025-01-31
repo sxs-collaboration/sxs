@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.10', '3.12']
+        python-version: ['3.10', '3.13']
 
     steps:
       - name: Skip replicates on main branch
@@ -78,7 +78,7 @@ jobs:
         run: hatch run test
 
       - name: Upload coverage
-        if: "matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'"
+        if: "matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'"
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -168,28 +168,3 @@ jobs:
         run: |
           hatch build
           hatch publish
-
-
-  binder:
-    name: Trigger a binder rebuild
-    needs: release
-    runs-on: ubuntu-latest
-    if: >-
-        github.ref == 'refs/heads/main'
-        && !contains(github.event.head_commit.message, '[no release]')
-        && (success() || contains(github.event.head_commit.message, '[skip tests]'))
-
-    steps:
-      - name: Trigger other repository
-        # I created a new personal access token via github profile > settings > developer settings >
-        # personal access tokens.  I clicked the "repo" checkbox, created the token, and copied it.
-        # Then, I went to this repo's settings > secrets, and created a new secret named
-        # "MOBLE_TOKEN" with a value of "moble:<token>", where <token> is the copied token.  This
-        # command sends a POST to the other repo, which is set up to build on `workflow_dispatch`.
-        run: |
-          curl \
-          -X POST \
-          -H "Accept: application/vnd.github.v3+json" \
-          -u ${{ secrets.MOBLE_TOKEN }} \
-          https://api.github.com/repos/moble/sxs_notebooks/actions/workflows/binder.yml/dispatches \
-          -d '{"ref":"refs/heads/master"}'
