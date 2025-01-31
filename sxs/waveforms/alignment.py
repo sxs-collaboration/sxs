@@ -78,7 +78,6 @@ def align1d(wa, wb, t1, t2, n_brute_force=None):
 
     """
     from scipy.interpolate import CubicSpline
-    from scipy.integrate import trapezoid
     from scipy.optimize import least_squares
 
     # Check that (t1, t2) makes sense and is actually contained in both waveforms
@@ -245,7 +244,7 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, max_δ
 
     # Remove certain modes, if requested
     ell_max = min(wa.ell_max, wb.ell_max)
-    if include_modes != None:
+    if include_modes is not None:
         for L in range(2, ell_max + 1):
             for M in range(-L, L + 1):
                 if not (L, M) in include_modes:
@@ -313,7 +312,7 @@ def _cost4d(δt_δso3, args):
 
     modes_A, modes_B, t_reference, normalization = args
     δt = δt_δso3[0]
-    δso3 = np.exp(quaternionic.array([0] + list(δt_δso3[1:])))
+    δSO3 = np.exp(quaternionic.array.from_vector_part(δt_δso3[1:]))
 
     modes_A_at_δt = modes_A(t_reference + δt)
     ell_max = int(np.sqrt(modes_A_at_δt.shape[1] + 4)) - 1
@@ -328,7 +327,7 @@ def _cost4d(δt_δso3, args):
         spin_weight=-2,
     )
 
-    wa_prime = wa_prime.rotate(δso3)
+    wa_prime = wa_prime.rotate(δSO3)
 
     # Take the sqrt because least_squares squares the inputs...
     diff = trapezoid(
@@ -343,8 +342,8 @@ def align4d(
     wb,
     t1,
     t2,
-    n_brute_force_δt=None,
-    n_brute_force_δso3=None,
+    n_brute_force_δt=1_000,
+    n_brute_force_δϕ=None,
     max_δt=np.inf,
     include_modes=None,
     align2d_first=False,
@@ -352,27 +351,27 @@ def align4d(
 ):
     """Align waveforms by optimizing over a time translation and an SO(3) rotation.
 
-    This function determines the optimal transformation to apply to `wa` by
-    minimizing the averaged (over time) L² norm (over the sphere) of the difference
-    of the waveforms.
+    This function determines the optimal transformation to apply to `wa` by 
+    minimizing the averaged (over time) L² norm (over the sphere) of the 
+    difference of the waveforms.
 
     The integral is taken from time `t1` to `t2`.
 
-    Note that the input waveforms are assumed to be initially aligned at least well
-    enough that:
+    Note that the input waveforms are assumed to be initially aligned at least 
+    well enough that:
 
-      1) the time span from `t1` to `t2` in the two waveforms will overlap at
+      1) the time span from `t1` to `t2` in the two waveforms will overlap at 
          least slightly after the second waveform is shifted in time; and
-      2) waveform `wb` contains all the times corresponding to `t1` to `t2` in
+      2) waveform `wb` contains all the times corresponding to `t1` to `t2` in 
          waveform `wa`.
 
-    The first of these can usually be assured by simply aligning the peaks prior to
-    calling this function:
+    The first of these can usually be assured by simply aligning the peaks prior 
+    to calling this function:
 
         wa.t -= wa.max_norm_time() - wb.max_norm_time()
 
-    The second assumption will be satisfied as long as `t1` is not too close to the
-    beginning of `wb` and `t2` is not too close to the end.
+    The second assumption will be satisfied as long as `t1` is not too close to 
+    the beginning of `wb` and `t2` is not too close to the end.
 
     Parameters
     ----------
@@ -383,29 +382,27 @@ def align4d(
     t2 : float
         Beginning and end of integration interval
     n_brute_force_δt : int, optional
-        Number of evenly spaced δt values between (t1-t2) and (t2-t1) to sample
-        for the initial guess.  By default, this is just the maximum number of
-        time steps in the range (t1, t2) in the input waveforms.  If this is
-        too small, an incorrect local minimum may be found.
-    n_brute_force_δso3 : int, optional
-        Number of evenly spaced values over the two sphere to sample
-        for the initial guess. Dy default, this is 5.
+        Number of evenly spaced δt values between (t1-t2) and (t2-t1) to sample 
+        for the initial guess.  By default, this is 1,000.  If this is too small, 
+        an incorrect local minimum may be found.
+    n_brute_force_δϕ : int, optional
+        Number of evenly spaced angles about the angular-velocity axis to sample 
+        for the initial guess.  By default, this is `2 * (2 * ell_max + 1)`.
     max_δt : float, optional
         Max δt to allow for when choosing the initial guess.
     include_modes: list, optional
         A list containing the (ell, m) modes to be included in the L² norm.
     align2d_first : bool, optional
-        Do a 2d align first for an initial guess, with no SO(3) initial guess
+        Do a 2d align first for an initial guess, with no SO(3) initial guess 
         (besides the phase returned by the 2d solve)
     nprocs: int, optional
-        Number of cpus to use. Default is maximum number.
-        If -1 is provided, then no multiprocessing is performed.
+        Number of cpus to use.  Default is maximum number.  If -1 is provided, 
+        then no multiprocessing is performed.
 
     Returns
     -------
     error: float
-        Cost of scipy.optimize.least_squares
-        This is 0.5 ||wa - wb||² / ||wb||²
+        Cost of scipy.optimize.least_squares.  This is 0.5 ||wa - wb||² / ||wb||²
     wa_prime: WaveformModes
         Resulting waveform after transforming `wa` using `optimum`
     optimum: OptimizeResult
@@ -413,18 +410,24 @@ def align4d(
 
     Notes
     -----
-    Choosing the time interval is usually the most difficult choice to make when
-    aligning waveforms.  Assuming you want to align during inspiral, the times must
-    span sufficiently long that the waveforms' norm (equivalently, orbital
-    frequency changes) significantly from `t1` to `t2`.  This means that you cannot
-    always rely on a specific number of orbits, for example.  Also note that
-    neither number should be too close to the beginning or end of either waveform,
-    to provide some "wiggle room".
+    Choosing the time interval is usually the most difficult choice to make when 
+    aligning waveforms.  Assuming you want to align during inspiral, the times 
+    must span sufficiently long that the waveforms' norm (equivalently, orbital 
+    frequency changes) significantly from `t1` to `t2`.  This means that you 
+    cannot always rely on a specific number of orbits, for example.  Also note 
+    that neither number should be too close to the beginning or end of either 
+    waveform, to provide some "wiggle room".
 
     """
     from scipy.interpolate import CubicSpline
     from scipy.optimize import least_squares
     from .. import WaveformModes
+
+    if wa.spin_weight != wb.spin_weight:
+        raise ValueError(f"Waveform spin weights do not match: {wa.spin_weight=} != {wb.spin_weight=}")
+    spin_weight = wa.spin_weight
+    ell_min = max(wa.ell_min, wb.ell_min)
+    ell_max = min(wa.ell_max, wb.ell_max)
 
     wa_orig = wa
     wa = wa.copy()
@@ -441,8 +444,6 @@ def align4d(
     # Figure out time offsets to try
     δt_lower = max(-max_δt, max(t1 - t2, t2 - wa.t[-1]))
     δt_upper = min(max_δt, min(t2 - t1, t1 - wa.t[0]))
-        
-    ell_max = min(wa.ell_max, wb.ell_max)
 
     t_reference = wb.t[np.argmin(abs(wb.t - t1)) : np.argmin(abs(wb.t - t2)) + 1]
     
@@ -455,44 +456,50 @@ def align4d(
         wb_interp = wb.interpolate(t_reference)
         
         # Get rotor initial guess
-        # negative sign because quaternionic.align aligns omegab to omegaa
         omegaa = wa_interp.angular_velocity
         omegab = wb_interp.angular_velocity
-        R_IG = -quaternionic.align(omegaa, omegab)
+        R_IG = quaternionic.align(omegaa, omegab)
     else:
-        _, _, res = align2d(wa, wb, t1, t2, max_δt=50, n_brute_force_δt=1000, nprocs=nprocs)
+        _, _, res = align2d(
+            wa, wb, t1, t2, max_δt=50,
+            n_brute_force_δt=n_brute_force_δt, nprocs=nprocs
+        )
         δt_IG = res.x[0]
 
         wa_interp = wa.interpolate(t_reference + δt_IG)
         wb_interp = wb.interpolate(t_reference)
 
         # Get rotor initial guess
-        # negative sign because quaternionic.align aligns omegab to omegaa
         omegaa = wa_interp.angular_velocity
         omegab = wb_interp.angular_velocity
-        R_IG = -quaternionic.align(omegaa, omegab)
+        R_IG = quaternionic.align(omegaa, omegab)
         
         R_IG = quaternionic.array([0, 0, 0, res.x[1] / 2]) * R_IG
-                
+
     # Brute force over R_IG * exp(theta * z / 2) with δt_IG
-    δt_δso3_brute_force = []
-    for angle in np.linspace(0, 2 * np.pi, 2 * (2 * ell_max + 1), endpoint=False):
-        δt_δso3_brute_force.append([δt_IG, *np.log(R_IG * np.exp(quaternionic.array([0, 0, 0, angle / 2]))).vector])
+    n_brute_force_δϕ = n_brute_force_δϕ or 2 * (2 * ell_max + 1)
+    δt_δso3_brute_force = [
+        [δt_IG, *np.log(R_IG * np.exp(quaternionic.array([0, 0, 0, angle / 2]))).vector]
+        for angle in np.linspace(0, 2 * np.pi, num=n_brute_force_δϕ, endpoint=False)
+    ]
 
     # Remove certain modes, if requested
-    if include_modes != None:
-        for L in range(2, ell_max + 1):
+    if include_modes is not None:
+        for L in range(ell_min, ell_max + 1):
             for M in range(-L, L + 1):
                 if not (L, M) in include_modes:
                     wa.data[:, wa.index(L, M)] *= 0
                     wb.data[:, wb.index(L, M)] *= 0
 
     # Define the cost function
-    modes_A = CubicSpline(wa.t, wa[:, wa.index(2, -2) : wa.index(ell_max + 1, -(ell_max + 1))].data)
-    modes_B = CubicSpline(wb.t, wb[:, wb.index(2, -2) : wb.index(ell_max + 1, -(ell_max + 1))].data)(t_reference)
+    modes_A = CubicSpline(wa.t, wa[:, wa.index(ell_min, -ell_min) : wa.index(ell_max, ell_max)+1].data)
+    modes_B = CubicSpline(wb.t, wb[:, wb.index(ell_min, -ell_min) : wb.index(ell_max, ell_max)+1].data)(t_reference)
 
     normalization = trapezoid(
-        CubicSpline(wb.t, wb[:, wb.index(2, -2) : wb.index(ell_max + 1, -(ell_max + 1))].norm ** 2)(t_reference),
+        CubicSpline(
+            wb.t,
+            wb[:, wb.index(ell_min, -ell_min) : wb.index(ell_max, ell_max)+1].norm ** 2
+        )(t_reference),
         t_reference,
     )
 
@@ -507,7 +514,10 @@ def align4d(
         pool.close()
         pool.join()
     else:
-        cost_brute_force = [cost_wrapper(δt_δso3_brute_force_item) for δt_δso3_brute_force_item in δt_δso3_brute_force]
+        cost_brute_force = [
+            cost_wrapper(δt_δso3_brute_force_item)
+            for δt_δso3_brute_force_item in δt_δso3_brute_force
+        ]
 
     δt_δso3 = δt_δso3_brute_force[np.argmin(cost_brute_force)]
     
@@ -515,21 +525,21 @@ def align4d(
     optimum = least_squares(
         cost_wrapper,
         δt_δso3,
-        bounds=[(δt_lower, -np.pi, -np.pi, -np.pi), (δt_upper, np.pi, np.pi, np.pi)],
+        bounds=[(δt_lower, -np.pi/2, -np.pi/2, -np.pi/2), (δt_upper, np.pi/2, np.pi/2, np.pi/2)],
         max_nfev=50000,
     )
     δt = optimum.x[0]
-    δso3 = np.exp(quaternionic.array([0] + list(optimum.x[1:])))
+    δSO3 = np.exp(quaternionic.array.from_vector_part(optimum.x[1:]))
     
     wa_prime = WaveformModes(
-        input_array=(wa_orig[:, wa_orig.index(2, -2) : wa_orig.index(ell_max + 1, -(ell_max + 1))].data),
+        input_array=(wa_orig[:, wa_orig.index(ell_min, -ell_min) : wa_orig.index(ell_max, ell_max)+1].data),
         time=wa_orig.t - δt,
         time_axis=0,
         modes_axis=1,
-        ell_min=2,
+        ell_min=ell_min,
         ell_max=ell_max,
-        spin_weight=-2,
+        spin_weight=spin_weight,
     )
-    wa_prime = wa_prime.rotate(δso3)
+    wa_prime = wa_prime.rotate(δSO3)
 
     return optimum.cost, wa_prime, optimum
