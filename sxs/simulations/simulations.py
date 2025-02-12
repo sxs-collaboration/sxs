@@ -509,7 +509,7 @@ class Simulations(collections.OrderedDict):
             # simulations["end_of_trajectory_time"].map(floater),
             # simulations["merger_time"].map(floater),
             simulations["number_of_orbits"].map(floater),
-            simulations["superseded_by"],
+            # simulations["superseded_by"],
             simulations["DOI_versions"],
             simulations["keywords"],
             simulations["date_link_earliest"].map(datetime_from_string),
@@ -519,8 +519,8 @@ class Simulations(collections.OrderedDict):
         ), axis=1))
 
         sims_df.insert(0, "deprecated", (
-            ~sims_df.superseded_by.isna()
-            | sims_df["keywords"].map(lambda ks: "deprecated" in ks)
+            # ~sims_df.superseded_by.isna() |
+            sims_df["keywords"].map(lambda ks: "deprecated" in ks)
         ))
 
         # We have ignored the following fields present in the

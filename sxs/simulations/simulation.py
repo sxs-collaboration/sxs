@@ -133,7 +133,7 @@ def Simulation(location, *args, **kwargs):
     url = f"{doi_url}{sxs_id}"
 
     # Deal with "superseded_by" field, or "deprecated" keyword in the metadata
-    deprecated = ("deprecated" in metadata.get("keywords", []) or metadata.get("superseded_by", False))
+    deprecated = ("deprecated" in metadata.get("keywords", []) )#or metadata.get("superseded_by", False))
     if not kwargs.get("ignore_deprecation", False):
         auto_supersede = kwargs.get("auto_supersede", read_config("auto_supersede", False))
         if (
@@ -160,6 +160,12 @@ def Simulation(location, *args, **kwargs):
                         + "specify a version to load this waveform anyway."
                     )
                 elif auto_supersede and isinstance(superseded_by, str):
+                    # raise NotImplementedError(
+                    #     f"\nSimulation '{sxs_id}' cannot be automatically superseded.\n"
+                    #     + "The auto_supersede option is temporarily disabled.  The superseding\n"
+                    #     + "simulations have been removed from the metadata, and the new function\n"
+                    #     + "to load them has not yet been implemented.  Please specify a version.\n"
+                    # )
                     message = f"\nSimulation '{sxs_id}' is being automatically superseded by '{superseded_by}'."
                     warn(message)
                     new_location = f"{superseded_by}{input_version}"
