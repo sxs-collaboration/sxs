@@ -75,7 +75,7 @@ jobs:
 
       - name: Run tests
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
-        run: hatch run test
+        run: hatch -vvvvv run test
 
       - name: Upload coverage
         if: "matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'"
