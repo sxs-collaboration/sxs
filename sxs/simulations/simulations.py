@@ -404,6 +404,18 @@ class Simulations(collections.OrderedDict):
 
         simulations = pd.DataFrame.from_dict(self, orient="index")
 
+        # See also below for "number_of_orbits" field.
+        # See also `sxs.metadata.metadata._backwards_compatibility`;
+        # it's probably a good idea to duplicate whatever is included
+        # here in that function, just to make sure nothing slips
+        # through the cracks.
+        for col in [
+            "number_of_orbits", "number_of_orbits_from_start",
+            "number_of_orbits_from_reference_time"
+        ]:
+            if col not in simulations.columns:
+                simulations[col] = np.nan
+
         def floater(x):
             try:
                 f = float(x)
