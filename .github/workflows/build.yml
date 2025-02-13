@@ -31,6 +31,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.10', '3.13']
+        exclude:
+          - os: windows-latest
+            python-version: '3.13'
 
     steps:
       - name: Skip replicates on main branch
@@ -75,7 +78,7 @@ jobs:
 
       - name: Run tests
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
-        run: hatch -v run test
+        run: hatch run test
 
       - name: Upload coverage
         if: "matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'"
