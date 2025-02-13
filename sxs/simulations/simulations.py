@@ -509,6 +509,8 @@ class Simulations(collections.OrderedDict):
             # simulations["end_of_trajectory_time"].map(floater),
             # simulations["merger_time"].map(floater),
             simulations["number_of_orbits"].map(floater),
+            simulations["number_of_orbits_from_start"].map(floater),
+            simulations["number_of_orbits_from_reference_time"].map(floater),
             # simulations["superseded_by"],
             simulations["DOI_versions"],
             simulations["keywords"],
@@ -522,6 +524,14 @@ class Simulations(collections.OrderedDict):
             # ~sims_df.superseded_by.isna() |
             sims_df["keywords"].map(lambda ks: "deprecated" in ks)
         ))
+
+        # See also `sxs.metadata.metadata._backwards_compatibility`;
+        # it's probably a good idea to duplicate whatever is included
+        # here in that function, just to make sure nothing slips
+        # through the cracks.
+        sims_df["number_of_orbits"] = sims_df["number_of_orbits"].fillna(
+            sims_df["number_of_orbits_from_start"]
+        )
 
         # We have ignored the following fields present in the
         # simulations.json file (as of 2024-08-04), listed here with
