@@ -312,7 +312,7 @@ def _cost4d(δt_δso3, args):
 
     modes_A, modes_B, t_reference, normalization = args
     δt = δt_δso3[0]
-    δSO3 = np.exp(quaternionic.array.from_vector_part(δt_δso3[1:]))
+    δSpin3 = np.exp(quaternionic.array.from_vector_part(δt_δso3[1:]))
 
     modes_A_at_δt = modes_A(t_reference + δt)
     ell_max = int(np.sqrt(modes_A_at_δt.shape[1] + 4)) - 1
@@ -327,7 +327,7 @@ def _cost4d(δt_δso3, args):
         spin_weight=-2,
     )
 
-    wa_prime = wa_prime.rotate(δSO3)
+    wa_prime = wa_prime.rotate(δSpin3)
 
     # Take the sqrt because least_squares squares the inputs...
     diff = trapezoid(
@@ -479,8 +479,13 @@ def align4d(
     # Brute force over R_IG * exp(theta * z / 2) with δt_IG
     n_brute_force_δϕ = n_brute_force_δϕ or 2 * (2 * ell_max + 1)
     δt_δso3_brute_force = [
-        [δt_IG, *np.log(R_IG * np.exp(quaternionic.array([0, 0, 0, angle / 2]))).vector]
-        for angle in np.linspace(0, 2 * np.pi, num=n_brute_force_δϕ, endpoint=False)
+        [
+            δt_IG,
+            *np.log(
+                (R_IG * np.exp(quaternionic.array([0, 0, 0, angle / 2]))).canonicalized
+            ).vector
+        ]
+        for angle in np.linspace(-np.pi, np.pi, num=n_brute_force_δϕ, endpoint=False)
     ]
 
     # Remove certain modes, if requested
@@ -529,7 +534,7 @@ def align4d(
         max_nfev=50000,
     )
     δt = optimum.x[0]
-    δSO3 = np.exp(quaternionic.array.from_vector_part(optimum.x[1:]))
+    δSpin3 = np.exp(quaternionic.array.from_vector_part(optimum.x[1:]))
     
     wa_prime = WaveformModes(
         input_array=(wa_orig[:, wa_orig.index(ell_min, -ell_min) : wa_orig.index(ell_max, ell_max)+1].data),
@@ -540,6 +545,6 @@ def align4d(
         ell_max=ell_max,
         spin_weight=spin_weight,
     )
-    wa_prime = wa_prime.rotate(δSO3)
+    wa_prime = wa_prime.rotate(δSpin3)
 
     return optimum.cost, wa_prime, optimum
