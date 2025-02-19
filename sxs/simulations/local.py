@@ -121,6 +121,8 @@ def local_simulations(annex_dir):
             metadata = Metadata.load(dirpath / highest_lev / "metadata")
             metadata = metadata.add_standard_parameters()
 
+            metadata["directory"] = str(dirpath.relative_to(annex_dir))
+
             metadata["files"] = {
                 p2i(file.relative_to(dirpath)): {"link": str(file)}
                 for file in files_to_upload(dirpath, annex_dir)
