@@ -135,27 +135,32 @@ def local_simulations(annex_dir, compute_md5=False, show_progress=False):
             if show_progress:
                 progress_bar.update(1)
 
-            key = extract_id_from_common_metadata(dirpath / "common-metadata.txt", annex_dir)
+            try:
+                key = extract_id_from_common_metadata(dirpath / "common-metadata.txt", annex_dir)
 
-            # Find the highest Lev directory and extract the metadata
-            highest_lev = sorted(
-                [d for d in dirnames if d.startswith("Lev")]
-            )[-1]
-            metadata = Metadata.load(dirpath / highest_lev / "metadata")
-            metadata = metadata.add_standard_parameters()
+                # Find the highest Lev directory and extract the metadata
+                highest_lev = sorted(
+                    [d for d in dirnames if d.startswith("Lev")]
+                )[-1]
+                metadata = Metadata.load(dirpath / highest_lev / "metadata")
+                metadata = metadata.add_standard_parameters()
 
-            metadata["directory"] = str(dirpath.relative_to(annex_dir))
+                metadata["directory"] = str(dirpath.relative_to(annex_dir))
 
-            metadata["files"] = {
-                path_to_invenio(file.relative_to(dirpath)): {
-                    "link": str(file),
-                    "size": file.stat().st_size,
-                    "checksum": md5checksum(file) if compute_md5 else "",
+                metadata["files"] = {
+                    path_to_invenio(file.relative_to(dirpath)): {
+                        "link": str(file),
+                        "size": file.stat().st_size,
+                        "checksum": md5checksum(file) if compute_md5 else "",
+                    }
+                    for file in files_to_upload(dirpath, annex_dir)
                 }
-                for file in files_to_upload(dirpath, annex_dir)
-            }
 
-            simulations[key] = metadata
+                simulations[key] = metadata
+            except KeyboardInterrupt:
+                raise
+            except Exception as e:
+                print(f"Error processing {dirpath}: {e}")
 
             dirnames[:] = []  # Don't keep looking for common-metadata.txt files under this directory
 
