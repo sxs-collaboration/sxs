@@ -65,7 +65,7 @@ def extract_id_from_common_metadata(file, annex_dir):
     return key
 
 
-def local_simulations(annex_dir, compute_md5=False):
+def local_simulations(annex_dir, compute_md5=False, show_progress=False):
     """
     Walk the annex directory to find and process all simulations
 
@@ -91,6 +91,8 @@ def local_simulations(annex_dir, compute_md5=False):
     compute_md5 : bool, optional
         Whether to compute the MD5 hash of each file.  Default is
         False.
+    show_progress : bool, optional
+        Whether to show a progress bar.  Default is False.
 
     Returns
     -------
@@ -99,9 +101,23 @@ def local_simulations(annex_dir, compute_md5=False):
     """
     from os import walk
     from ..utilities import md5checksum
+    from tqdm import tqdm
 
     simulations = {}
     annex_dir = Path(annex_dir).resolve()
+
+    if show_progress:  # Count the number of common-metadata.txt files
+        num_files = 0
+        for dirpath, dirnames, filenames in walk(annex_dir, topdown=True):
+            if Path(dirpath).name.startswith("."):
+                dirnames[:] = []
+                continue
+            if "common-metadata.txt" in filenames:
+                if not any(d.startswith("Lev") for d in dirnames):
+                    continue
+                num_files += 1
+                dirnames[:] = []
+        progress_bar = tqdm(total=num_files, desc="Processing simulations")
 
     # The `walk` method can be made *much* faster than the `glob` method
     for dirpath, dirnames, filenames in walk(annex_dir, topdown=True):
@@ -115,6 +131,9 @@ def local_simulations(annex_dir, compute_md5=False):
         if "common-metadata.txt" in filenames:
             if not any(d.startswith("Lev") for d in dirnames):
                 continue
+
+            if show_progress:
+                progress_bar.update(1)
 
             key = extract_id_from_common_metadata(dirpath / "common-metadata.txt", annex_dir)
 
@@ -143,12 +162,11 @@ def local_simulations(annex_dir, compute_md5=False):
     return simulations
 
 
-def write_local_simulations(annex_dir, output_file=None):
+def write_local_simulations(annex_dir, output_file=None, compute_md5=False, show_progress=False):
     """Write the local simulations to a file for use when loading `Simulations`
 
     This function calls `local_simulations` to obtain the dictionary,
     but also writes the dictionary to a JSON file.
-
 
     Parameters
     ----------
@@ -159,6 +177,11 @@ def write_local_simulations(annex_dir, output_file=None):
         written to `sxs_directory("cache") / "local_simulations.json"`.
         N.B.: If you specify a different file, `sxs.load` will not
         automatically find it.
+    compute_md5 : bool, optional
+        Whether to compute the MD5 hash of each file.  Default is
+        False.
+    show_progress : bool, optional
+        Whether to show a progress bar.  Default is False.
 
     Returns
     -------
@@ -168,7 +191,7 @@ def write_local_simulations(annex_dir, output_file=None):
     from json import dump
 
     # Process the annex directory to find all simulations
-    simulations = local_simulations(annex_dir)
+    simulations = local_simulations(annex_dir, compute_md5=compute_md5, show_progress=show_progress)
 
     # Write the simulations to file
     if output_file is None:
