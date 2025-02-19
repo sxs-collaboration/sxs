@@ -138,6 +138,10 @@ def local_simulations(annex_dir):
 def write_local_simulations(annex_dir, output_file=None):
     """Write the local simulations to a file for use when loading `Simulations`
 
+    This function calls `local_simulations` to obtain the dictionary,
+    but also writes the dictionary to a JSON file.
+
+
     Parameters
     ----------
     annex_dir : (str or Path)
@@ -150,7 +154,8 @@ def write_local_simulations(annex_dir, output_file=None):
 
     Returns
     -------
-        None
+    dict :
+        A dictionary containing the processed metadata.
     """
     from json import dump
 
@@ -165,3 +170,5 @@ def write_local_simulations(annex_dir, output_file=None):
     output_file.parent.mkdir(parents=True, exist_ok=True)
     with output_file.open("w") as f:
         dump(simulations, f, indent=2, separators=(",", ": "), ensure_ascii=True)
+
+    return simulations
