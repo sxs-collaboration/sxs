@@ -1,7 +1,7 @@
 from pathlib import Path
 from .. import sxs_id, Metadata, sxs_directory
 from ..utilities import sxs_identifier_re
-from ..zenodo import path_to_invenio as p2i
+from ..zenodo import path_to_invenio
 
 def file_upload_allowed(file, directory_listing):
     """Return True if the file should be uploaded
@@ -65,7 +65,7 @@ def extract_id_from_common_metadata(file, annex_dir):
     return key
 
 
-def local_simulations(annex_dir):
+def local_simulations(annex_dir, compute_md5=False):
     """
     Walk the annex directory to find and process all simulations
 
@@ -88,6 +88,9 @@ def local_simulations(annex_dir):
     ----------
     annex_dir : (str or Path)
         The path to the annex directory to be processed.
+    compute_md5 : bool, optional
+        Whether to compute the MD5 hash of each file.  Default is
+        False.
 
     Returns
     -------
@@ -95,6 +98,7 @@ def local_simulations(annex_dir):
         A dictionary containing the processed metadata.
     """
     from os import walk
+    from ..utilities import md5checksum
 
     simulations = {}
     annex_dir = Path(annex_dir).resolve()
@@ -124,7 +128,11 @@ def local_simulations(annex_dir):
             metadata["directory"] = str(dirpath.relative_to(annex_dir))
 
             metadata["files"] = {
-                p2i(file.relative_to(dirpath)): {"link": str(file)}
+                path_to_invenio(file.relative_to(dirpath)): {
+                    "link": str(file),
+                    "size": file.stat().st_size,
+                    "checksum": md5checksum(file) if compute_md5 else "",
+                }
                 for file in files_to_upload(dirpath, annex_dir)
             }
 
