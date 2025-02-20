@@ -103,7 +103,7 @@ class Metadata(collections.OrderedDict):
             else:
                 raise ValueError(f"Could not find file named '{json_path}' or '{txt_path}'")
             
-            return _backwards_compatibility(metadata)
+        return _backwards_compatibility(metadata)
 
     load = from_file
 
