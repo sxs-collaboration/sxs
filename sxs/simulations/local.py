@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime, timezone
 from .. import sxs_id, Metadata, sxs_directory
 from ..utilities import sxs_identifier_re
 from ..zenodo import path_to_invenio
@@ -147,16 +148,23 @@ def local_simulations(annex_dir, compute_md5=False, show_progress=False):
 
                 metadata["directory"] = str(dirpath.relative_to(annex_dir))
 
+                simulations[key] = metadata
+
+                files = files_to_upload(dirpath, annex_dir)
+
+                metadata["mtime"] = datetime.fromtimestamp(
+                    max(file.resolve().stat().st_mtime for file in files),
+                    tz=timezone.utc,
+                ).isoformat()
+
                 metadata["files"] = {
                     path_to_invenio(file.relative_to(dirpath)): {
                         "link": str(file),
                         "size": file.stat().st_size,
                         "checksum": md5checksum(file) if compute_md5 else "",
                     }
-                    for file in files_to_upload(dirpath, annex_dir)
+                    for file in files
                 }
-
-                simulations[key] = metadata
             except KeyboardInterrupt:
                 raise
             except Exception as e:
