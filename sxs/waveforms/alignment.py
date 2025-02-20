@@ -299,6 +299,7 @@ def align2d(wa, wb, t1, t2, n_brute_force_δt=None, n_brute_force_δϕ=5, max_δ
             modes_axis=1,
             ell_min=2,
             ell_max=ell_max,
+            spin_weight = wa.spin_weight,
         )
         wa_primes.append(wa_prime)
 
@@ -530,7 +531,7 @@ def align4d(
     optimum = least_squares(
         cost_wrapper,
         δt_δso3,
-        bounds=[(δt_lower, -np.pi/2, -np.pi/2, -np.pi/2), (δt_upper, np.pi/2, np.pi/2, np.pi/2)],
+        bounds=[(δt_lower, -np.pi, -np.pi, -np.pi), (δt_upper, np.pi, np.pi, np.pi)],
         max_nfev=50000,
     )
     δt = optimum.x[0]
