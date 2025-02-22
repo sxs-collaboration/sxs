@@ -328,6 +328,41 @@ class SimulationBase:
     def __str__(self):
         return repr(self)
     
+    def closest_simulations(self, dataframe=None, metadata_metric=None, n=None):
+        """Find the closest simulations to this one
+
+        Parameters
+        ----------
+        dataframe : pandas.DataFrame, optional
+            DataFrame of simulations to compare to.  If not provided,
+            the full catalog of simulations will be loaded as
+            `sxs.load("simulations").dataframe`.
+        metadata_metric : MetadataMetric, optional
+            Metric to use for comparing simulations.  If not provided,
+            the default metric will be used.
+        n : int, optional
+            Number of closest simulations to return.  If not provided,
+            all simulations will be returned.
+
+        Returns
+        -------
+        closest : pandas.DataFrame
+            Undeprecated elements of `dataframe`, sorted by distance
+            from this simulation, with the closest first.
+
+        """
+        from ..metadata.metric import MetadataMetric
+        from .. import load
+        dataframe = dataframe or load("simulations").dataframe
+        metadata_metric = metadata_metric or MetadataMetric()
+        distances = dataframe[~dataframe.deprecated].apply(
+            lambda m: metadata_metric(self.metadata, m),
+            axis=1
+        ).sort_values()
+        if n is None:
+            return dataframe.loc[distances.index]
+        return dataframe.loc[distances.index[:n]]
+    
     @property
     def dataframe(self):
         return self.series
