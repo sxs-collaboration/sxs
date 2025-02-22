@@ -4,6 +4,9 @@ import collections
 import numpy as np
 import pandas as pd
 
+from ..utilities.string_converters import *
+
+
 class SimulationsDataFrame(pd.DataFrame):
     @property
     def BBH(self):
@@ -415,46 +418,6 @@ class Simulations(collections.OrderedDict):
         ]:
             if col not in simulations.columns:
                 simulations[col] = np.nan
-
-        def floater(x):
-            try:
-                f = float(x)
-            except:
-                f = np.nan
-            return f
-
-        def floaterbound(x):
-            try:
-                f = float(x)
-            except:
-                try:
-                    f = float(x.replace("<", ""))
-                except:
-                    f = np.nan
-            return f
-
-        def norm(x):
-            try:
-                n = np.linalg.norm(x)
-            except:
-                n = np.nan
-            return n
-
-        def three_vec(x):
-            try:
-                a = np.array(x, dtype=float)
-                if a.shape != (3,):
-                    raise ValueError("Don't understand input as a three-vector")
-            except:
-                a = np.array([np.nan, np.nan, np.nan])
-            return a
-
-        def datetime_from_string(x):
-            try:
-                dt = pd.to_datetime(x).tz_convert("UTC")
-            except:
-                dt = pd.to_datetime("1970-1-1").tz_localize("UTC")
-            return dt
 
         sims_df = SimulationsDataFrame(pd.concat((
             simulations["reference_time"].map(floater),
