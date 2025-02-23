@@ -90,6 +90,11 @@ class SimulationsDataFrame(pd.DataFrame):
         return type(self)(self[
             np.isfinite(total_mass) & (total_mass > 0) & (normalized_ADM > 1)
         ])
+    
+    @property
+    def undeprecated(self):
+        """Restrict dataframe to just simulations that are not deprecated"""
+        return type(self)(self[~self["deprecated"]])
 
 
 class Simulations(collections.OrderedDict):
