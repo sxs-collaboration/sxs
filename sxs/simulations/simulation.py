@@ -356,51 +356,7 @@ class SimulationBase:
             lambda m: metadata_metric(self.metadata, m),
             axis=1
         )
-    
-    def simulations_sorted_by_distance(self, dataframe=None, metadata_metric=None, n=None):
-        """Sort dataframe of simulations by "distance" to this one
 
-        Note that you may want to select `dataframe.undeprecated` to
-        remove deprecated simulations from the catalog before sorting.
-
-        If this simulation is in the `dataframe`, it will be the first
-        element, with a distance of 0.
-
-        Parameters
-        ----------
-        dataframe : pandas.DataFrame, optional
-            DataFrame of simulations to compare to.  If not provided,
-            the full catalog of simulations will be loaded as
-            `sxs.load("simulations").dataframe`.
-        metadata_metric : MetadataMetric, optional
-            Metric to use for comparing simulations.  If not provided,
-            the default metric will be used.
-        n : int, optional
-            Number of closest simulations to return.  If not provided,
-            all simulations will be returned.
-
-        Returns
-        -------
-        closest : pandas.DataFrame
-            Elements of `dataframe`, sorted by distance from this
-            simulation, with the closest first.
-
-        See Also
-        --------
-        distances : Measure the distance from this simulation
-            to others
-        sxs.metadata.metric.MetadataMetric : Metric for comparing
-            metadata
-
-        """
-        d = self.distances(
-            dataframe=dataframe,
-            metadata_metric=metadata_metric
-        ).sort_values()
-        if n is None:
-            return dataframe.loc[d.index]
-        return dataframe.loc[d.index[:n]]
-    
     def closest_simulation(self, dataframe=None, metadata_metric=None):
         """Return the closest undeprecated simulation to this one
 
