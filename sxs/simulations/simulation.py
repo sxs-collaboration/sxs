@@ -132,75 +132,61 @@ def Simulation(location, *args, **kwargs):
     sxs_id = f"{sxs_id_stem}{version}"
     url = f"{doi_url}{sxs_id}"
 
-    # Deal with "superseded_by" field, or "deprecated" keyword in the metadata
-    deprecated = ("deprecated" in metadata.get("keywords", []) )#or metadata.get("superseded_by", False))
-    if not kwargs.get("ignore_deprecation", False):
+    # Deal deprecations
+    deprecated = "deprecated" in metadata.get("keywords", [])
+    if deprecated and not kwargs.get("ignore_deprecation", False):
         auto_supersede = kwargs.get("auto_supersede", read_config("auto_supersede", False))
-        if (
-            input_version
-            and not auto_supersede
-            and deprecated
-        ):
-            message = ("\n"
-                + f"Simulation '{sxs_id_stem}' is deprecated and/or superseded.\n"
-                + "Normally, this simulation should no longer be used, but you\n"
-                + f"explicitly requested version '{input_version}', so it is being used.\n"
-            )
-            warn(message)
+        if not bool(auto_supersede):
+            if not input_version:
+                raise ValueError(
+                    f"Simulation '{sxs_id}' is deprecated.  You could\n"
+                    +  "  1. pass `auto_supersede=True` to load the closest match in the catalog,\n"
+                    + f"  2. include the version number, as in '{sxs_id}v2.0', to load a specific version, or\n"
+                    +  "  3. pass `ignore_deprecation=True` to load the last available version.\n"
+                )
+            else:
+                message = ("\n"
+                    + f"Simulation '{sxs_id_stem}' is deprecated and/or superseded.\n"
+                    + "Normally, this simulation should no longer be used, but you\n"
+                    + f"explicitly requested version '{input_version}', so it is being used.\n"
+                    + f"Pass `ignore_deprecation=True` to quiet this warning.\n"
+                )
+                warn(message)
         else:
-            if "superseded_by" in metadata:
-                superseded_by = metadata["superseded_by"]
-                if auto_supersede and isinstance(superseded_by, list):
-                    raise ValueError(
-                        f"`auto_supersede` is enabled, but simulation '{sxs_id}' is\n"
-                        + "superseded by multiple simulations.  You must choose one\n"
-                        + "explicitly from the list:\n"
-                        + "\n".join(f"  {s}" for s in superseded_by)
-                        + "\nAlternatively, you could pass `ignore_deprecation=True` or\n"
-                        + "specify a version to load this waveform anyway."
-                    )
-                elif auto_supersede and isinstance(superseded_by, str):
-                    # raise NotImplementedError(
-                    #     f"\nSimulation '{sxs_id}' cannot be automatically superseded.\n"
-                    #     + "The auto_supersede option is temporarily disabled.  The superseding\n"
-                    #     + "simulations have been removed from the metadata, and the new function\n"
-                    #     + "to load them has not yet been implemented.  Please specify a version.\n"
-                    # )
+            if input_version:
+                message = ("\n"
+                    + f"\nSimulation '{sxs_id}' is deprecated.  You explicitly requested.\n"
+                    + f"version '{input_version}', but you also passed the `auto_supersede` option.\n"
+                    + f"Using the specified version, as that takes precedence.\n"
+                )
+                warn(message)
+            else:
                     message = f"\nSimulation '{sxs_id}' is being automatically superseded by '{superseded_by}'."
                     warn(message)
                     new_location = f"{superseded_by}{input_version}"
                     if input_lev_number:
                         new_location += f"/Lev{input_lev_number}"
                     return Simulation(new_location, *args, **kwargs)
-                elif isinstance(superseded_by, list):
-                    raise ValueError(
-                        f"Simulation '{sxs_id}' is superseded by multiple simulations.\n"
-                        + "Even if you enable `auto_supersede`, with multiple options, you\n"
-                        + "must choose one explicitly from the list:\n"
-                        + "\n".join(f"  {s}" for s in superseded_by)
-                        + "\nAlternatively, you could pass `ignore_deprecation=True` or\n"
-                        + "specify a version to load this waveform anyway."
-                    )
-                elif isinstance(superseded_by, str):
-                    raise ValueError(
-                        f"Simulation '{sxs_id}' is superseded by '{superseded_by}'.\n"
-                        + "Note that you could enable `auto_supersede` to automatically\n"
-                        + "load the superseding simulation.  Alternatively, you could\n"
-                        + "pass `ignore_deprecation=True` or specify a version to load\n"
-                        + "this waveform anyway."
-                    )
-                else:
-                    raise ValueError(
-                        f"Simulation '{sxs_id}' is superseded by '{superseded_by}'.\n"
-                        + "Note that you could pass `ignore_deprecation=True` or\n"
-                        + "specify a version to load this waveform anyway."
-                    )
-            if "deprecated" in metadata.get("keywords", []):
-                raise ValueError(
-                    f"Simulation '{sxs_id}' is deprecated but has no superseding simulation.\n"
-                    + "Note that you could pass `ignore_deprecation=True` or specify a version\n"
-                    + "to  to load this waveform anyway."
-                )
+            #     elif isinstance(superseded_by, str):
+            #         raise ValueError(
+            #             f"Simulation '{sxs_id}' is superseded by '{superseded_by}'.\n"
+            #             + "Note that you could enable `auto_supersede` to automatically\n"
+            #             + "load the superseding simulation.  Alternatively, you could\n"
+            #             + "pass `ignore_deprecation=True` or specify a version to load\n"
+            #             + "this waveform anyway."
+            #         )
+            #     else:
+            #         raise ValueError(
+            #             f"Simulation '{sxs_id}' is superseded by '{superseded_by}'.\n"
+            #             + "Note that you could pass `ignore_deprecation=True` or\n"
+            #             + "specify a version to load this waveform anyway."
+            #         )
+            # if "deprecated" in metadata.get("keywords", []):
+            #     raise ValueError(
+            #         f"Simulation '{sxs_id}' is deprecated but has no superseding simulation.\n"
+            #         + "Note that you could pass `ignore_deprecation=True` or specify a version\n"
+            #         + "to  to load this waveform anyway."
+            #     )
 
     # Note the deprecation status in the kwargs, even if ignoring deprecation
     kwargs["deprecated"] = deprecated
@@ -328,8 +314,57 @@ class SimulationBase:
     def __str__(self):
         return repr(self)
     
-    def closest_simulations(self, dataframe=None, metadata_metric=None, n=None):
-        """Find the closest simulations to this one
+    def distances(self, dataframe=None, metadata_metric=None, drop_deprecated=False):
+        """Measure the distance from this simulation to others
+
+        Parameters
+        ----------
+        dataframe : pandas.DataFrame, optional
+            DataFrame of simulations to compare to.  If not provided,
+            the full catalog of simulations will be loaded as
+            `sxs.load("simulations").dataframe`.
+        metadata_metric : MetadataMetric, optional
+            Metric to use for comparing simulations.  If not provided,
+            the default metric will be used.
+        drop_deprecated : bool, optional
+            If `True`, remove deprecated simulations from the
+            `dataframe` before measuring distances.
+
+        Returns
+        -------
+        distances : pandas.Series
+            Distance from this simulation to each element of the
+            `dataframe`.  This series will be indexed by the index of
+            the `dataframe`.  If this simulation is in the
+            `dataframe`, it will have a distance of 0.
+
+        See Also
+        --------
+        simulations_sorted_by_distance : Sort dataframe of simulations
+            by "distance" to this one
+        sxs.metadata.metric.MetadataMetric : Metric for comparing
+            metadata
+
+        """
+        from ..metadata.metric import MetadataMetric
+        from .. import load
+        dataframe = dataframe or load("simulations").dataframe
+        metadata_metric = metadata_metric or MetadataMetric()
+        if drop_deprecated:
+            dataframe = dataframe[~dataframe.deprecated]
+        return dataframe.apply(
+            lambda m: metadata_metric(self.metadata, m),
+            axis=1
+        )
+    
+    def simulations_sorted_by_distance(self, dataframe=None, metadata_metric=None, n=None):
+        """Sort dataframe of simulations by "distance" to this one
+
+        Note that you may want to select `dataframe.undeprecated` to
+        remove deprecated simulations from the catalog before sorting.
+
+        If this simulation is in the `dataframe`, it will be the first
+        element, with a distance of 0.
 
         Parameters
         ----------
@@ -347,21 +382,56 @@ class SimulationBase:
         Returns
         -------
         closest : pandas.DataFrame
-            Undeprecated elements of `dataframe`, sorted by distance
-            from this simulation, with the closest first.
+            Elements of `dataframe`, sorted by distance from this
+            simulation, with the closest first.
+
+        See Also
+        --------
+        distances : Measure the distance from this simulation
+            to others
+        sxs.metadata.metric.MetadataMetric : Metric for comparing
+            metadata
 
         """
-        from ..metadata.metric import MetadataMetric
-        from .. import load
-        dataframe = dataframe or load("simulations").dataframe
-        metadata_metric = metadata_metric or MetadataMetric()
-        distances = dataframe[~dataframe.deprecated].apply(
-            lambda m: metadata_metric(self.metadata, m),
-            axis=1
+        d = self.distances(
+            dataframe=dataframe,
+            metadata_metric=metadata_metric
         ).sort_values()
         if n is None:
-            return dataframe.loc[distances.index]
-        return dataframe.loc[distances.index[:n]]
+            return dataframe.loc[d.index]
+        return dataframe.loc[d.index[:n]]
+    
+    def closest_simulation(self, dataframe=None, metadata_metric=None):
+        """Return the closest undeprecated simulation to this one
+
+        Note that any simulation in `dataframe` with zero distance
+        from this one will be ignored; the returned index will refer
+        to the closest simulation with a distance greater than zero.
+
+        Parameters
+        ----------
+        dataframe : pandas.DataFrame, optional
+            DataFrame of simulations to compare to.  If not provided,
+            the full catalog of simulations will be loaded as
+            `sxs.load("simulations").dataframe`.
+        metadata_metric : MetadataMetric, optional
+            Metric to use for comparing simulations.  If not provided,
+            the default metric will be used.
+
+        Returns
+        -------
+        closest_index : str
+            Index of the closest undeprecated simulation in the
+            `dataframe`.
+
+        """
+        d = self.distances(
+            dataframe=dataframe,
+            metadata_metric=metadata_metric,
+            drop_deprecated=True
+        )
+        d = d[d > 0].sort_values()
+        return d.index[0]
     
     @property
     def dataframe(self):
