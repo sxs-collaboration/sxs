@@ -3,6 +3,7 @@ import sxs
 from .conftest import skip_macOS_GH_actions_downloads
 
 
+@skip_macOS_GH_actions_downloads
 def test_sxs_load_v2():
     s = sxs.load("SXS:BBH:0001v2.0")
     assert s.sxs_id_stem == "SXS:BBH:0001"
