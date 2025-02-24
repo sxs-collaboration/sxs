@@ -4,6 +4,7 @@ import tempfile
 import numpy as np
 import pytest
 import sxs
+from .conftest import skip_macOS_GH_actions_downloads
 
 file_name = "SXS:BBH:0004/Lev6/Horizons.h5"
 

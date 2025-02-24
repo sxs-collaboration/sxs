@@ -3,7 +3,7 @@ import quaternionic
 import spherical
 import pytest
 import sxs
-
+from .conftest import skip_macOS_GH_actions_downloads
 from .conftest import constant_waveform, linear_waveform, random_waveform
 
 
