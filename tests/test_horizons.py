@@ -4,10 +4,12 @@ import tempfile
 import numpy as np
 import pytest
 import sxs
+from .conftest import skip_macOS_GH_actions_downloads
 
 file_name = "SXS:BBH:0004/Lev6/Horizons.h5"
 
 
+@skip_macOS_GH_actions_downloads
 def test_spec_format():
     """Ensure that we can slice the output of spec_horizons_h5 just like the original Horizons.h5"""
     import h5py
@@ -37,6 +39,7 @@ def test_spec_format():
                     assert np.array_equal(a, b)
 
 
+@skip_macOS_GH_actions_downloads
 def test_xmb_format():
     # horizons_spec = sxs.horizons.spec_horizons_h5.load(file_name)
     with contextlib.redirect_stdout(None):
@@ -58,6 +61,7 @@ def test_xmb_format():
             assert np.array_equal(d_spec, d_xmb)
 
 
+@skip_macOS_GH_actions_downloads
 def test_horizon_existence():
     bhbh = sxs.load("SXS:BBH:0001", auto_supersede=True)
     bhbh_horizon = bhbh.horizons

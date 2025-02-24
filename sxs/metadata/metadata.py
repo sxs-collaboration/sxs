@@ -23,6 +23,17 @@ def _valid_identifier_to_metadata_key(key):
     return _metadata_key_map.get(key, key.replace('_', '-'))
 
 
+def _backwards_compatibility(metadata):
+    """Deal with the fact that keys have been removed/renamed"""
+    # See also `sxs.simulations.simulations.Simulations.dataframe`;
+    # it's probably a good idea to duplicate whatever is included here
+    # in that function, just to make sure nothing slips through the
+    # cracks.
+    if "number_of_orbits" not in metadata and "number_of_orbits_from_start" in metadata:
+        metadata["number_of_orbits"] = metadata["number_of_orbits_from_start"]
+    return metadata
+
+
 class Metadata(collections.OrderedDict):
     """Interface to metadata
 
@@ -72,25 +83,27 @@ class Metadata(collections.OrderedDict):
         txt_path = path.with_suffix(".txt")
 
         if path.suffix == ".json":
-            return cls.from_json_file(json_path)
+            metadata = cls.from_json_file(json_path)
         elif path.suffix == ".txt":
-            return cls.from_txt_file(txt_path, ignore_invalid_lines=ignore_invalid_lines, cache_json=cache_json)
+            metadata = cls.from_txt_file(txt_path, ignore_invalid_lines=ignore_invalid_lines, cache_json=cache_json)
         else:
             json_exists = json_path.exists()
             txt_exists = txt_path.exists()
             if json_exists and not txt_exists:
-                return cls.from_json_file(json_path)
+                metadata = cls.from_json_file(json_path)
             elif txt_exists and not json_exists:
-                return cls.from_txt_file(txt_path, ignore_invalid_lines=ignore_invalid_lines, cache_json=cache_json)
+                metadata = cls.from_txt_file(txt_path, ignore_invalid_lines=ignore_invalid_lines, cache_json=cache_json)
             elif json_exists and txt_exists:
                 json_time = json_path.stat().st_mtime
                 txt_time = txt_path.stat().st_mtime
                 if txt_time > json_time:
-                    return cls.from_txt_file(txt_path, ignore_invalid_lines=ignore_invalid_lines, cache_json=cache_json)
+                    metadata = cls.from_txt_file(txt_path, ignore_invalid_lines=ignore_invalid_lines, cache_json=cache_json)
                 else:
-                    return cls.from_json_file(json_path)
+                    metadata = cls.from_json_file(json_path)
             else:
                 raise ValueError(f"Could not find file named '{json_path}' or '{txt_path}'")
+            
+        return _backwards_compatibility(metadata)
 
     load = from_file
 
@@ -113,7 +126,7 @@ class Metadata(collections.OrderedDict):
         """
         import json
         # noinspection PyTypeChecker
-        return json.load(json_data, object_pairs_hook=cls)
+        return _backwards_compatibility(json.load(json_data, object_pairs_hook=cls))
 
     @classmethod
     def from_json_file(cls, json_file):
@@ -136,7 +149,7 @@ class Metadata(collections.OrderedDict):
             # noinspection PyTypeChecker
             metadata = json.load(metadata_file, object_pairs_hook=cls)
         metadata["metadata_path"] = str(json_file)
-        return metadata
+        return _backwards_compatibility(metadata)
 
     @classmethod
     def from_txt_file(cls, txt_file, ignore_invalid_lines=False, cache_json=True):
@@ -259,7 +272,7 @@ class Metadata(collections.OrderedDict):
             metadata.to_json_file(path.with_suffix(".json"))
 
         metadata["metadata_path"] = str(txt_file)
-        return metadata
+        return _backwards_compatibility(metadata)
 
     def to_json(self, indent=4, separators=(",", ": ")):
         """Export to JSON string"""
