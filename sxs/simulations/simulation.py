@@ -53,12 +53,13 @@ def Simulation(location, *args, **kwargs):
         SXS ID, but can also include the version and Lev number, as
         described above.
 
-    Other parameters
-    ----------------
-    ignore_deprecation : bool
+    Keyword Arguments
+    -----------------
+    ignore_deprecation : bool, optional
         If `True`, completely bypass checking for deprecation or
-        supersession.  No warnings or errors will be issued.
-    auto_supersede : bool
+        supersession.  No warnings or errors will be issued.  Default
+        is `False`.
+    auto_supersede : bool, optional
         If `True`, automatically load the superseding simulation, if
         there is only one.  If there are multiple superseding
         simulations, an error will be raised, and you must explicitly
@@ -66,7 +67,11 @@ def Simulation(location, *args, **kwargs):
         issued, but the superseding simulation will be loaded.  Note
         that this can also be set in the configuration file with
         `sxs.write_config(auto_supersede=True)`.
-    extrapolation : str
+    metadata_metric : MetadataMetric, optional
+        Metric to use for comparing simulations when automatically
+        superseding deprecated a simulation.  If not provided, the
+        default metric will be used.
+    extrapolation : str, optional
         The extrapolation order to use for the strain and Psi4 data.
         This is only relevant for versions 1 and 2 of the data format,
         both of which default to "N2".  Other options include "N3",
@@ -74,14 +79,13 @@ def Simulation(location, *args, **kwargs):
         polynomials in 1/r with degree `x`, while "Outer" refers to
         data extracted at the outermost extraction radius but
         corrected for time-dilation and areal-radius effects.
-    download : bool
+    download_file_info : bool, optional
         If `True`, download the information about the files from the
-        Zenodo/CaltechDATA record.  If `False`, only use the file
-        information that is already available (which will raise an
-        error if the file information has not previously been
-        downloaded).  If not present, use the value from the
-        configuration file, defaulting to `True` if it is not
-        configured.
+        CaltechDATA record.  If `False`, only use the file information
+        that is already available (which will raise an error if the
+        file information has not previously been downloaded).  If not
+        present, use the value from the configuration file, defaulting
+        to `True` if it is not configured.
 
     Returns
     -------
@@ -96,6 +100,7 @@ def Simulation(location, *args, **kwargs):
     
     """
     from .. import load, sxs_directory
+    from ..metadata.metric import MetadataMetric
 
     # Load the simulation catalog
     simulations = load("simulations")
@@ -132,7 +137,7 @@ def Simulation(location, *args, **kwargs):
     sxs_id = f"{sxs_id_stem}{version}"
     url = f"{doi_url}{sxs_id}"
 
-    # Deal deprecations
+    # Deal with deprecations
     deprecated = "deprecated" in metadata.get("keywords", [])
     if deprecated and not kwargs.get("ignore_deprecation", False):
         auto_supersede = kwargs.get("auto_supersede", read_config("auto_supersede", False))
@@ -140,9 +145,10 @@ def Simulation(location, *args, **kwargs):
             if not input_version:
                 raise ValueError(
                     f"Simulation '{sxs_id}' is deprecated.  You could\n"
-                    +  "  1. pass `auto_supersede=True` to load the closest match in the catalog,\n"
-                    + f"  2. include the version number, as in '{sxs_id}v2.0', to load a specific version, or\n"
-                    +  "  3. pass `ignore_deprecation=True` to load the last available version.\n"
+                    +  "  1. pass `ignore_deprecation=True` to load the last available version,\n"
+                    +  "  2. manually choose a different simulation from the catalog,\n"
+                    +  "  3. pass `auto_supersede=True` to load the closest match in the catalog, or\n"
+                    + f"  4. include the version number, as in '{sxs_id}v2.0', to load a specific version.\n"
                 )
             else:
                 message = ("\n"
@@ -161,38 +167,29 @@ def Simulation(location, *args, **kwargs):
                 )
                 warn(message)
             else:
-                    message = f"\nSimulation '{sxs_id}' is being automatically superseded by '{superseded_by}'."
-                    warn(message)
-                    new_location = f"{superseded_by}{input_version}"
-                    if input_lev_number:
-                        new_location += f"/Lev{input_lev_number}"
-                    return Simulation(new_location, *args, **kwargs)
-            #     elif isinstance(superseded_by, str):
-            #         raise ValueError(
-            #             f"Simulation '{sxs_id}' is superseded by '{superseded_by}'.\n"
-            #             + "Note that you could enable `auto_supersede` to automatically\n"
-            #             + "load the superseding simulation.  Alternatively, you could\n"
-            #             + "pass `ignore_deprecation=True` or specify a version to load\n"
-            #             + "this waveform anyway."
-            #         )
-            #     else:
-            #         raise ValueError(
-            #             f"Simulation '{sxs_id}' is superseded by '{superseded_by}'.\n"
-            #             + "Note that you could pass `ignore_deprecation=True` or\n"
-            #             + "specify a version to load this waveform anyway."
-            #         )
-            # if "deprecated" in metadata.get("keywords", []):
-            #     raise ValueError(
-            #         f"Simulation '{sxs_id}' is deprecated but has no superseding simulation.\n"
-            #         + "Note that you could pass `ignore_deprecation=True` or specify a version\n"
-            #         + "to  to load this waveform anyway."
-            #     )
+                original_kwargs = kwargs.copy()
+                original_kwargs["ignore_deprecation"] = True
+                original = Simulation(location, *args, **original_kwargs)
+                metadata_metric = kwargs.pop("metadata_metric", MetadataMetric())
+                superseding = original.closest_simulation(
+                    dataframe=metadata.dataframe,
+                    metadata_metric=metadata_metric
+                )
+                message = f"\nSimulation '{sxs_id}' is being automatically superseded by '{superseding}'."
+                warn(message)
+                new_location = f"{superseding}{input_version}"
+                if input_lev_number:
+                    new_location += f"/Lev{input_lev_number}"
+                return Simulation(new_location, *args, **kwargs)
 
     # Note the deprecation status in the kwargs, even if ignoring deprecation
     kwargs["deprecated"] = deprecated
 
+    # TODO: Default to not downloading file info
+    # TODO: In that case, deal with Lev numbers somehow
+
     # We want to do this *after* deprecation checking, to avoid possibly unnecessary web requests
-    files = get_file_info(metadata, sxs_id, download=kwargs.get("download", None))
+    files = get_file_info(metadata, sxs_id, download=kwargs.get("download_file_info", None))
 
     # If Lev is given as part of `location`, use it; otherwise, use the highest available
     lev_numbers = sorted({lev for f in files if (lev:=lev_number(f))})
@@ -361,8 +358,8 @@ class SimulationBase:
         """Return the closest undeprecated simulation to this one
 
         Note that any simulation in `dataframe` with zero distance
-        from this one will be ignored; the returned index will refer
-        to the closest simulation with a distance greater than zero.
+        from this one will be ignored; the returned index will not
+        refer to this simulation, even if it is undeprecated.
 
         Parameters
         ----------
@@ -814,6 +811,7 @@ class Simulation_v2(SimulationBase):
 
 
 def get_file_info(metadata, sxs_id, download=None):
+    # TODO: Allow an existing zenodo_metadata.json file to be used
     from .. import load_via_sxs_id
     if "files" in metadata:
         return metadata["files"]
