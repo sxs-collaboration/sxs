@@ -171,7 +171,7 @@ def Simulation(location, *args, **kwargs):
                 original = Simulation(location, *args, **original_kwargs)
                 metadata_metric = kwargs.pop("metadata_metric", MetadataMetric())
                 superseding = original.closest_simulation(
-                    dataframe=metadata.dataframe,
+                    dataframe=simulations.dataframe,
                     metadata_metric=metadata_metric
                 )
                 message = f"\nSimulation '{sxs_id}' is being automatically superseded by '{superseding}'."
@@ -344,7 +344,8 @@ class SimulationBase:
         """
         from ..metadata.metric import MetadataMetric
         from .. import load
-        dataframe = dataframe or load("simulations").dataframe
+        if dataframe is None:
+            dataframe = load("simulations").dataframe
         metadata_metric = metadata_metric or MetadataMetric()
         if drop_deprecated:
             dataframe = dataframe[~dataframe.deprecated]
