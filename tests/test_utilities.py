@@ -4,7 +4,7 @@ import contextlib
 import tempfile
 import pytest
 import sxs
-
+from .conftest import skip_macOS_GH_actions_downloads
 from .conftest import shortest_h_com_file, shortest_horizons, shortest_metadata
 
 

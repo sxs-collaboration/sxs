@@ -5,8 +5,7 @@ import tempfile
 import pytest
 import json
 import sxs
-
-from .conftest import shortest_metadata, shortest_metadata_txt
+from .conftest import skip_macOS_GH_actions_downloads, shortest_metadata, shortest_metadata_txt
 
 
 @skip_macOS_GH_actions_downloads

@@ -10,7 +10,7 @@ import h5py
 import pytest
 import sxs
 
-from .conftest import shortest_h_com_file, constant_waveform
+from .conftest import skip_macOS_GH_actions_downloads, shortest_h_com_file
 
 try:
     import spinsfast
