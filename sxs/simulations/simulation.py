@@ -144,17 +144,16 @@ def Simulation(location, *args, **kwargs):
         if not bool(auto_supersede):
             if not input_version:
                 raise ValueError(
-                    f"Simulation '{sxs_id}' is deprecated.  You could\n"
-                    +  "  1. pass `ignore_deprecation=True` to load the last available version,\n"
+                    f"Simulation '{location}' is deprecated.  You could\n"
+                    +  "  1. pass `ignore_deprecation=True` to load the latest available version,\n"
                     +  "  2. manually choose a different simulation from the catalog,\n"
                     +  "  3. pass `auto_supersede=True` to load the closest match in the catalog, or\n"
-                    + f"  4. include the version number, as in '{sxs_id}v2.0', to load a specific version.\n"
+                    + f"  4. include the version number, as in '{sxs_id_stem}v2.0', to load a specific version.\n"
                 )
             else:
                 message = ("\n"
-                    + f"Simulation '{sxs_id_stem}' is deprecated and/or superseded.\n"
-                    + "Normally, this simulation should no longer be used, but you\n"
-                    + f"explicitly requested version '{input_version}', so it is being used.\n"
+                    + f"Simulation '{sxs_id_stem}' is deprecated, but you explicitly\n"
+                    + f"requested version '{input_version}', so it is being used.\n"
                     + f"Pass `ignore_deprecation=True` to quiet this warning.\n"
                 )
                 warn(message)
