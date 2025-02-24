@@ -531,7 +531,7 @@ def align4d(
     optimum = least_squares(
         cost_wrapper,
         δt_δso3,
-        bounds=[(δt_lower, -np.pi, -np.pi, -np.pi), (δt_upper, np.pi, np.pi, np.pi)],
+        bounds=[(δt_lower, -np.pi/2, -np.pi/2, -np.pi/2), (δt_upper, np.pi/2, np.pi/2, np.pi/2)],
         max_nfev=50000,
     )
     δt = optimum.x[0]
