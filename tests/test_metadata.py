@@ -9,6 +9,7 @@ import sxs
 from .conftest import shortest_metadata, shortest_metadata_txt
 
 
+@skip_macOS_GH_actions_downloads
 def test_json_conversion():
     with contextlib.redirect_stdout(None):
         sxs.load(shortest_metadata, download=True, cache=True)

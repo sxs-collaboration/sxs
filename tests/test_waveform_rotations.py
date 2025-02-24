@@ -7,6 +7,7 @@ import sxs
 from .conftest import constant_waveform, linear_waveform, random_waveform
 
 
+@skip_macOS_GH_actions_downloads
 def test_modes_rotate(h, eps):
     import time
 
@@ -32,6 +33,7 @@ def test_modes_rotate(h, eps):
         assert metadata == metadataprm
 
 
+@skip_macOS_GH_actions_downloads
 def test_modes_rotate_evaluate(h, Rs, eps):
     """Test that evaluating modes at rotated points == evaluating rotated modes at points"""
     import time
