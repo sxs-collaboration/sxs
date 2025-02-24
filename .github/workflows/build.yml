@@ -77,11 +77,7 @@ jobs:
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
         shell: bash
         run: |
-          ls "${{ env.HOME }}/.sxs/cache/**" || true
-          ls "${{ env.HOME }}/.cache/sxs/cache/**" || true
           hatch run test
-          ls "${{ env.HOME }}/.sxs/cache/**" || true
-          ls "${{ env.HOME }}/.cache/sxs/cache/**" || true
 
       - name: Upload coverage
         if: "matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'"
