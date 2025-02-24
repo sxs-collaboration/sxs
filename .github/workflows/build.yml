@@ -49,7 +49,7 @@ jobs:
         with:
           key: sxs-${{ runner.os }}-1 # Increment this number whenever the cached files should change
           path: |
-            ${{ github.workspace }}${{ runner.os == 'Linux' && '/.cache/sxs/cache' || '/.sxs/cache' }}
+            ${{ runner.os == 'Linux' && '/home/runner/.cache/sxs' || runner.os == 'Windows' && 'C:\Users\runneradmin\.sxs\cache' || '/Users/runner/.sxs/cache' }}
 
       - name: Set up Julia
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
