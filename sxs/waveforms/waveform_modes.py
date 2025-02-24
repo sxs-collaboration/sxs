@@ -729,11 +729,10 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         return TimeSeries(signal.reshape(out_shape), self.time)
 
-    # TODO:
-    # # Don't bother with inner_product_LL, as it doesn't appear to be used; maybe a more general version?
-    # inner_product
-    # mode_frame (Minimally rotating O'Shaughnessy et al. frame)
-    # to_mode_frame
+    # TODO: Don't bother with inner_product_LL, as it doesn't appear to be used; maybe a more general version?
+    # TODO: inner_product
+    # TODO: mode_frame (Minimally rotating O'Shaughnessy et al. frame)
+    # TODO: to_mode_frame
 
     @property
     def expectation_value_LL(self):

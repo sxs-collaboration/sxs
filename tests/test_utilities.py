@@ -4,7 +4,7 @@ import contextlib
 import tempfile
 import pytest
 import sxs
-
+from .conftest import skip_macOS_GH_actions_downloads
 from .conftest import shortest_h_com_file, shortest_horizons, shortest_metadata
 
 
@@ -239,6 +239,7 @@ def test_select_by_path_component():
     )
 
 
+@skip_macOS_GH_actions_downloads
 @pytest.mark.parametrize("truncation_tol", (True, None, 1e-9))
 def test_lvcnr_format(truncation_tol):
     import shutil

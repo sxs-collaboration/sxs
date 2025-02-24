@@ -103,7 +103,7 @@ class Metadata(collections.OrderedDict):
             else:
                 raise ValueError(f"Could not find file named '{json_path}' or '{txt_path}'")
             
-            return _backwards_compatibility(metadata)
+        return _backwards_compatibility(metadata)
 
     load = from_file
 
@@ -622,11 +622,16 @@ class Metadata(collections.OrderedDict):
     def setdefault(self, key, default=None):
         return super(Metadata, self).setdefault(_valid_identifier(key), default)
 
-    def update(self, mapping_or_iterable=None, **kwargs):
-        if isinstance(mapping_or_iterable, collections.abc.Mapping):
-            mapping_or_iterable = collections.OrderedDict(
-                [(_valid_identifier(key), mapping_or_iterable[key]) for key in mapping_or_iterable]
-            )
-        elif isinstance(mapping_or_iterable, collections.abc.Iterable):
-            mapping_or_iterable = [(_valid_identifier(k), v) for k, v in mapping_or_iterable]
-        return super(Metadata, self).update(mapping_or_iterable)
+    def update(self, mapping_or_iterable=None, /, **kwargs):
+        # This should be just the same as the collections.OrderedDict.update
+        # method, except that identifiers passed in via mapping_or_iterable
+        # have to be converted to valid identifiers first.
+        if mapping_or_iterable is not None:
+            if hasattr(mapping_or_iterable, "keys") and callable(mapping_or_iterable.keys):
+                for k in mapping_or_iterable:
+                    self[_valid_identifier(k)] = mapping_or_iterable[k]
+            else:
+                for k, v in mapping_or_iterable:
+                    self[_valid_identifier(k)] = v
+        for k in kwargs:
+            self[k] = kwargs[k]

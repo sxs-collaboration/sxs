@@ -10,7 +10,7 @@ import h5py
 import pytest
 import sxs
 
-from .conftest import shortest_h_com_file, constant_waveform
+from .conftest import skip_macOS_GH_actions_downloads, shortest_h_com_file
 
 try:
     import spinsfast
@@ -19,6 +19,7 @@ except:
     requires_spinsfast = pytest.mark.skip(reason="spinsfast is missing")
 
 
+@skip_macOS_GH_actions_downloads
 def test_backwards_compatibility():
     path = sxs.sxs_directory("cache") / sxs.utilities.sxs_path_to_system_path(shortest_h_com_file)
     with contextlib.redirect_stdout(None):
@@ -38,6 +39,7 @@ def test_backwards_compatibility():
                     assert np.array_equal(f[group], h[group])
 
 
+@skip_macOS_GH_actions_downloads
 @requires_spinsfast
 def test_boost(h):
     ell_max = 2*h.ell_max
@@ -228,6 +230,7 @@ def test_modes_derivative_commutators():
         assert np.allclose(ethbar(eth(m)) - eth(ethbar(m)), 2 * m.s * m, rtol=tolerance, atol=tolerance)
 
 
+@skip_macOS_GH_actions_downloads
 def test_modes_evaluate(h, eps):
     import time
 
@@ -254,6 +257,7 @@ def test_modes_evaluate(h, eps):
     assert np.allclose(g1, g2, rtol=ϵ, atol=ϵ), f"max|g1-g2|={np.max(np.abs(g1-g2))}"
 
 
+@skip_macOS_GH_actions_downloads
 def test_rpxmb():
     print()
     w = sxs.load(shortest_h_com_file, extrapolation_order=4)
@@ -270,6 +274,7 @@ def test_rpxmb():
         assert np.max(diff_norm) < L2norm_fractional_tolerance, (np.max(diff_norm), "\n", diff_norm)
 
 
+@skip_macOS_GH_actions_downloads
 def test_rpdmb():
     print()
     w = sxs.load(shortest_h_com_file, extrapolation_order=4)

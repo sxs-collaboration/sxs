@@ -25,7 +25,11 @@ GITHUB_ACTIONS_MACOS = (
     and os.getenv("RUNNER_OS", "") == "macOS"
 )
 
-if GITHUB_ACTIONS_MACOS:
+# Disabling this decorator on macos, hoping that the github actions cache
+# will work adequately.  Note that if macos tests are failing, it may be
+# time to increment the cache version number in .github/workflows/build.yml;
+# try that before re-enabling this decorator.
+if False: # GITHUB_ACTIONS_MACOS:
     skip_macOS_GH_actions_downloads = pytest.mark.skip(
         reason="macOS runners on GitHub Actions have connectivity problems"
     )

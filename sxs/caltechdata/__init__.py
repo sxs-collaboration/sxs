@@ -1,4 +1,3 @@
-import copy
 import time
 import warnings
 import re
@@ -9,10 +8,6 @@ import pathlib
 from .login import Login
 from .. import sxs_id, Metadata
 from ..utilities import sxs_identifier_regex, SimpleVersion
-
-
-# To do:
-# - Finish up the code to create a new version from an existing one
 
 
 def mtime(f):

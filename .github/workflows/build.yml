@@ -36,9 +36,9 @@ jobs:
             python-version: '3.13'
 
     steps:
-      - name: Skip replicates on main branch
+      - name: Skip replicates unless on main branch or using ubuntu-latest
         env:
-          skip_replicates: ${{ github.ref == 'refs/heads/main' && matrix.os != 'ubuntu-latest' }}
+          skip_replicates: ${{ github.ref != 'refs/heads/main' && matrix.os != 'ubuntu-latest' }}
         shell: bash
         run: |
           echo "skipping_build_and_test_replicate=${skip_replicates}" >> $GITHUB_ENV
@@ -47,12 +47,9 @@ jobs:
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
         uses: actions/cache@v4
         with:
-          key: sxs-${{ runner.os }}-python${{ matrix.python-version }}
+          key: sxs-${{ runner.os }}-1 # Increment this number whenever the cached files should change
           path: |
-            ~/.sxs
-          restore-keys: |
-            sxs-${{ runner.os }}-
-            sxs-
+            ${{ runner.os == 'Linux' && '/home/runner/.cache/sxs' || runner.os == 'Windows' && 'C:\Users\runneradmin\.sxs\cache' || '/Users/runner/.sxs/cache' }}
 
       - name: Set up Julia
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
@@ -61,6 +58,8 @@ jobs:
       - name: Cache Julia
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
         uses: julia-actions/cache@v2
+        with:
+          include-matrix: false
 
       - name: Check out code
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
@@ -78,7 +77,9 @@ jobs:
 
       - name: Run tests
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
-        run: hatch run test
+        shell: bash
+        run: |
+          hatch run test
 
       - name: Upload coverage
         if: "matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'"

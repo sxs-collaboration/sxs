@@ -1,7 +1,8 @@
 from pathlib import Path
+from datetime import datetime, timezone
 from .. import sxs_id, Metadata, sxs_directory
 from ..utilities import sxs_identifier_re
-from ..zenodo import path_to_invenio as p2i
+from ..zenodo import path_to_invenio
 
 def file_upload_allowed(file, directory_listing):
     """Return True if the file should be uploaded
@@ -65,7 +66,7 @@ def extract_id_from_common_metadata(file, annex_dir):
     return key
 
 
-def local_simulations(annex_dir):
+def local_simulations(annex_dir, compute_md5=False, show_progress=False):
     """
     Walk the annex directory to find and process all simulations
 
@@ -88,6 +89,11 @@ def local_simulations(annex_dir):
     ----------
     annex_dir : (str or Path)
         The path to the annex directory to be processed.
+    compute_md5 : bool, optional
+        Whether to compute the MD5 hash of each file.  Default is
+        False.
+    show_progress : bool, optional
+        Whether to show a progress bar.  Default is False.
 
     Returns
     -------
@@ -95,9 +101,24 @@ def local_simulations(annex_dir):
         A dictionary containing the processed metadata.
     """
     from os import walk
+    from ..utilities import md5checksum
+    from tqdm import tqdm
 
     simulations = {}
     annex_dir = Path(annex_dir).resolve()
+
+    if show_progress:  # Count the number of common-metadata.txt files
+        num_files = 0
+        for dirpath, dirnames, filenames in walk(annex_dir, topdown=True):
+            if Path(dirpath).name.startswith("."):
+                dirnames[:] = []
+                continue
+            if "common-metadata.txt" in filenames:
+                if not any(d.startswith("Lev") for d in dirnames):
+                    continue
+                num_files += 1
+                dirnames[:] = []
+        progress_bar = tqdm(total=num_files, desc="Processing simulations")
 
     # The `walk` method can be made *much* faster than the `glob` method
     for dirpath, dirnames, filenames in walk(annex_dir, topdown=True):
@@ -112,29 +133,53 @@ def local_simulations(annex_dir):
             if not any(d.startswith("Lev") for d in dirnames):
                 continue
 
-            key = extract_id_from_common_metadata(dirpath / "common-metadata.txt", annex_dir)
+            if show_progress:
+                progress_bar.update(1)
 
-            # Find the highest Lev directory and extract the metadata
-            highest_lev = sorted(
-                [d for d in dirnames if d.startswith("Lev")]
-            )[-1]
-            metadata = Metadata.load(dirpath / highest_lev / "metadata")
-            metadata = metadata.add_standard_parameters()
+            try:
+                key = extract_id_from_common_metadata(dirpath / "common-metadata.txt", annex_dir)
 
-            metadata["files"] = {
-                p2i(file.relative_to(dirpath)): {"link": str(file)}
-                for file in files_to_upload(dirpath, annex_dir)
-            }
+                # Find the highest Lev directory and extract the metadata
+                highest_lev = sorted(
+                    [d for d in dirnames if d.startswith("Lev")]
+                )[-1]
+                metadata = Metadata.load(dirpath / highest_lev / "metadata")
+                metadata = metadata.add_standard_parameters()
 
-            simulations[key] = metadata
+                metadata["directory"] = str(dirpath.relative_to(annex_dir))
+
+                simulations[key] = metadata
+
+                files = files_to_upload(dirpath, annex_dir)
+
+                metadata["mtime"] = datetime.fromtimestamp(
+                    max(file.resolve().stat().st_mtime for file in files),
+                    tz=timezone.utc,
+                ).isoformat()
+
+                metadata["files"] = {
+                    path_to_invenio(file.relative_to(dirpath)): {
+                        "link": str(file),
+                        "size": file.stat().st_size,
+                        "checksum": md5checksum(file) if compute_md5 else "",
+                    }
+                    for file in files
+                }
+            except KeyboardInterrupt:
+                raise
+            except Exception as e:
+                print(f"Error processing {dirpath}: {e}")
 
             dirnames[:] = []  # Don't keep looking for common-metadata.txt files under this directory
 
     return simulations
 
 
-def write_local_simulations(annex_dir, output_file=None):
+def write_local_simulations(annex_dir, output_file=None, compute_md5=False, show_progress=False):
     """Write the local simulations to a file for use when loading `Simulations`
+
+    This function calls `local_simulations` to obtain the dictionary,
+    but also writes the dictionary to a JSON file.
 
     Parameters
     ----------
@@ -145,15 +190,21 @@ def write_local_simulations(annex_dir, output_file=None):
         written to `sxs_directory("cache") / "local_simulations.json"`.
         N.B.: If you specify a different file, `sxs.load` will not
         automatically find it.
+    compute_md5 : bool, optional
+        Whether to compute the MD5 hash of each file.  Default is
+        False.
+    show_progress : bool, optional
+        Whether to show a progress bar.  Default is False.
 
     Returns
     -------
-        None
+    dict :
+        A dictionary containing the processed metadata.
     """
     from json import dump
 
     # Process the annex directory to find all simulations
-    simulations = local_simulations(annex_dir)
+    simulations = local_simulations(annex_dir, compute_md5=compute_md5, show_progress=show_progress)
 
     # Write the simulations to file
     if output_file is None:
@@ -163,3 +214,5 @@ def write_local_simulations(annex_dir, output_file=None):
     output_file.parent.mkdir(parents=True, exist_ok=True)
     with output_file.open("w") as f:
         dump(simulations, f, indent=2, separators=(",", ": "), ensure_ascii=True)
+
+    return simulations
