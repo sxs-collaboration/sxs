@@ -2,6 +2,7 @@
 
 import re
 import collections
+import numpy as np
 
 
 _valid_identifier_pattern = re.compile(r'\W|^(?=\d)')
@@ -29,8 +30,11 @@ def _backwards_compatibility(metadata):
     # it's probably a good idea to duplicate whatever is included here
     # in that function, just to make sure nothing slips through the
     # cracks.
-    if "number_of_orbits" not in metadata and "number_of_orbits_from_start" in metadata:
-        metadata["number_of_orbits"] = metadata["number_of_orbits_from_start"]
+    if "number_of_orbits" not in metadata:
+        if "number_of_orbits_from_start" in metadata:
+            metadata["number_of_orbits"] = metadata["number_of_orbits_from_start"]
+        else:
+            metadata["number_of_orbits"] = np.nan
     return metadata
 
 
