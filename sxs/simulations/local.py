@@ -153,7 +153,14 @@ def local_simulations(annex_dir, compute_md5=False, show_progress=False):
                 files = files_to_upload(dirpath, annex_dir)
 
                 metadata["mtime"] = datetime.fromtimestamp(
-                    max(file.resolve().stat().st_mtime for file in files),
+                    max(
+                        (
+                            file.resolve().stat().st_mtime
+                            for file in files
+                            if file.exists()
+                        ),
+                        default=0.0,
+                    ),
                     tz=timezone.utc,
                 ).isoformat()
 
@@ -164,6 +171,7 @@ def local_simulations(annex_dir, compute_md5=False, show_progress=False):
                         "checksum": md5checksum(file) if compute_md5 else "",
                     }
                     for file in files
+                    if file.exists()
                 }
             except KeyboardInterrupt:
                 raise
