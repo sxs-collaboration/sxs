@@ -114,7 +114,7 @@ class MetadataMetric:
             values1[i], values2[i] = np.unwrap([floater(values1[i]), floater(values2[i])])
 
         if "reference_eccentricity" in self.parameters:
-            # Either way, we first make sure that the corresponding entries are floats.
+            # Either way, we first try to make sure that the corresponding entries are floats.
             i = self.parameters.index("reference_eccentricity")
             values1[i] = metadata1.get("reference_eccentricity_bound", floaterbound(values1[i]))
             values2[i] = metadata2.get("reference_eccentricity_bound", floaterbound(values2[i]))
