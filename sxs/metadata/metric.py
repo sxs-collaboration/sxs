@@ -60,13 +60,14 @@ class MetadataMetric:
     def __init__(
             self,
             parameters=[
-                "reference_mass_ratio",
+                "reference_mass1",
+                "reference_mass2",
                 "reference_dimensionless_spin1",
                 "reference_dimensionless_spin2",
                 "reference_eccentricity",
                 "reference_mean_anomaly",
             ],
-            metric=np.diag([1, 1, 1, 1, 1, 1, 1, 1, 1/np.pi**2]),
+            metric=np.diag([1, 1, 1, 1, 1, 1, 1, 1, 1, 1/np.pi**2]),
             allow_different_object_types=False,
             eccentricity_threshold1=1e-2,
             eccentricity_threshold2=1e-3,
