@@ -148,8 +148,9 @@ def Simulation(location, *args, **kwargs):
                     f"Simulation '{location}' is deprecated.  You could\n"
                     +  "  1. pass `ignore_deprecation=True` to load the latest available version,\n"
                     +  "  2. manually choose a different simulation from the catalog,\n"
-                    +  "  3. pass `auto_supersede=True` to load the closest match in the catalog, or\n"
-                    + f"  4. include the version number, as in '{sxs_id_stem}v2.0', to load a specific version.\n"
+                    +  "  3. pass `auto_supersede=0.01` to load a match closer than 0.01 in the catalog if one exists,\n"
+                    +  "  4. pass `auto_supersede=True` to load the closest match in the catalog, or\n"
+                    + f"  5. include the version number, as in '{sxs_id_stem}v2.0', to load a specific version.\n"
                 )
             else:
                 message = ("\n"
