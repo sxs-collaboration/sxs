@@ -59,13 +59,14 @@ def Simulation(location, *args, **kwargs):
         If `True`, completely bypass checking for deprecation or
         supersession.  No warnings or errors will be issued.  Default
         is `False`.
-    auto_supersede : bool, optional
-        If `True`, automatically load the superseding simulation, if
-        there is only one.  If there are multiple superseding
-        simulations, an error will be raised, and you must explicitly
-        choose one.  If there is only one, a warning will still be
-        issued, but the superseding simulation will be loaded.  Note
-        that this can also be set in the configuration file with
+    auto_supersede : bool or float, optional
+        If present, automatically load the closest undeprecated
+        simulation.  If this is a float and the distance to the
+        closest undeprecated simulation (see the following argument)
+        is larger, a ValueError will be raised.  Otherwise, a warning
+        will be issued with the ID of the new simulation and the
+        distance.  Note that this can also be set in the configuration
+        file by calling, e.g.,
         `sxs.write_config(auto_supersede=True)`.
     metadata_metric : MetadataMetric, optional
         Metric to use for comparing simulations when automatically
@@ -170,11 +171,25 @@ def Simulation(location, *args, **kwargs):
                 original_kwargs["ignore_deprecation"] = True
                 original = Simulation(location, *args, **original_kwargs)
                 metadata_metric = kwargs.pop("metadata_metric", MetadataMetric())
-                superseding = original.closest_simulation(
+                superseding, distance = original.closest_simulation(
                     dataframe=simulations.dataframe,
                     metadata_metric=metadata_metric
                 )
-                message = f"\nSimulation '{sxs_id}' is being automatically superseded by '{superseding}'."
+                if isinstance(auto_supersede, str):
+                    try:
+                        auto_supersede = float(auto_supersede)
+                    except:
+                        pass
+                if isinstance(auto_supersede, float) and distance > auto_supersede:
+                    raise ValueError(
+                        f"Simulation '{sxs_id}' is deprecated, but the closest undeprecated\n"
+                        f"simulation is more distant than allowed by `auto_supersede` argument:\n"
+                        f"{distance:.3g} > {auto_supersede:.3g}.\n"
+                    )
+                message = (
+                    f"\nSimulation '{sxs_id}' is being automatically superseded by '{superseding}'."
+                    f"\nThe distance between them in the given metadata metric is {distance:.3g}."
+                )
                 warn(message)
                 new_location = f"{superseding}{input_version}"
                 if input_lev_number:
@@ -354,7 +369,7 @@ class SimulationBase:
             axis=1
         )
 
-    def closest_simulation(self, dataframe=None, metadata_metric=None):
+    def closest_simulation(self, dataframe=None, metadata_metric=None, warning_threshold=1e-2):
         """Return the closest undeprecated simulation to this one
 
         Note that any simulation in `dataframe` with zero distance
@@ -370,12 +385,17 @@ class SimulationBase:
         metadata_metric : MetadataMetric, optional
             Metric to use for comparing simulations.  If not provided,
             the default metric will be used.
+        warning_threshold : float, optional
+            Threshold distance above which a warning will be issued
+            that the closest simulation is fairly distant.  Default is
+            1e-3.
 
         Returns
         -------
         closest_index : str
             Index of the closest undeprecated simulation in the
             `dataframe`.
+        distance : float
 
         """
         d = self.distances(
@@ -384,7 +404,9 @@ class SimulationBase:
             drop_deprecated=True
         )
         d = d[d > 0].sort_values()
-        return d.index[0]
+        if d.iloc[0] > warning_threshold:
+            warn(f"Closest simulation ({d.index[0]}) is fairly distant: {d.iloc[0]:.3g}")
+        return d.index[0], d.iloc[0]
     
     @property
     def dataframe(self):
