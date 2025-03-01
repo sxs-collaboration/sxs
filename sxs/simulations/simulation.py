@@ -358,6 +358,7 @@ class SimulationBase:
             metadata
 
         """
+        from numpy import sqrt
         from ..metadata.metric import MetadataMetric
         from .. import load
         if dataframe is None:
@@ -366,7 +367,7 @@ class SimulationBase:
         if drop_deprecated:
             dataframe = dataframe[~dataframe.deprecated]
         return dataframe.apply(
-            lambda m: metadata_metric(self.metadata, m),
+            lambda m: sqrt(metadata_metric(self.metadata, m)),
             axis=1
         )
 
@@ -406,7 +407,7 @@ class SimulationBase:
         )
         d = d[d > 0].sort_values()
         if d.iloc[0] > warning_threshold:
-            warn(f"Closest simulation ({d.index[0]}) is fairly distant: {d.iloc[0]:.3g}")
+            warn(f"\nClosest simulation ({d.index[0]}) is fairly distant: {d.iloc[0]:.3g}")
         return d.index[0], d.iloc[0]
     
     @property
