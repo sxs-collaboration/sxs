@@ -14,6 +14,9 @@ class MetadataMetric:
     metadata, rather than as a strict metric for clustering or
     classification.
 
+    Note that calling an object of this class with two metadata
+    collections will return the *squared* distance between them.
+
     Parameters
     ----------
     parameters : list of str, optional
