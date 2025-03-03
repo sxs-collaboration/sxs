@@ -7,6 +7,8 @@ from scipy.integrate import trapezoid
 import multiprocessing as mp
 from functools import partial
 
+from . import norms
+
 
 def align1d(wa, wb, t1, t2, n_brute_force=None):
     """Align waveforms by shifting in time
@@ -549,3 +551,286 @@ def align4d(
     wa_prime = wa_prime.rotate(δSpin3)
 
     return optimum.cost, wa_prime, optimum
+
+def map_waveform_to_canonical_frame(wa, t_ref):
+    """Map waveform to canonical frame at t_ref; this amounts to
+    mapping to the peak time to zero, aligning the angular velocity
+    with the z axis at t_ref, fixing the phase of (2,2) to be zero
+    at t_ref, and making Re[(2,1)] > 0 at t_ref.
+
+    Parameters
+    ----------
+    wa : WaveformModes
+    t_ref : float
+        Reference time, relative to peak strain.
+
+    Returns
+    -------
+    wa_prime: WaveformModes
+        waveform aligned to wb.
+    transformation: ndarray
+        Transformation to map wa to wa_prime.
+    """
+    
+    δt = 0
+    δSpin3 = quaternionic.array([0, 0, 0, 1])
+
+    # Fix t so that peaks agree
+    try:
+        δt = wa.max_norm_time(interpolate=True)
+    except:
+        δt = wa.max_norm_time()
+
+    idx_ref = np.argmin(abs(wa.t - (δt + t_ref)))
+    
+    # Fix angular velocity to be aligned with z
+    omegaa = wa.angular_velocity[idx_ref]
+    δSpin3 = quaternionic.align(np.array([omegaa]), np.array([quaternionic.z.vector]))
+
+    wa_rot = wa.rotate(δSpin3)
+    
+    # Fix the phase of (2,2) to be zero
+    dphase = (
+        -np.unwrap(np.angle(wa_rot.data[:,wa.index(2,2)]))/2
+    )[idx_ref]
+    if (wa_rot.data[idx_ref,wa.index(2,1)] * np.exp(1j*dphase)).real < 0:
+        dphase += np.pi
+        
+    δSpin3 = δSpin3 * np.exp(quaternionic.array([0, 0, 0, dphase / 2]))
+    
+    wa_prime = wa.copy()
+    wa_prime.t = wa_prime.t - δt
+    wa_prime = wa_prime.rotate(δSpin3)
+    
+    return wa_prime, [δt, δSpin3]
+
+def align_waveforms(
+        wa,
+        wb,
+        t1,
+        t2,
+        alignment_method="independent alignment",
+        t_ref=None,
+        n_brute_force_δt=1_000,
+        n_brute_force_δϕ=None,
+        max_δt=np.inf,
+        omega_tol=0.1,
+        nprocs=None,
+):
+    """Align waveforms by fixing the frame of each waveform at some
+    reference time or by performing an alignment optimization (1d, 2d, or 4d).
+
+    alignment_method determines what alignment is performed. If 'independent alignment'
+    then each simulation's frame is fixed at t_ref (if not provided, taken to be XXX
+    before the peak of sima; if '1d', '2d', or '4d', then the corresponding
+    optimization is performed over [t1, t2].
+
+    Parameters
+    ----------
+    wa : WaveformModes
+    wb : WaveformModes
+        WaveformModes to be aligned
+    t1 : float
+        Beginning of integration interval.
+    t2 : float
+        End of integration interval.
+    alignment_method : str
+        Alignment method to use;
+          - "independent alignment" aligns each simulation to some frame at t_ref;
+            - time is set to zero at the peak;
+            - angular velocity vector is aligned with z a t_ref;
+            - phase of (2,2) is set to zer at t_ref;
+            - real part of the (2,1) mode is made positive at t_ref (fixes \pi freedom);
+          - "1d" performs a 1d optimization over time translations;
+          - "2d" performs a 2d optimization over time translations and rotations about the z-axis;
+          - "4d" performs a 4d optimization over time translations and SO(3) rotations;
+    t_ref : float
+        Reference time, relative to peak strain, for independent alignment.
+        Default is None.
+    n_brute_force_δt : int, optional
+        Number of evenly spaced δt values between (t1-t2) and (t2-t1) to sample 
+        for the initial guess.  By default, this is 1,000.  If this is too small, 
+        an incorrect local minimum may be found.
+    n_brute_force_δϕ : int, optional
+        Number of evenly spaced angles about the angular-velocity axis to sample 
+        for the initial guess.  By default, this is `2 * (2 * ell_max + 1)`.
+    max_δt : float, optional
+        Max δt to allow for when choosing the initial guess.
+    omega_tol: float, optional
+        Angular velocity magnitude tolerance to be used to fix rotation.
+        Default is 0.1
+    nprocs : int, optional
+        Number of cpus to use.  Default is maximum number.  If -1 is provided, 
+        then no multiprocessing is performed.
+
+    Returns
+    -------
+    wa_prime : WaveformModes
+        Waveform aligned to wb.
+    transformation : ndarray
+        Transformation to map wa to wa_prime.
+    L2_norm : float
+        L² norm of wa_prime and wb over [t1, t2].
+    """
+    δt = 0
+    δSpin3 = quaternionic.one
+    wa_prime = wa.copy()
+    
+    if alignment_method == 'independent alignment':
+        _, transformationa = map_waveform_to_canonical_frame(wa, t_ref)
+        _, transformationb = map_waveform_to_canonical_frame(wb, t_ref)
+        δt = transformationa[0] - transformationb[0]
+        δSpin3 = transformationa[1] * transformationb[1].inverse
+
+        wa_prime = wa.copy()
+        wa_prime.t = wa_prime.t - δt
+        wa_prime = wa_prime.rotate(δSpin3)
+    elif alignment_method == '1d':
+        δt = -align1d(wa, wb, t1, t2, n_brute_force=n_brute_force_δt)
+        wa_prime.t = wa_prime.t - δt
+    elif alignment_method == '2d':
+        _, wa_prime, res = align2d(wa, wb, t1, t2, n_brute_force_δt=n_brute_force_δt, n_brute_force_δϕ=n_brute_force_δϕ, max_δt=max_δt, nprocs=nprocs)
+        δt, dphase = res.x
+        δSpin3 = np.exp(quaternionic.array([0, 0, 0, dphase / 2]))
+    elif alignment_method == '4d':
+        _, wa_prime, res = align4d(wa, wb, t1, t2, n_brute_force_δt=n_brute_force_δt, n_brute_force_δϕ=n_brute_force_δϕ, max_δt=max_δt, nprocs=nprocs)
+        δt = res.x[0]
+        δSpin3 = np.exp(quaternionic.array.from_vector_part(res.x[1:]))
+        
+        pass
+
+    return wa_prime, np.array([δt, *δSpin3.ndarray]), norms.compute_L2_norm(wa_prime, wb, t1, t2)
+    
+def align_simulations(
+        sima,
+        simb,
+        t1=None,
+        t2=None,
+        alignment_method="independent alignment",
+        t_ref=None,
+        n_brute_force_δt=1_000,
+        n_brute_force_δϕ=None,
+        max_δt=np.inf,
+        omega_tol=0.1,
+        nprocs=None,
+):
+    """Align simulations by fixing the frame of each simulation at some
+    reference time or by performing an alignment optimization (1d, 2d, or 4d).
+
+    alignment_method determines what alignment is performed. If 'independent alignment'
+    then each simulation's frame is fixed at t_ref (if not provided, taken to be XXX
+    before the peak of sima; if '1d', '2d', or '4d', then the corresponding
+    optimization is performed over [t1, t2].
+
+    Parameters
+    ----------
+    sima : Simulation
+    simb : Simulation
+        Simulations to be aligned
+    t1 : float
+        Beginning of integration interval.
+        Default is the relaxation time of simb.
+    t2 : float
+        End of integration interval.
+        Default is 60% of the ringdown, or 100M before peak if there is no merger.
+    alignment_method : str
+        Alignment method to use;
+          - "independent alignment" aligns each simulation to some frame at t_ref;
+            - time is set to zero at the peak;
+            - angular velocity vector is aligned with z a t_ref;
+            - phase of (2,2) is set to zer at t_ref;
+            - real part of the (2,1) mode is made positive at t_ref (fixes \pi freedom);
+          - "1d" performs a 1d optimization over time translations;
+          - "2d" performs a 2d optimization over time translations and rotations about the z-axis;
+          - "4d" performs a 4d optimization over time translations and SO(3) rotations;
+    t_ref : float
+        Reference time for independent alignment.
+        Default is None.
+    n_brute_force_δt : int, optional
+        Number of evenly spaced δt values between (t1-t2) and (t2-t1) to sample 
+        for the initial guess.  By default, this is 1,000.  If this is too small, 
+        an incorrect local minimum may be found.
+    n_brute_force_δϕ : int, optional
+        Number of evenly spaced angles about the angular-velocity axis to sample 
+        for the initial guess.  By default, this is `2 * (2 * ell_max + 1)`.
+    max_δt : float, optional
+        Max δt to allow for when choosing the initial guess.
+    omega_tol: float, optional
+        Angular velocity magnitude tolerance to be used to fix rotation.
+        Default is 0.1
+    nprocs : int, optional
+        Number of cpus to use.  Default is maximum number.  If -1 is provided, 
+        then no multiprocessing is performed.
+
+    Returns
+    -------
+    wa_prime : Simulation
+        Simulation sima.h aligned to Simulation simb.h.
+    transformation : BMSTransformation
+        BMS transformation to map sima.h to wa_prime.
+    L2_norm : float
+        L² norm of wa_prime and wb over [t1, t2].
+    """
+    wa = sima.h.copy()
+    wb = simb.h.copy()
+    
+    if t1 is None:
+        # Default to relaxation time
+        t1 = simb.metadata.relaxation_time
+
+    if t2 is None:
+        # Default to 60% of the post peak signal
+        try:
+            t2 = min(
+                wa.max_norm_time(interpolate=True) + 0.6 * (wa.t[-1] - wa.max_norm_time(interpolate=True)),
+                wb.max_norm_time(interpolate=True) + 0.6 * (wb.t[-1] - wb.max_norm_time(interpolate=True))
+            )
+        except:
+            t2 = min(
+                wa.max_norm_time() + 0.6 * (wa.t[-1] - wa.max_norm_time()),
+                wb.max_norm_time() + 0.6 * (wb.t[-1] - wb.max_norm_time())
+            )
+
+        # or 100M before peak signal (for cases with no merger)
+        if abs(t2) < 1e-2:
+            t2 -= 100
+
+    if t_ref is None:
+        try:
+            t_ref = 0.1 * (wb.max_norm_time(interpolate=True) - t1)
+        except:
+            t_ref = 0.1 * (wb.max_norm_time() - t1)
+
+    wa_prime, transformation, L2_norm = align_waveforms(
+        sima.h,
+        simb.h,
+        t1,
+        t2,
+        alignment_method='independent alignment',
+        t_ref=t_ref,
+        n_brute_force_δt=n_brute_force_δt,
+        n_brute_force_δϕ=n_brute_force_δϕ,
+        max_δt=max_δt,
+        omega_tol=omega_tol,
+        nprocs=nprocs,
+    )
+
+    if alignment_method == 'independent_alignment':
+        return wa_prime, transformation, L2_norm
+
+    wa_prime, transformation, L2_norm = align_waveforms(
+        sima.h,
+        simb.h,
+        t1,
+        t2,
+        alignment_method=alignment_method,
+        t_ref=t_ref,
+        n_brute_force_δt=n_brute_force_δt,
+        n_brute_force_δϕ=n_brute_force_δϕ,
+        max_δt=max_δt,
+        omega_tol=omega_tol,
+        nprocs=nprocs,
+    )
+
+    return wa_prime, transformation, L2_norm
+    

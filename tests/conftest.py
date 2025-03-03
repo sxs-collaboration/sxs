@@ -283,6 +283,36 @@ def random_waveform_fixture():
     return random_waveform()
 
 
+def physicalish_waveform(begin=0.0, end=100.0, n_times=1001, ell_min=2, ell_max=8):
+    import sxs
+    np.random.seed(hash("physicalish_waveform") % 4294967294)  # Use mod to get in an acceptable range
+    t = np.linspace(begin, end, num=n_times, endpoint=True)
+    lm = np.array([[ell, m] for ell in range(ell_min, ell_max + 1) for m in range(-ell, ell + 1)])
+    data = np.zeros((2*t.shape[0], lm.shape[0]), dtype=complex)
+    for i, m in enumerate(lm[:, 1]):
+        if m == 0:
+            continue
+        A = 1e-2 * (2*np.random.rand() - 1)
+        data[:data.shape[0]//2, i] = A*np.exp(-1j * (m - 1e-2j * abs(m)) * t)[::-1]
+        data[data.shape[0]//2:, i] = A*np.exp(-1j * (m - 1e-2j * abs(m)) * t)
+    W = sxs.WaveformModes(
+        data,
+        time=np.linspace(begin - end, end, 2*n_times, endpoint=True),
+        modes_axis=1,
+        ell_min=ell_min,
+        ell_max=ell_max,
+        frame_type="inertial",
+        data_type="h",
+        spin_weight=-2,
+    )
+    return W
+
+
+@pytest.fixture(name="physicalish_waveform")
+def physicalish_waveform_fixture():
+    return physicalish_waveform()
+
+
 def delta_waveform(ell, m, begin=-10.0, end=100.0, n_times=1000, ell_min=2, ell_max=8):
     """WaveformModes with 1 in selected slot and 0 elsewhere"""
     n_modes = ell_max * (ell_max + 2) - ell_min ** 2 + 1

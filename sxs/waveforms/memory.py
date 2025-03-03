@@ -13,37 +13,7 @@ h_with_memory = sxs.waveforms.memory.add_memory(h, integration_start_time=1000.0
 """
 
 import numpy as np
-import spherical
-from . import WaveformModes
-
-
-class _ModesTimeSeries(WaveformModes):
-
-    @property
-    def s(self):
-        return self.spin_weight
-
-    @property
-    def u(self):
-        return self.time
-
-    from spherical.modes.algebra import (
-        conjugate, bar, _real_func, real, _imag_func, imag, norm,
-        add, subtract, multiply, divide
-    )
-
-    conj = conjugate
-
-    from spherical.modes.utilities import (
-        truncate_ell, _check_broadcasting
-    )
-
-    from spherical.modes.ufuncs import __array_ufunc__
-
-
-def MTS(*args, **kwargs):
-    kwargs.setdefault('multiplication_truncator', max)
-    return _ModesTimeSeries(*args, **kwargs)
+from . import waveform_mts
 
 
 def 𝔇(h_mts):
@@ -107,8 +77,8 @@ def 𝔇inverseLaplacianinverse(h_mts):
 
 
 def mass_aspect(Psi2, h):
-    h = MTS(h)
-    Psi2 = MTS(Psi2)
+    h = waveform_mts.MTS(h)
+    Psi2 = MTSwaveform_mts.MTS(Psi2)
     return - (Psi2 + 0.25 * h.dot * h.bar).re
 
 
@@ -131,8 +101,8 @@ def J_m(h, Psi2):
         Bondi mass aspect contribution to the strain
 
     """
-    h = MTS(h)
-    Psi2 = MTS(Psi2)
+    h = waveform_mts.MTS(h)
+    Psi2 = waveform_mts.MTS(Psi2)
     m = mass_aspect(Psi2, h)
     J_m = 0.5 * 𝔇inverse(m).ethbar.ethbar
 
@@ -160,7 +130,7 @@ def J_E(h, integration_start_time=None):
 
     """
 
-    hdot = MTS(h).dot
+    hdot = waveform_mts.MTS(h).dot
 
     J_ℰ = 0.5 * 𝔇inverse(0.25 * (hdot * hdot.bar).int).ethbar.ethbar
 
@@ -191,8 +161,8 @@ def J_Nhat(h, Psi2):
 
     """
 
-    h = MTS(h)
-    Psi2 = MTS(Psi2)
+    h = waveform_mts.MTS(h)
+    Psi2 = waveform_mts.MTS(Psi2)
 
     # # Note that the contributions from the last two terms drop out as soon as we
     # # take the imaginary part below.
@@ -228,7 +198,7 @@ def J_J(h):
 
     """
 
-    h = MTS(h)
+    h = waveform_mts.MTS(h)
     hdot = h.dot
     J_𝒥 = 0.5j * 𝔇inverseLaplacianinverse(
         0.125 * (3 * h * hdot.bar.ethbar - 3 * hdot * h.bar.ethbar + hdot.bar * h.ethbar - h.bar * hdot.ethbar).eth.im
@@ -263,11 +233,11 @@ def add_memory(h, integration_start_time=None, psi4=None):
 
     """
     h_memory_correction = J_E(h, integration_start_time=integration_start_time)
-    h_with_memory = WaveformModes(MTS(h) + h_memory_correction)
+    h_with_memory = WaveformModes(waveform_mts.MTS(h) + h_memory_correction)
     h_with_memory.register_modification(add_memory, integration_start_time=integration_start_time)
     if psi4 is None:
         return h_with_memory
     else:
-        psi4_with_memory = WaveformModes(MTS(psi4) - MTS(h_memory_correction).ddot)
+        psi4_with_memory = WaveformModes(waveform_mts.MTS(psi4) - waveform_mts.MTS(h_memory_correction).ddot)
         psi4_with_memory.register_modification(add_memory, integration_start_time=integration_start_time)
         return (h_with_memory, psi4_with_memory)
