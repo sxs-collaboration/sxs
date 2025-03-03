@@ -78,7 +78,7 @@ def 𝔇inverseLaplacianinverse(h_mts):
 
 def mass_aspect(Psi2, h):
     h = waveform_mts.MTS(h)
-    Psi2 = MTSwaveform_mts.MTS(Psi2)
+    Psi2 = waveform_mts.MTS(Psi2)
     return - (Psi2 + 0.25 * h.dot * h.bar).re
 
 
