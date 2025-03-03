@@ -554,7 +554,7 @@ def align4d(
 
 def map_waveform_to_canonical_frame(wa, t_ref):
     """Map waveform to canonical frame at t_ref; this amounts to
-    mapping to the peak time to zero, aligning the angular velocity
+    mapping the peak time to zero, aligning the angular velocity
     with the z axis at t_ref, fixing the phase of (2,2) to be zero
     at t_ref, and making Re[(2,1)] > 0 at t_ref.
 
@@ -567,11 +567,10 @@ def map_waveform_to_canonical_frame(wa, t_ref):
     Returns
     -------
     wa_prime: WaveformModes
-        waveform aligned to wb.
+        wa waveform aligned to wb.
     transformation: ndarray
         Transformation to map wa to wa_prime.
     """
-    
     δt = 0
     δSpin3 = quaternionic.array([0, 0, 0, 1])
 
@@ -621,9 +620,8 @@ def align_waveforms(
     reference time or by performing an alignment optimization (1d, 2d, or 4d).
 
     alignment_method determines what alignment is performed. If 'independent alignment'
-    then each simulation's frame is fixed at t_ref (if not provided, taken to be XXX
-    before the peak of sima; if '1d', '2d', or '4d', then the corresponding
-    optimization is performed over [t1, t2].
+    then each simulation's frame is fixed at t_ref; if '1d', '2d', or '4d', then the
+    corresponding optimization is performed over [t1, t2].
 
     Parameters
     ----------
@@ -642,33 +640,33 @@ def align_waveforms(
             - phase of (2,2) is set to zer at t_ref;
             - real part of the (2,1) mode is made positive at t_ref (fixes \pi freedom);
           - "1d" performs a 1d optimization over time translations;
-          - "2d" performs a 2d optimization over time translations and rotations about the z-axis;
+          - "2d" performs a 2d optimization over time translations and rotations about the z axis;
           - "4d" performs a 4d optimization over time translations and SO(3) rotations;
     t_ref : float
         Reference time, relative to peak strain, for independent alignment.
         Default is None.
     n_brute_force_δt : int, optional
-        Number of evenly spaced δt values between (t1-t2) and (t2-t1) to sample 
-        for the initial guess.  By default, this is 1,000.  If this is too small, 
+        Number of evenly spaced δt values between (t1 - t2) and (t2 - t1) to sample 
+        for the initial guess. By default, this is 1,000. If this is too small, 
         an incorrect local minimum may be found.
     n_brute_force_δϕ : int, optional
         Number of evenly spaced angles about the angular-velocity axis to sample 
-        for the initial guess.  By default, this is `2 * (2 * ell_max + 1)`.
+        for the initial guess. By default, this is `2 * (2 * ell_max + 1)`.
     max_δt : float, optional
         Max δt to allow for when choosing the initial guess.
     omega_tol: float, optional
         Angular velocity magnitude tolerance to be used to fix rotation.
         Default is 0.1
     nprocs : int, optional
-        Number of cpus to use.  Default is maximum number.  If -1 is provided, 
+        Number of cpus to use. Default is maximum number. If -1 is provided, 
         then no multiprocessing is performed.
 
     Returns
     -------
     wa_prime : WaveformModes
-        Waveform aligned to wb.
+        wa waveform aligned to wb.
     transformation : ndarray
-        Transformation to map wa to wa_prime.
+        Transformation ([dt, *SO(3) quaternion]) to map wa to wa_prime.
     L2_norm : float
         L² norm of wa_prime and wb over [t1, t2].
     """
@@ -718,9 +716,9 @@ def align_simulations(
     reference time or by performing an alignment optimization (1d, 2d, or 4d).
 
     alignment_method determines what alignment is performed. If 'independent alignment'
-    then each simulation's frame is fixed at t_ref (if not provided, taken to be XXX
-    before the peak of sima; if '1d', '2d', or '4d', then the corresponding
-    optimization is performed over [t1, t2].
+    then each simulation's frame is fixed at t_ref (if not provided, taken to be 10%
+    of the pre-merger phase before the peak of sima; if '1d', '2d', or '4d', then the
+    corresponding optimization is performed over [t1, t2].
 
     Parameters
     ----------
@@ -764,10 +762,10 @@ def align_simulations(
 
     Returns
     -------
-    wa_prime : Simulation
-        Simulation sima.h aligned to Simulation simb.h.
-    transformation : BMSTransformation
-        BMS transformation to map sima.h to wa_prime.
+    wa_prime : WaveformModes
+        Waveform sima.h aligned to Simulation simb.h.
+    transformation : ndarray
+        Transformation ([dt, *SO(3) quaternion]) to map sima.h to wa_prime.
     L2_norm : float
         L² norm of wa_prime and wb over [t1, t2].
     """
