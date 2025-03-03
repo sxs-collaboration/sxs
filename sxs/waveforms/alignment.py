@@ -695,7 +695,7 @@ def align_waveforms(
         δt = res.x[0]
         δSpin3 = np.exp(quaternionic.array.from_vector_part(res.x[1:]))
         
-        pass
+    δSpin3 = δSpin3.canonicalized
 
     return wa_prime, np.array([δt, *δSpin3.ndarray]), norms.compute_L2_norm(wa_prime, wb, t1, t2)
     
