@@ -1,5 +1,5 @@
 import numpy as np
-from quaternion.calculus import indefinite_integral as integrate
+from scipy.integrate import trapezoid
 
 from .waveform_mts import MTS
 
@@ -118,14 +118,14 @@ def compute_L2_norm(
                         
     if normalize:
         L2_norm = np.sqrt(
-            integrate(np.linalg.norm(data_diff, axis=wa.modes_axis)**2, wa.t)[-1]
-            / integrate(np.linalg.norm(data_for_norm, axis=wa.modes_axis)**2, wa.t)[-1]
+            trapezoid(np.linalg.norm(data_diff, axis=wa.modes_axis)**2, wa.t)
+            / trapezoid(np.linalg.norm(data_for_norm, axis=wa.modes_axis)**2, wa.t)
         )
 
         return L2_norm
     else:
-        L2_norm_unnormalized = np.sqrt(integrate(np.linalg.norm(data_diff, axis=wa.modes_axis)**2, wa.t)[-1])
-        norm = np.sqrt(integrate(np.linalg.norm(data_for_norm, axis=wa.modes_axis)**2, wa.t)[-1])
+        L2_norm_unnormalized = np.sqrt(trapezoid(np.linalg.norm(data_diff, axis=wa.modes_axis)**2, wa.t))
+        norm = np.sqrt(trapezoid(np.linalg.norm(data_for_norm, axis=wa.modes_axis)**2, wa.t))
 
         return L2_unnormalized, norm
 
@@ -154,12 +154,12 @@ def overlap(wa_mts, wb_mts, t1, t2, modes=None, ASD=None):
     overlap : float
         Overlap between the two waveforms.
     """
-    overlap = integrate(
+    overlap = trapezoid(
         np.sqrt(4 * np.pi)
         * wa_mts.multiply(wb_mts.bar, truncator=lambda tup: 0).ndarray[:, 0]
         / ASD ** 2,
         wa_mts.t,
-    )[-1]
+    )
 
     return overlap
 
