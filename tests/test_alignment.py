@@ -25,8 +25,8 @@ def test_independent_alignment():
         t_ref=-20
     )
     
-    assert np.allclose(norm, 0., atol=1e-5)
-    assert np.allclose([δt, *δSpin3.ndarray], transformation, atol=1e-5)
+    assert np.allclose(norm, 0., atol=1e-6)
+    assert np.allclose([δt, *δSpin3.ndarray], transformation, atol=1e-6)
     
 def test_align1d():
     h1 = physicalish_waveform()
@@ -46,8 +46,8 @@ def test_align1d():
         alignment_method="1d"
     )
     
-    assert np.allclose(norm, 0., atol=1e-5)
-    assert np.allclose(δt, transformation[0], atol=1e-5)
+    assert np.allclose(norm, 0., atol=1e-6)
+    assert np.allclose(δt, transformation[0], atol=1e-6)
     
 def test_align2d():
     h1 = physicalish_waveform()
@@ -66,11 +66,12 @@ def test_align2d():
         h2,
         t1,
         t2,
-        alignment_method="2d"
+        alignment_method="2d",
+        n_brute_force_δϕ=25
     )
     
-    assert np.allclose(norm, 0., atol=1e-5)
-    assert np.allclose([δt, *δSpin3.ndarray], transformation, atol=1e-5)
+    assert np.allclose(norm, 0., atol=1e-6)
+    assert np.allclose([δt, *δSpin3.ndarray], transformation, atol=1e-6)
     
 def test_align4d():
     h1 = physicalish_waveform()
@@ -89,8 +90,9 @@ def test_align4d():
         h2,
         t1,
         t2,
-        alignment_method="4d"
+        alignment_method="4d",
+        n_brute_force_δϕ=25
     )
     
-    assert np.allclose(norm, 0., atol=1e-5)
-    assert np.allclose([δt, *δSpin3.ndarray], transformation, atol=1e-5)
+    assert np.allclose(norm, 0., atol=1e-6)
+    assert np.allclose([δt, *δSpin3.ndarray], transformation, atol=1e-6)
