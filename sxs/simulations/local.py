@@ -215,12 +215,13 @@ def write_local_simulations(annex_dir, output_file=None, compute_md5=False, show
     simulations = local_simulations(annex_dir, compute_md5=compute_md5, show_progress=show_progress)
 
     # Write the simulations to file
-    if output_file is None:
-        output_file = sxs_directory("cache") / "local_simulations.json"
-    else:
-        output_file = Path(output_file)
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-    with output_file.open("w") as f:
-        dump(simulations, f, indent=2, separators=(",", ": "), ensure_ascii=True)
+    if output_file is not False:  # Test literal identity to allow `None`
+        if output_file is None:
+            output_file = sxs_directory("cache") / "local_simulations.json"
+        else:
+            output_file = Path(output_file)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        with output_file.open("w") as f:
+            dump(simulations, f, indent=2, separators=(",", ": "), ensure_ascii=True)
 
     return simulations

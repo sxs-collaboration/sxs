@@ -173,7 +173,7 @@ class Simulations(collections.OrderedDict):
         return remote_timestamp
     
     @classmethod
-    def local(cls, directory=None, *, download=None):
+    def local(cls, directory=None, *, download=None, output_file=None, compute_md5=False, show_progress=False):
         """Load the local catalog of SXS simulations
         
         This function loads the standard public catalog, but also
@@ -192,11 +192,21 @@ class Simulations(collections.OrderedDict):
         download : {None, bool}, optional
             Passed to `Simulations.load` when loading the public set
             of simulations.
+        output_file : {None, str, Path}, optional
+            If `directory` is not None, this will be passed to
+            `sxs.write_local_simulations`.
+        compute_md5 : bool, optional
+            If `directory` is not None, this will be passed to
+            `sxs.local_simulations`.
+        show_progress : bool, optional
+            If `directory` is not None, this will be passed to
+            `sxs.local_simulations`.
 
         See Also
         --------
         sxs.local_simulations : Search for local simulations
-        sxs.write_local_simulations : Write local simulations to a file
+        sxs.write_local_simulations : Write local simulations to a
+        file
         
         """
         import json
@@ -205,7 +215,12 @@ class Simulations(collections.OrderedDict):
 
         local_path = sxs_directory("cache") / "local_simulations.json"
         if directory is not None:
-            write_local_simulations(directory)
+            write_local_simulations(
+                directory,
+                output_file=output_file,
+                compute_md5=compute_md5,
+                show_progress=show_progress
+            )
         if not local_path.exists():
             if directory is not None:
                 raise ValueError(f"Writing local simulations for {directory=} failed")
@@ -229,7 +244,7 @@ class Simulations(collections.OrderedDict):
         return simulations
 
     @classmethod
-    def load(cls, download=None, *, local=False, annex_dir=None):
+    def load(cls, download=None, *, local=False, annex_dir=None, output_file=None, compute_md5=False, show_progress=False):
         """Load the catalog of SXS simulations
 
         Note that — unlike most SXS data files — the simulations file
@@ -263,6 +278,15 @@ class Simulations(collections.OrderedDict):
             If provided and `local=True`, this function will load
             local simulations from the given directory.  This is
             equivalent to calling `Simulations.local(directory)`.
+        output_file : {None, str, Path}, optional
+            If `annex_dir` is not None, this will be passed to
+            `sxs.write_local_simulations`.
+        compute_md5 : bool, optional
+            If `annex_dir` is not None, this will be passed to
+            `sxs.simulations.local_simulations`.
+        show_progress : bool, optional
+            If `annex_dir` is not None, this will be passed to
+            `sxs.simulations.local_simulations`.
 
         See Also
         --------
@@ -280,7 +304,13 @@ class Simulations(collections.OrderedDict):
             return cls._simulations
 
         if local or annex_dir is not None:
-            cls._simulations = cls.local(annex_dir, download=download)
+            cls._simulations = cls.local(
+                annex_dir,
+                download=download,
+                output_file=output_file,
+                compute_md5=compute_md5,
+                show_progress=show_progress
+            )
             return cls._simulations
 
         progress = read_config("download_progress", True)
