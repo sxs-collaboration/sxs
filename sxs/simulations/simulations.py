@@ -213,24 +213,26 @@ class Simulations(collections.OrderedDict):
         from .local import write_local_simulations
         from .. import sxs_directory
 
-        local_path = sxs_directory("cache") / "local_simulations.json"
         if directory is not None:
-            write_local_simulations(
+            local_path = output_file
+            local_simulations = write_local_simulations(
                 directory,
                 output_file=output_file,
                 compute_md5=compute_md5,
                 show_progress=show_progress
             )
-        if not local_path.exists():
-            if directory is not None:
-                raise ValueError(f"Writing local simulations for {directory=} failed")
-            else:
-                raise ValueError(
-                    f"Local simulations file not found, but no `directory` was provided.\n"
-                    + "If called from `sxs.load`, just pass the name of the directory."
-                )
-        with local_path.open("r") as f:
-            local_simulations = json.load(f)
+        else:
+            local_path = sxs_directory("cache") / "local_simulations.json"
+            if not local_path.exists():
+                if directory is not None:
+                    raise ValueError(f"Writing local simulations for {directory=} failed")
+                else:
+                    raise ValueError(
+                        f"Local simulations file not found, but no `directory` was provided.\n"
+                        + "If called from `sxs.load`, just pass the name of the directory."
+                    )
+            with local_path.open("r") as f:
+                local_simulations = json.load(f)
         simulations = cls.load(download)
         doi_versions = {
             k: v["DOI_versions"]
