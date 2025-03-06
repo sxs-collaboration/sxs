@@ -294,7 +294,10 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
             return Simulations.load(
                 download=download,
                 local=kwargs.get("local", False),
-                annex_dir=kwargs.get("annex_dir", None)
+                annex_dir=kwargs.get("annex_dir", None),
+                output_file=kwargs.get("output_file", None),
+                compute_md5=kwargs.get("compute_md5", False),
+                show_progress=kwargs.get("show_progress", False)
             ).dataframe
 
         elif sxs_id_version_lev_exact_re.match(location):
