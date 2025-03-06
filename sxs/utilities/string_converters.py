@@ -41,7 +41,11 @@ def three_vec(x):
 def datetime_from_string(x):
     import pandas as pd
     try:
-        dt = pd.to_datetime(x).tz_convert("UTC")
+        dt = pd.to_datetime(x)
     except:
         dt = pd.to_datetime("1970-1-1").tz_localize("UTC")
-    return dt
+    try:
+        dt = dt.tz_convert("UTC")
+    except:
+        pass  # No timezone information present; assuming UTC
+    return dt.tz_localize(None)
