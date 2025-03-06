@@ -92,6 +92,11 @@ class SimulationsDataFrame(pd.DataFrame):
         ])
     
     @property
+    def deprecated(self):
+        """Restrict dataframe to just simulations that are deprecated"""
+        return type(self)(self[self["deprecated"]])
+    
+    @property
     def undeprecated(self):
         """Restrict dataframe to just simulations that are not deprecated"""
         return type(self)(self[~self["deprecated"]])
