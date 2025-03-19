@@ -4,22 +4,12 @@
 
 import os.path
 from pathlib import Path
-
+from sxscatalog.utilities import path_to_invenio, invenio_to_path
 from .api import Login, Deposit, Records
 from . import catalog, simannex, surrogatemodeling
 
 # See https://github.com/moble/nb-marine-science for other examples using the Zenodo API
 # The other python API interface I found is here: https://github.com/moble/zenodo-python
-
-
-def path_to_invenio(file_path):
-    """Convert a file path to an invenio-compatible name"""
-    return str(file_path).replace(os.path.sep, ":")
-
-
-def invenio_to_path(file_name):
-    """Convert an invenio-compatible name to a file path"""
-    return Path(file_name.replace(":", os.path.sep))
 
 
 def translate(sxs_identifier, url=False):
