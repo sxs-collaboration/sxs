@@ -1,6 +1,7 @@
 """Functions to facilitate generic handling of SXS-format data files"""
 
 import contextlib
+import sxscatalog
 from . import waveforms, doi_url
 
 
@@ -280,25 +281,8 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
         elif location == "catalog":
             return Catalog.load(download=download)
 
-        elif location == "simulations":
-            return Simulations.load(
-                download=download,
-                local=kwargs.get("local", False),
-                annex_dir=kwargs.get("annex_dir", None),
-                output_file=kwargs.get("output_file", None),
-                compute_md5=kwargs.get("compute_md5", False),
-                show_progress=kwargs.get("show_progress", False)
-            )
-
-        elif location == "dataframe":
-            return Simulations.load(
-                download=download,
-                local=kwargs.get("local", False),
-                annex_dir=kwargs.get("annex_dir", None),
-                output_file=kwargs.get("output_file", None),
-                compute_md5=kwargs.get("compute_md5", False),
-                show_progress=kwargs.get("show_progress", False)
-            ).dataframe
+        elif location in ["simulations", "dataframe"]:
+            return sxscatalog.load(location, download=download, **kwargs)
 
         elif sxs_id_version_lev_exact_re.match(location):
             return Simulation(location, download=download, cache=cache, progress=progress, **kwargs)
