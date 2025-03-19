@@ -824,10 +824,11 @@ class Simulation_v2(SimulationBase):
         json_location = self.files.get(json_path)["link"]
         h5_truepath = Path(sxs_path_to_system_path(sxs_id_path / h5_path))
         json_truepath = Path(sxs_path_to_system_path(sxs_id_path / json_path))
+        json_truepath = sxs_directory("cache") / json_truepath
         if not Path(json_location).exists() and not json_truepath.exists():
             if not read_config("download", True):
                 raise ValueError(f"{json_truepath} not found and download is disabled")
-            download_file(json_location, sxs_directory("cache") / json_truepath)
+            download_file(json_location, json_truepath)
         return load(
             h5_location, truepath=h5_truepath, group=group, metadata=self.metadata,
             transform_to_inertial=transform_to_inertial
