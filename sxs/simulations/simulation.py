@@ -223,8 +223,12 @@ def Simulation(location, *args, **kwargs):
         sim = Simulation_v1(
             metadata, series, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
         )
-    elif 2 <= version_number < 3.0 or version == "v0.0":
+    elif 2 <= version_number < 3.0:
         sim = Simulation_v2(
+            metadata, series, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
+        )
+    elif 3 <= version_number < 4.0 or version == "v0.0":
+        sim = Simulation_v3(
             metadata, series, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
         )
     else:
@@ -839,6 +843,10 @@ class Simulation_v2(SimulationBase):
             h5_location, truepath=h5_truepath, group=group, metadata=self.metadata,
             transform_to_inertial=transform_to_inertial
         )
+
+
+class Simulation_v3(Simulation_v2):
+    pass
 
 
 def get_file_info(metadata, sxs_id, download=None):
