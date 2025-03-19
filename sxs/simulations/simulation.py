@@ -124,9 +124,15 @@ def Simulation(location, *args, **kwargs):
     metadata = Metadata(simulations[simulation_id])
     series = simulations.dataframe.loc[simulation_id]
 
+    # If input_version is not the default, remove "files" from metadata
+    if input_version and input_version != max(metadata.get("DOI_versions", []), default=""):
+        metadata = type(metadata)({
+            key: value for key, value in metadata.items() if key != "files"
+        })
+
     # Check if the specified version exists in the simulation catalog
     if not hasattr(metadata, "DOI_versions"):
-        input_version = "v0.0"
+        input_version = "v0.0"  # A fake version, to signal this sim doesn't know about DOIs
     if input_version != "v0.0" and input_version not in metadata.DOI_versions:
         raise ValueError(f"Version '{input_version}' not found in simulation catalog for '{simulation_id}'")
 
