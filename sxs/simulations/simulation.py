@@ -365,7 +365,7 @@ class SimulationBase:
             dataframe = load("simulations").dataframe
         metadata_metric = metadata_metric or MetadataMetric()
         if drop_deprecated:
-            dataframe = dataframe[~dataframe.deprecated]
+            dataframe = dataframe[~dataframe["deprecated"]]
         return dataframe.apply(
             lambda m: sqrt(metadata_metric(self.metadata, m)),
             axis=1
