@@ -5,8 +5,10 @@ import numbers
 from collections.abc import MutableMapping
 import warnings
 import numpy as np
+import astropy.constants as constants
 from scipy.interpolate import CubicSpline
 from scipy.optimize import minimize_scalar
+from scipy import fft
 import quaternionic
 import spherical
 from .. import TimeSeries
@@ -14,6 +16,9 @@ from . import WaveformMixin
 from .mode_utilities import _expectation_value_LL, _expectation_value_Ldt
 
 NRAR_mode_regex = re.compile(r"""Y_l(?P<L>[0-9]+)_m(?P<M>[-+0-9]+)\.dat""")
+
+t_factor = constants.M_sun.value * constants.G.value / constants.c.value**3
+h_factor = constants.M_sun.value * constants.G.value / constants.c.value**2
 
 
 class WaveformModes(WaveformMixin, TimeSeries):
@@ -1275,6 +1280,69 @@ class WaveformModes(WaveformMixin, TimeSeries):
         result = result.line_subtraction(treat_as_zero=treat_as_zero)
         return result
 
+    def fourier_transform(self, theta_phi=None, total_mass=1.):
+        """Fourier transform the modes of a waveform.
+
+        This Fourier transforms the mode time series
+        of the WaveformModes object and replaces the
+        time attribute with the frequencies.
+
+        Parameters
+        ----------
+        theta_phi : tuple, optional
+            Point on the two-sphere to evaluate the waveform at.
+            Default is None.
+        total_mass : float, optional
+            Total mass in solar masses.
+            Default is 1.
+
+        Returns
+        -------
+        h_tilde : TimeSeries
+            Dimensionful Fourier transform.
+        """
+        if theta_phi is not None:
+            h_dimensionful = self.evaluate(*theta_phi)
+            h_dimensionful *= total_mass * h_factor
+            h_dimensionful.t *= total_mass * t_factor
+        else:
+            h_dimensionful = WaveformModes(
+                input_array=self.data * total_mass * h_factor,
+                time=self.t * total_mass * t_factor,
+                time_axis=self.time_axis,
+                modes_axis=self.modes_axis,
+                ell_min=self.ell_min,
+                ell_max=self.ell_max,
+                spin_weight=self.spin_weight,
+            )
+
+        N = h_dimensionful.t.size
+        max_dt = max(np.diff(h_dimensionful.t))
+
+        if theta_phi is not None:
+            h_tilde = TimeSeries(
+                fft.fftshift(
+                    fft.fft(h_dimensionful.data, axis=0), axes=0
+                ),
+                fft.fftshift(fft.fftfreq(N, max_dt)),
+            )
+        else:
+            h_tilde = WaveformModes(
+                input_array=fft.fftshift(
+                    fft.fft(h_dimensionful.data, axis=0), axes=0
+                ),
+                time=fft.fftshift(fft.fftfreq(N, max_dt)),
+                time_axis=self.time_axis,
+                modes_axis=self.modes_axis,
+                ell_min=self.ell_min,
+                ell_max=self.ell_max,
+                spin_weight=self.spin_weight,
+            )
+            
+        h_tilde = h_tilde[h_tilde.t.size//2:]
+
+        return h_tilde
+        
 
 class WaveformModesDict(MutableMapping, WaveformModes):
     """A dictionary-like class for storing waveform modes

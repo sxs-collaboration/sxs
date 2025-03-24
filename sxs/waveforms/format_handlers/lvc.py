@@ -43,6 +43,9 @@ def to_lvc_conventions(
     of what this function does, the inputs, and outputs, see that
     function's docstring.
 
+    The frame alignment performed in this function is similar
+    to that performed in sxs.waveforms.alignment.map_waveform_to_canonical_frame.
+
     """
     if t_ref is None and f_ref is None:
         raise ValueError("One of `t_ref` or `f_ref` must be specified")
