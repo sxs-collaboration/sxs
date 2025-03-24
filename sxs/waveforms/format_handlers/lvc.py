@@ -36,11 +36,12 @@ def to_lvc_conventions(
 ):
     r"""Return SXS waveform in LVC conventions.
 
-    This is the function underpinning `sxs.load_lvc`.  Essentially,
-    that function is a fairly thin wrapper around this one; it just
-    loads the `h` and `horizons` data and passes it to this function.
-    For explanation of what this function does, the inputs, and
-    outputs, see that function's docstring.
+    This is the function underpinning the `to_lvk` method of the
+    various `Simulation` types.  Essentially, that function is a
+    fairly thin wrapper around this one; it just loads the `h` and
+    `horizons` data and passes it to this function.  For explanation
+    of what this function does, the inputs, and outputs, see that
+    function's docstring.
 
     """
     if t_ref is None and f_ref is None:
