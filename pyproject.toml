@@ -73,6 +73,7 @@ path = "sxs/__version__.py"
 
 [tool.hatch.envs.default]
 dependencies = [
+  "ipython",
   "pytest",
   "pytest-cov",
   "pytest-forked >=1.3.0",
