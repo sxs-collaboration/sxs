@@ -13,9 +13,9 @@ def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
     Compute various errors between two waveforms.
 
     This computes the time-domain mismatch over the two-sphere,
-    the relative L² norm error, the frequency-domain mismatch
+    the normalized L² norm of the residual, the frequency-domain mismatch
     against whatever detector ASDs are provided with some total mass,
-    and the modes' absolute errors and norms.
+    and the individual modes' residual norms and norms.
 
     Parameters
     ----------
@@ -36,7 +36,7 @@ def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
     -------
     errors : dict
         Dictionary of the time-domain mismatch over the two-sphere,
-        the relative L² norm error, the frequency-domain mismatch
+        the normalized L² norm of the residual, the frequency-domain mismatch
         against whatever detector ASDs are provided with some total mass,
         and the modes' absolute errors and norms.
     """
@@ -49,7 +49,7 @@ def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
 
     errors["mismatch"] = compute_mismatch(wa, wb, t1, t2)
 
-    errors["relative L2 norm error"] = compute_L2_norm(wa, wb, t1, t2)
+    errors["residual L2 norm"] = compute_L2_norm(wa, wb, t1, t2)
 
     f1 = (np.gradient(-np.unwrap(np.angle(wa.data[:, wa.index(2, 2)] * h_factor)), np.diff(wa.t * t_factor)[0]))[
         np.argmin(abs(wa.t - t1))
@@ -81,7 +81,7 @@ def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
             absolute_error, norm = compute_L2_norm(
                 wa, wb, t1, t2, modes=[(L, M)], modes_for_norm=[(L, M)], normalize=False
             )
-            errors[f"(L, M) = {(L, M)} L2 norm error"] = absolute_error
+            errors[f"(L, M) = {(L, M)} residual L2 norm"] = absolute_error
             errors[f"(L, M) = {(L, M)} L2 norm"] = norm
 
     return errors
@@ -103,11 +103,11 @@ def analyze_simulation(
     For each Lev in a simulation, align the strain waveforms
     (if it's the highest Lev pair, then a 4d optimization is also performed
     and the transformation from the low to high lev is included in the returned dictionary)
-    via the independent alignment method. Then, compute mismatches between
+    via the independent alignment method. Then, compute the L² norm of the residual between
     the two aligned waveforms (if it's the highest Lev pair, then the
-    relative L² norm error over the two-sphere is computed, as well as the
-    individual mode absolute errors and norms). For the
-    extrapolation order and psi4 analyses, only mismatches are computed.
+    mismatch against the ASDs and total masses is also computed, as well as the
+    individual modes' residual norms and norms). For the
+    extrapolation order and psi4 analyses, only the L² norm of the residuals are computed.
 
     Parameters
     ----------
@@ -149,18 +149,16 @@ def analyze_simulation(
 
             w_high_lev = sim_high_lev.h
             if i == 0:
-                print(sim_low_lev.lev, sim_high_lev.lev, "4d")
                 w_low_lev_prime, transformation, L2_norm, t1, t2 = align_simulations(
                     sim_low_lev, sim_high_lev, alignment_method="4d", nprocs=nprocs
                 )
                 errors[f"(Lev{lev - 1}, Lev{lev}) 4d"] = compute_error_summary(w_low_lev_prime, w_high_lev, t1, t2)
                 errors[f"(Lev{lev - 1}, Lev{lev}) 4d transformation"] = transformation
 
-            print(sim_low_lev.lev, sim_high_lev.lev, "independent alignment")
             w_low_lev_prime, transformation, _, t1, t2 = align_simulations(
                 sim_low_lev, sim_high_lev, alignment_method="independent alignment", nprocs=nprocs
             )
-            errors[f"(Lev{lev - 1}, Lev{lev})"] = compute_mismatch(w_high_lev, w_low_lev_prime, t1, t2)
+            errors[f"(Lev{lev - 1}, Lev{lev})"] = compute_L2_norm(w_high_lev, w_low_lev_prime, t1, t2)
 
     # Extrapolation order analysis
     if analyze_extrapolation:
@@ -172,27 +170,25 @@ def analyze_simulation(
 
             t1 = sim.metadata.relaxation_time
 
-            print("N2", extrapolation, "independent alignment")
             w_other_prime, transformation, _, t1, t2 = align_waveforms(
                 w_other, w_n2, t1, alignment_method="independent alignment", nprocs=nprocs
             )
 
-            mismatch = compute_mismatch(w_n2, w_other_prime, t1, t2)
+            L2_norm = compute_L2_norm(w_n2, w_other_prime, t1, t2)
 
-            errors[f"(N2, {extrapolation})"] = mismatch
+            errors[f"(N2, {extrapolation})"] = L2_norm
 
     # Psi4 analysis
     if analyze_psi4:
-        print("psi4")
         h_as_psi4 = -sim.h.ddot
         psi4 = sim.psi4
 
         t1 = sim.metadata.relaxation_time
         t2 = h_as_psi4.t[-1]
 
-        mismatch = compute_mismatch(h_as_psi4, psi4, t1, t2)
+        L2_norm = compute_L2_norm(h_as_psi4, psi4, t1, t2)
 
-        errors[f"(-h.ddot, psi4)"] = mismatch
+        errors[f"(-h.ddot, psi4)"] = L2_norm
 
     return errors
 
@@ -257,7 +253,6 @@ def analyze_simulations(
                     for sim_name in sim_names
                 ],
             )
-        print(results)
         for i, sim_name in enumerate(sim_names):
             errors[sim_name] = results[i]
     else:

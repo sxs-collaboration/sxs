@@ -698,9 +698,9 @@ def align_waveforms(
 
     if t_ref is None:
         try:
-            t_ref = 0.1 * (wb.max_norm_time(interpolate=True) - t1)
+            t_ref = -0.1 * (wb.max_norm_time(interpolate=True) - t1)
         except:
-            t_ref = 0.1 * (wb.max_norm_time() - t1)
+            t_ref = -0.1 * (wb.max_norm_time() - t1)
 
     _, transformationa = map_waveform_to_canonical_frame(wa, t_ref)
     _, transformationb = map_waveform_to_canonical_frame(wb, t_ref)
