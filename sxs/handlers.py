@@ -237,7 +237,7 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
     import pathlib
     import urllib.request
     from . import Simulations, Simulation, read_config, sxs_directory, Catalog
-    from .utilities import url, download_file, sxs_path_to_system_path, sxs_id_version_lev_exact_re, lev_path_re
+    from .utilities import url, download_file, sxs_path_to_system_path, sxs_id_version_lev_exact_re, lev_path_re, sxs_identifier_re
 
     # Note: `download` and/or `cache` may still be `None` after this
     if download is None:
@@ -294,10 +294,29 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
                 local=kwargs.get("local", False),
                 annex_dir=kwargs.get("annex_dir", None)
             )
+            # If we chop off any "/LevN", and it's in the simulations, load it as a simulation
             if lev_path_re.sub("", location) in simulations:
                 return Simulation(
                     location, download=download, cache=cache, progress=progress, **kwargs
                 )
+
+            # Now we look for a file in `simulations`
+            if sxs_identifier_re.match(location):
+                split_location = sxs_identifier_re.split(location)
+                # Currently we can only handle unversioned SXS ID files
+                if split_location[5] is None:
+                    sxs_id = split_location[1]
+                    file = split_location[-1].lstrip("/").lstrip("\\")
+                    if sxs_id in simulations:
+                        simulation = simulations[sxs_id]
+                        if "files" in simulation:
+                            file_info = simulation["files"][file]
+                            location = file_info["link"]
+                            truepath = truepath or (pathlib.Path(sxs_id) / file)
+                            return load(
+                                location, truepath=truepath,
+                                download=download, cache=cache, progress=progress, **kwargs
+                            )
 
             # Try to find an appropriate SXS file in the catalog
             catalog = Catalog.load(download=download)
