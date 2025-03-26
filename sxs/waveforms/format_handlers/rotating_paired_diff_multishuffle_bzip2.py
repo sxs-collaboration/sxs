@@ -413,6 +413,12 @@ def load(
             raise ValueError(message)
 
     file_name_str = str(file_name)
+    if file_name_str.endswith(".json"):
+        # This is just a JSON file with the "sxs_format" key, not an H5 file
+        # with the data in it.  Just return the JSON data.
+        from ...handlers import JSONHandler
+        return JSONHandler.load(file_name_str)
+
     group = kwargs.get("group", None)
     if ".h5" in file_name_str and not file_name_str.endswith(".h5"):
         file_name_str, group = file_name_str.split(".h5")
