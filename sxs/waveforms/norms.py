@@ -1,8 +1,7 @@
 import numpy as np
 from scipy.integrate import trapezoid
 
-from .waveform_mts import _ModesTimeSeries, MTS
-from .waveform_modes import WaveformModes, t_factor, h_factor
+from .waveform_modes import WaveformModes
 
 
 def check_time_constraint(wa, wb, t1, t2):
@@ -44,8 +43,8 @@ def create_unified_waveforms(wa, wb, t1, t2, padding_time_factor=0.2):
     check_time_constraint(wa, wb, t1, t2)
 
     padding_time = (t2 - t1) * padding_time_factor
-    t1_padded = max(max(wa.t[0], wb.t[0]), t1 - padding_time)
-    t2_padded = min(min(wa.t[-1], wb.t[-1]), t2 + padding_time)
+    t1_padded = max(wa.t[0], wb.t[0], t1 - padding_time)
+    t2_padded = min(wa.t[-1], wb.t[-1], t2 + padding_time)
 
     idx1 = np.argmin(abs(wa.t - t1_padded))
     idx2 = np.argmin(abs(wa.t - t2_padded)) + 1
@@ -137,19 +136,19 @@ def compute_L2_norm(wa, wb, t1=None, t2=None, modes=None, modes_for_norm=None, n
         return L2_norm_unnormalized, norm
 
 
-def compute_overlap(wa, wb, modes=None, ASD_values=None):
-    """Compute the overlap between two waveforms over the
+def compute_inner_product(wa, wb, modes=None, ASD_values=None):
+    """Compute the inner product between two waveforms over the
     window (x1, x2) using the modes specified by `modes`.
 
     Note that this can be provided with time-domain or frequency-domain waveforms,
-    either over the two-sphere (ModesTimeSeries) or at a point on the two-sphere (TimeSeries).
+    either over the two-sphere (WaveformModes) or at a point on the two-sphere (TimeSeries).
 
     For frequency-domain waveforms, the .t attribute should be the frequency.
 
     Parameters
     ----------
-    wa : ModesTimeSeries or TimeSeries
-    wb : ModesTimeSeries or TimeSeries
+    wa : WaveformModes or TimeSeries
+    wb : WaveformModes or TimeSeries
     modes : list, optional
         Default is all modes.
     ASD_values : ndarray, optioanl
@@ -158,24 +157,24 @@ def compute_overlap(wa, wb, modes=None, ASD_values=None):
 
     Returns
     -------
-    overlap : float
-        Overlap between the two waveforms.
+    inner_product : float
+        Inner product between the two waveforms.
     """
     if ASD_values is None:
-        ASD_values = np.ones_like(wa.t)
+        ASD_values = 1
 
-    if type(wa) == _ModesTimeSeries:
-        overlap = trapezoid(
-            np.sqrt(4 * np.pi) * wa.multiply(wb.bar, truncator=lambda tup: 0).ndarray[:, 0] / ASD_values**2,
+    if not wa.ndim == wb.ndim == 1:
+        inner_product = trapezoid(
+            np.sum(wa.data * wb.bar.data, axis=1) / ASD_values**2,
             wa.t,
-        ).real
+        )
     else:
-        trapezoid(
-            (wa * wb.bar).ndarray / ASD_values**2,
+        inner_product = trapezoid(
+            (wa * np.conjugate(wb)).ndarray / ASD_values**2,
             wa.t,
-        ).real
+        )
 
-    return overlap
+    return inner_product
 
 
 def compute_mismatch(wa, wb, x1=None, x2=None, modes=None, ASD=None):
@@ -183,7 +182,7 @@ def compute_mismatch(wa, wb, x1=None, x2=None, modes=None, ASD=None):
     window (x1, x2) using the modes specified by `modes`.
 
     Note that this can be provided with time-domain or frequency-domain waveforms,
-    either over the two-sphere (ModesTimeSeries) or at a point on the two-sphere (TimeSeries).
+    either over the two-sphere (WaveformModes) or at a point on the two-sphere (TimeSeries).
 
     For frequency-domain waveforms, the .t attribute should be the frequency.
 
@@ -234,15 +233,11 @@ def compute_mismatch(wa, wb, x1=None, x2=None, modes=None, ASD=None):
     if ASD is not None:
         ASD_values = ASD(wa.t)
     else:
-        ASD_values = np.ones_like(wa.t)
+        ASD_values = 1
 
-    if type(wa) == WaveformModes:
-        wa = MTS(wa)
-        wb = MTS(wb)
-
-    wa_wb_overlap = compute_overlap(wa, wb, ASD_values=ASD_values)
-    wa_norm = compute_overlap(wa, wa, ASD_values=ASD_values)
-    wb_norm = compute_overlap(wb, wb, ASD_values=ASD_values)
+    wa_wb_overlap = compute_inner_product(wa, wb, ASD_values=ASD_values).real
+    wa_norm = compute_inner_product(wa, wa, ASD_values=ASD_values).real
+    wb_norm = compute_inner_product(wb, wb, ASD_values=ASD_values).real
 
     mismatch = 1 - wa_wb_overlap / np.sqrt(wa_norm * wb_norm)
 
