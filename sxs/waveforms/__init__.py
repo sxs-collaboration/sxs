@@ -18,7 +18,7 @@ from .format_handlers import (
     grathena,
 )
 from .format_handlers.lvc import to_lvc_conventions
-from . import memory, transformations, alignment
+from . import memory, transformations, alignment, norms
 
 # Map a format string to the module that should be used to load a waveform with that format
 formats = {
