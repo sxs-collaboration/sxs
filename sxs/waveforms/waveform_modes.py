@@ -5,7 +5,6 @@ import numbers
 from collections.abc import MutableMapping
 import warnings
 import numpy as np
-import astropy.constants as constants
 from scipy.interpolate import CubicSpline
 from scipy.optimize import minimize_scalar
 from scipy import fft
@@ -16,9 +15,6 @@ from . import WaveformMixin
 from .mode_utilities import _expectation_value_LL, _expectation_value_Ldt
 
 NRAR_mode_regex = re.compile(r"""Y_l(?P<L>[0-9]+)_m(?P<M>[-+0-9]+)\.dat""")
-
-t_factor = constants.M_sun.value * constants.G.value / constants.c.value**3
-h_factor = constants.M_sun.value * constants.G.value / constants.c.value**2
 
 
 class WaveformModes(WaveformMixin, TimeSeries):
@@ -1280,7 +1276,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         result = result.line_subtraction(treat_as_zero=treat_as_zero)
         return result
 
-    def fourier_transform(self, theta_phi=None, total_mass=1.):
+    def fourier_transform(self, theta_phi=None, total_mass=None, luminosity_distance=None):
         """Fourier transform the modes of a waveform.
 
         This Fourier transforms the mode time series
@@ -1294,21 +1290,32 @@ class WaveformModes(WaveformMixin, TimeSeries):
             Default is None.
         total_mass : float, optional
             Total mass in solar masses.
-            Default is 1.
+            Default is no scaling is applied.
+        luminosity_distance : float, optional
+            Luminosity distance in MpC.
 
         Returns
         -------
         h_tilde : TimeSeries
             Dimensionful Fourier transform.
         """
+        from .. import m_sun_in_meters, m_sun_in_seconds
+        
+        h_factor = 1
+        t_factor = 1
+        if total_mass is not None and luminosity_distance is not None:
+            h_factor = total_mass * m_sun_in_meters / (luminosity_distance * 1e6 * parsec_in_meters)
+            t_factor = total_mass * m_sun_in_seconds
+            
         if theta_phi is not None:
             h_dimensionful = self.evaluate(*theta_phi)
-            h_dimensionful *= total_mass * h_factor
-            h_dimensionful.t *= total_mass * t_factor
-        else:
+            if total_mass is not None and luminosity_distance is not None:
+                h_dimensionful *= h_factor
+                h_dimensionful.t *= t_factor
+        else:                
             h_dimensionful = WaveformModes(
-                input_array=self.data * total_mass * h_factor,
-                time=self.t * total_mass * t_factor,
+                input_array=self.data * h_factor,
+                time=self.t * t_factor,
                 time_axis=self.time_axis,
                 modes_axis=self.modes_axis,
                 ell_min=self.ell_min,
@@ -1322,14 +1329,14 @@ class WaveformModes(WaveformMixin, TimeSeries):
         if theta_phi is not None:
             h_tilde = TimeSeries(
                 fft.fftshift(
-                    fft.fft(h_dimensionful.data, axis=0), axes=0
+                    fft.fft(h_dimensionful.data, axis=self.time_axis), axes=self.time_axis
                 ),
                 fft.fftshift(fft.fftfreq(N, max_dt)),
             )
         else:
             h_tilde = WaveformModes(
                 input_array=fft.fftshift(
-                    fft.fft(h_dimensionful.data, axis=0), axes=0
+                    fft.fft(h_dimensionful.data, axis=self.time_axis), axes=self.time_axis
                 ),
                 time=fft.fftshift(fft.fftfreq(N, max_dt)),
                 time_axis=self.time_axis,
