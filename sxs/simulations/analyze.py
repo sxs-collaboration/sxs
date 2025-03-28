@@ -2,7 +2,6 @@ import multiprocessing
 
 from ..waveforms.norms import create_unified_waveforms, compute_L2_norm, compute_mismatch
 from ..waveforms.alignment import align_waveforms, align_simulations
-from ..waveforms.waveform_modes import h_factor, t_factor
 from ..handlers import load
 
 import numpy as np
@@ -40,6 +39,8 @@ def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
         against whatever detector ASDs are provided with some total mass,
         and the modes' absolute errors and norms.
     """
+    from .. import m_sun_in_seconds
+    
     errors = {}
 
     errors["t1"] = t1
@@ -51,7 +52,7 @@ def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
 
     errors["residual L2 norm"] = compute_L2_norm(wa, wb, t1, t2)
 
-    f1 = (np.gradient(-np.unwrap(np.angle(wa.data[:, wa.index(2, 2)] * h_factor)), np.diff(wa.t * t_factor)[0]))[
+    f1 = (np.gradient(-np.unwrap(np.angle(wa.data[:, wa.index(2, 2)])), np.diff(wa.t * m_sun_in_seconds)[0]))[
         np.argmin(abs(wa.t - t1))
     ] / (2 * np.pi)
 
