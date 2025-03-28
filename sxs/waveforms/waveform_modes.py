@@ -1297,9 +1297,12 @@ class WaveformModes(WaveformMixin, TimeSeries):
         Returns
         -------
         h_tilde : TimeSeries
-            Dimensionful Fourier transform.
+            Unitful Fourier transform.
         """
         from .. import m_sun_in_meters, m_sun_in_seconds
+
+        if not np.allclose(np.diff(self.t), np.diff(self.t[0])):
+            raise ValueError("Time array must be uniform! Maybe run .preprocess first.")
         
         h_factor = 1
         t_factor = 1
@@ -1308,12 +1311,12 @@ class WaveformModes(WaveformMixin, TimeSeries):
             t_factor = total_mass * m_sun_in_seconds
             
         if theta_phi is not None:
-            h_dimensionful = self.evaluate(*theta_phi)
+            h_unitful = self.evaluate(*theta_phi)
             if total_mass is not None and luminosity_distance is not None:
-                h_dimensionful *= h_factor
-                h_dimensionful.t *= t_factor
+                h_unitful *= h_factor
+                h_unitful.t *= t_factor
         else:                
-            h_dimensionful = WaveformModes(
+            h_unitful = WaveformModes(
                 input_array=self.data * h_factor,
                 time=self.t * t_factor,
                 time_axis=self.time_axis,
@@ -1323,20 +1326,20 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 spin_weight=self.spin_weight,
             )
 
-        N = h_dimensionful.t.size
-        max_dt = max(np.diff(h_dimensionful.t))
+        N = h_unitful.t.size
+        max_dt = max(np.diff(h_unitful.t))
 
         if theta_phi is not None:
             h_tilde = TimeSeries(
                 fft.fftshift(
-                    fft.fft(h_dimensionful.data, axis=self.time_axis), axes=self.time_axis
+                    fft.fft(h_unitful.data, axis=self.time_axis), axes=self.time_axis
                 ),
                 fft.fftshift(fft.fftfreq(N, max_dt)),
             )
         else:
             h_tilde = WaveformModes(
                 input_array=fft.fftshift(
-                    fft.fft(h_dimensionful.data, axis=self.time_axis), axes=self.time_axis
+                    fft.fft(h_unitful.data, axis=self.time_axis), axes=self.time_axis
                 ),
                 time=fft.fftshift(fft.fftfreq(N, max_dt)),
                 time_axis=self.time_axis,
