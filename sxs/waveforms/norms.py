@@ -165,7 +165,7 @@ def compute_inner_product(wa, wb, modes=None, ASD_values=None):
 
     if not wa.ndim == wb.ndim == 1:
         inner_product = trapezoid(
-            np.sum(wa.data * wb.bar.data, axis=1) / ASD_values**2,
+            np.sum(wa.data * np.conjugate(wb.data), axis=1) / ASD_values**2,
             wa.t,
         )
     else:
