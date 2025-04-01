@@ -1292,7 +1292,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
             Total mass in solar masses.
             Default is no scaling is applied.
         luminosity_distance : float, optional
-            Luminosity distance in MpC.
+            Luminosity distance in Mpc.
 
         Returns
         -------
@@ -1301,7 +1301,10 @@ class WaveformModes(WaveformMixin, TimeSeries):
         """
         from .. import m_sun_in_meters, m_sun_in_seconds
 
-        if not np.allclose(np.diff(self.t), np.diff(self.t[0])):
+        dt = np.diff(self.t)
+        max_dt = np.max(dt)
+        min_dt = np.min(dt)
+        if max_dt - min_dt > (self.t[-1] - self.t[0]) * 10 * np.finfo(self.t.dtype).eps:
             raise ValueError("Time array must be uniform! Maybe run .preprocess first.")
         
         h_factor = 1
