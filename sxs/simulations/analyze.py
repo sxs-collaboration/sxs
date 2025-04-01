@@ -52,7 +52,7 @@ def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
 
     errors["residual L2 norm"] = compute_L2_norm(wa, wb, t1, t2)
 
-    f1 = (np.gradient(-np.unwrap(np.angle(wa.data[:, wa.index(2, 2)])), np.diff(wa.t * m_sun_in_seconds)[0]))[
+    f1 = (np.gradient(-np.unwrap(np.angle(wa.data[:, wa.index(2, 2)])), wa.t * m_sun_in_seconds))[
         np.argmin(abs(wa.t - t1))
     ] / (2 * np.pi)
 
