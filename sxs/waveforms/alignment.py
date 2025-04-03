@@ -785,7 +785,7 @@ def align_simulations(
         Simulations to be aligned
     t1 : float
         Beginning of integration interval.
-        Default is the relaxation time of simb.
+        Default is the reference time of simb.
     t2 : float
         End of integration interval.
         Default is 60% of the ringdown, or 100M before peak if there is no merger.
@@ -837,8 +837,8 @@ def align_simulations(
     wb = simb.h.copy()
 
     if t1 is None:
-        # Default to relaxation time
-        t1 = simb.metadata.relaxation_time
+        # Default to reference time
+        t1 = simb.metadata.reference_time
 
     wa_prime, transformation, L2_norm, t1, t2 = align_waveforms(
         sima.h,

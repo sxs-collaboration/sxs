@@ -1299,7 +1299,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         h_tilde : TimeSeries
             Unitful Fourier transform.
         """
-        from .. import m_sun_in_meters, m_sun_in_seconds
+        from .. import m_sun_in_meters, m_sun_in_seconds, parsec_in_meters
 
         dt = np.diff(self.t)
         max_dt = np.max(dt)
@@ -1309,9 +1309,12 @@ class WaveformModes(WaveformMixin, TimeSeries):
         
         h_factor = 1
         t_factor = 1
-        if total_mass is not None and luminosity_distance is not None:
-            h_factor = total_mass * m_sun_in_meters / (luminosity_distance * 1e6 * parsec_in_meters)
+        if total_mass is not None:
+            h_factor = total_mass * m_sun_in_meters
             t_factor = total_mass * m_sun_in_seconds
+            
+        if luminosity_distance is not None:
+            h_factor /= (luminosity_distance * 1e6 * parsec_in_meters)
             
         if theta_phi is not None:
             h_unitful = self.evaluate(*theta_phi)
@@ -1335,14 +1338,14 @@ class WaveformModes(WaveformMixin, TimeSeries):
         if theta_phi is not None:
             h_tilde = TimeSeries(
                 fft.fftshift(
-                    fft.fft(h_unitful.data, axis=self.time_axis), axes=self.time_axis
+                    max_dt * fft.fft(h_unitful.data, axis=self.time_axis), axes=self.time_axis
                 ),
                 fft.fftshift(fft.fftfreq(N, max_dt)),
             )
         else:
             h_tilde = WaveformModes(
                 input_array=fft.fftshift(
-                    fft.fft(h_unitful.data, axis=self.time_axis), axes=self.time_axis
+                    max_dt * fft.fft(h_unitful.data, axis=self.time_axis), axes=self.time_axis
                 ),
                 time=fft.fftshift(fft.fftfreq(N, max_dt)),
                 time_axis=self.time_axis,
