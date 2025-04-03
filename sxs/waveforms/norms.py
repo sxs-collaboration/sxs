@@ -52,7 +52,12 @@ def create_unified_waveforms(wa, wb, t1, t2, padding_time_factor=0.2):
     wa_interp = wa.interpolate(wa.t[idx1:idx2])
     wb_interp = wb.interpolate(wa_interp.t)
 
-    return wa_interp, wb_interp
+    ell_min = max(wa_interp.ell_min, wb_interp.ell_min)
+    ell_max = min(wa_interp.ell_max, wb_interp.ell_max)
+    ell_min_idx = wa_interp.index(ell_min, -ell_min)
+    ell_max_idx = wa_interp.index(ell_max + 1, -(ell_max + 1))
+
+    return wa_interp[:,ell_min_idx:ell_max_idx], wb_interp[:,ell_min_idx:ell_max_idx]
 
 
 def compute_L2_norm(wa, wb, t1=None, t2=None, modes=None, modes_for_norm=None, normalize=True):

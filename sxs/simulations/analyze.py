@@ -52,9 +52,10 @@ def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
 
     errors["residual L2 norm"] = compute_L2_norm(wa, wb, t1, t2)
 
-    f1 = (np.gradient(-np.unwrap(np.angle(wa.data[:, wa.index(2, 2)])), wa.t * m_sun_in_seconds))[
-        np.argmin(abs(wa.t - t1))
-    ] / (2 * np.pi)
+    i1 = wa.index_closest_to(t1)
+    i0, i2 = max(0, i1-5), min(i1+6, wa.n_times-1)
+    Ω1 = np.linalg.norm(wa[i0:i2].angular_velocity, axis=1)[5]
+    f1 = 2*Ω1 / (2*np.pi)
 
     wa = wa.preprocess(t1, t1 + 0.01 * (t2 - t1), t2 - (t2 - t1) * 0.01, t2)
     wb = wb.preprocess(t1, t1 + 0.01 * (t2 - t1), t2 - (t2 - t1) * 0.01, t2)
@@ -63,16 +64,23 @@ def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
     wb_tilde = wb.fourier_transform()
     if ASDs is not None:
         if total_masses is None:
-            total_masses = [1.0]
+            raise ValueError("Need to specify total masses if ASDs are provided.")
         for ASD in ASDs:
             for total_mass in total_masses:
+                # Note that we only need to make the frequency unitful, since the
+                # magnitude of the strain scales out in the mismatch.
+                # We make things unitful here because the fourier transform
+                # earlier was called outside of the for loop without a total mass
+                # so that it doesn't need to be computed at each iteration.
+                frequency_factor = 1 / (total_mass * m_sun_in_seconds)
+            
                 wa_tilde_total_mass = wa_tilde.copy()
                 wb_tilde_total_mass = wb_tilde.copy()
-                wa_tilde_total_mass.t /= total_mass
-                wb_tilde_total_mass.t /= total_mass
+                wa_tilde_total_mass.t *= frequency_factor
+                wb_tilde_total_mass.t *= frequency_factor
 
                 errors[f"mismatch {ASD} {total_mass}"] = compute_mismatch(
-                    wa_tilde_total_mass, wb_tilde_total_mass, f1, ASD=ASDs[ASD]
+                    wa_tilde_total_mass, wb_tilde_total_mass, f1 * frequency_factor, ASD=ASDs[ASD]
                 )
 
     ell_min = max(wa.ell_min, wb.ell_min)

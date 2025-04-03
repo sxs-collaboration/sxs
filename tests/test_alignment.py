@@ -17,7 +17,7 @@ def test_independent_alignment():
 
     t1 = -80
     t2 = 80
-    h1_prime, transformation, norm = sxs.waveforms.alignment.align_waveforms(
+    h1_prime, transformation, norm, _, _ = sxs.waveforms.alignment.align_waveforms(
         h1,
         h2,
         t1,
@@ -39,7 +39,7 @@ def test_align1d():
 
     t1 = -80
     t2 = 80
-    h1_prime, transformation, norm = sxs.waveforms.alignment.align_waveforms(h1, h2, t1, t2, alignment_method="1d")
+    h1_prime, transformation, norm, _, _ = sxs.waveforms.alignment.align_waveforms(h1, h2, t1, t2, alignment_method="1d")
 
     assert np.allclose(norm, 0.0, atol=1e-6)
     assert np.allclose(δt, transformation[0], atol=1e-6)
@@ -57,7 +57,7 @@ def test_align2d():
 
     t1 = -80
     t2 = 80
-    h1_prime, transformation, norm = sxs.waveforms.alignment.align_waveforms(
+    h1_prime, transformation, norm, _, _ = sxs.waveforms.alignment.align_waveforms(
         h1,
         h2,
         t1,
@@ -81,7 +81,7 @@ def test_align4d():
 
     t1 = -80
     t2 = 80
-    h1_prime, transformation, norm = sxs.waveforms.alignment.align_waveforms(
+    h1_prime, transformation, norm, _, _ = sxs.waveforms.alignment.align_waveforms(
         h1,
         h2,
         t1,
