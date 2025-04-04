@@ -141,9 +141,9 @@ def compute_L2_norm(wa, wb, t1=None, t2=None, modes=None, modes_for_norm=None, n
         return L2_norm_unnormalized, norm
 
 
-def compute_inner_product(wa, wb, modes=None, ASD_values=None):
+def compute_inner_product(wa, wb, ASD_values=None):
     """Compute the inner product between two waveforms over the
-    window (x1, x2) using the modes specified by `modes`.
+    window (x1, x2).
 
     Note that this can be provided with time-domain or frequency-domain waveforms,
     either over the two-sphere (WaveformModes) or at a point on the two-sphere (TimeSeries).
@@ -154,8 +154,6 @@ def compute_inner_product(wa, wb, modes=None, ASD_values=None):
     ----------
     wa : WaveformModes or TimeSeries
     wb : WaveformModes or TimeSeries
-    modes : list, optional
-        Default is all modes.
     ASD_values : ndarray, optioanl
         ASD values for frequency-domain overlaps.
         Default is flat ASD.
@@ -200,6 +198,7 @@ def compute_mismatch(wa, wb, x1=None, x2=None, modes=None, ASD=None):
     x2 : float
         End of mismach integral.
     modes : list, optional
+        Modes (ell, m) to include in the mismatch calculation.
         Default is all modes.
     ASD : func, optional
         Function mapping frequencies to the ASD of a detector.
@@ -223,14 +222,15 @@ def compute_mismatch(wa, wb, x1=None, x2=None, modes=None, ASD=None):
         wa, wb = create_unified_waveforms(wa, wb, x1, x2, padding_time_factor=0)
 
     # Eliminate unwanted modes
-    if modes is not None:
-        ell_min = min(wa.ell_min, wb.ell_min)
-        ell_max = max(wa.ell_max, wb.ell_max)
-        for L in range(ell_min, ell_max + 1):
-            for M in range(-L, L + 1):
-                if not (L, M) in modes:
-                    wa.data[:, wa.index(L, M)] *= 0
-                    wb.data[:, wb.index(L, M)] *= 0
+    if wa.ndim > 1:
+        if modes is not None:
+            ell_min = min(wa.ell_min, wb.ell_min)
+            ell_max = max(wa.ell_max, wb.ell_max)
+            for L in range(ell_min, ell_max + 1):
+                for M in range(-L, L + 1):
+                    if not (L, M) in modes:
+                        wa.data[:, wa.index(L, M)] *= 0
+                        wb.data[:, wb.index(L, M)] *= 0
 
     wa = wa[np.argmin(abs(wa.t - x1)) : np.argmin(abs(wa.t - x2)) + 1]
     wb = wb[np.argmin(abs(wb.t - x1)) : np.argmin(abs(wb.t - x2)) + 1]
