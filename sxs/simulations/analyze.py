@@ -7,7 +7,7 @@ from ..handlers import load
 import numpy as np
 
 
-def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
+def compute_error_summary(wa, wb, t1, t2, modes=None, ASDs=None, total_masses=None):
     """
     Compute various errors between two waveforms.
 
@@ -24,6 +24,9 @@ def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
         Beginning of integrals.
     t2 : float
         End of integrals.
+    modes : list, optional
+        Modes (ell, m) to include in error calculations.
+        Default is all modes.
     ASDs : dict of funcs, optional
         Dictionary of functions mapping frequencies to the ASD of a detector(s).
         Default is no frequency-domain mismatch is calculated.
@@ -48,9 +51,9 @@ def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
 
     wa, wb = create_unified_waveforms(wa, wb, t1, t2, padding_time_factor=0)
 
-    errors["mismatch"] = compute_mismatch(wa, wb, t1, t2)
+    errors["mismatch"] = compute_mismatch(wa, wb, t1, t2, modes=modes)
 
-    errors["residual L2 norm"] = compute_L2_norm(wa, wb, t1, t2)
+    errors["residual L2 norm"] = compute_L2_norm(wa, wb, t1, t2, modes=modes)
 
     i1 = wa.index_closest_to(t1)
     i0, i2 = max(0, i1-5), min(i1+6, wa.n_times-1)
@@ -80,7 +83,7 @@ def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
                 wb_tilde_total_mass.t = wb_tilde_total_mass.t * frequency_factor
 
                 errors[f"mismatch {ASD} {total_mass}"] = compute_mismatch(
-                    wa_tilde_total_mass, wb_tilde_total_mass, f1 * frequency_factor, ASD=ASDs[ASD]
+                    wa_tilde_total_mass, wb_tilde_total_mass, f1 * frequency_factor, modes=modes, ASD=ASDs[ASD]
                 )
 
     ell_min = max(wa.ell_min, wb.ell_min)
