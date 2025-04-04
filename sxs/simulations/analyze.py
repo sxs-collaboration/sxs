@@ -76,8 +76,8 @@ def compute_error_summary(wa, wb, t1, t2, ASDs=None, total_masses=None):
             
                 wa_tilde_total_mass = wa_tilde.copy()
                 wb_tilde_total_mass = wb_tilde.copy()
-                wa_tilde_total_mass.t *= frequency_factor
-                wb_tilde_total_mass.t *= frequency_factor
+                wa_tilde_total_mass.t = wa_tilde_total_mass.t * frequency_factor
+                wb_tilde_total_mass.t = wb_tilde_total_mass.t * frequency_factor
 
                 errors[f"mismatch {ASD} {total_mass}"] = compute_mismatch(
                     wa_tilde_total_mass, wb_tilde_total_mass, f1 * frequency_factor, ASD=ASDs[ASD]
