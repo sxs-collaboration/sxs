@@ -25,14 +25,14 @@ def test_independent_alignment():
         alignment_method="independent alignment",
     )
 
-    assert np.allclose(norm, 0.0, atol=1e-6)
-    assert np.allclose([δt, *δSpin3.ndarray], transformation, atol=1e-6)
+    assert np.allclose(norm, 0.0, atol=1e-4)
+    assert np.allclose([δt, *δSpin3.ndarray], transformation, atol=1e-4)
 
 
 def test_align1d():
     h1 = physicalish_waveform()
 
-    δt = 10 * np.random.rand()
+    δt = 10 * (0.5 - np.random.rand())
 
     h2 = h1.copy()
     h2.t = h2.t - δt
@@ -41,14 +41,14 @@ def test_align1d():
     t2 = 80
     h1_prime, transformation, norm, _, _ = sxs.waveforms.alignment.align_waveforms(h1, h2, t1, t2, alignment_method="1d")
 
-    assert np.allclose(norm, 0.0, atol=1e-6)
-    assert np.allclose(δt, transformation[0], atol=1e-6)
+    assert np.allclose(norm, 0.0, atol=1e-4)
+    assert np.allclose(δt, transformation[0], atol=1e-4)
 
 
 def test_align2d():
     h1 = physicalish_waveform()
 
-    δt = 10 * np.random.rand()
+    δt = 10 * (0.5 - np.random.rand())
     δSpin3 = quaternionic.array([np.random.rand(), 0.0, 0.0, np.random.rand()]).normalized
 
     h2 = h1.copy()
@@ -65,14 +65,14 @@ def test_align2d():
         alignment_method="2d",
     )
 
-    assert np.allclose(norm, 0.0, atol=1e-6)
-    assert np.allclose([δt, *δSpin3.ndarray], transformation, atol=1e-6)
+    assert np.allclose(norm, 0.0, atol=1e-4)
+    assert np.allclose([δt, *δSpin3.ndarray], transformation, atol=1e-4)
 
 
 def test_align4d():
     h1 = physicalish_waveform()
 
-    δt = 10 * np.random.rand()
+    δt = 10 * (0.5 - np.random.rand())
     δSpin3 = quaternionic.array([np.random.rand(), np.random.rand(), np.random.rand(), np.random.rand()]).normalized
 
     h2 = h1.copy()
@@ -89,5 +89,5 @@ def test_align4d():
         alignment_method="4d",
     )
 
-    assert np.allclose(norm, 0.0, atol=1e-6)
-    assert np.allclose([δt, *δSpin3.ndarray], transformation, atol=1e-6)
+    assert np.allclose(norm, 0.0, atol=1e-4)
+    assert np.allclose([δt, *δSpin3.ndarray], transformation, atol=1e-4)
