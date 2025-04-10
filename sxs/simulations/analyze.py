@@ -7,7 +7,7 @@ from ..handlers import load
 import numpy as np
 
 
-def compute_error_summary(wa, wb, t1, t2, modes=None, ASDs=None, total_masses=None):
+def compute_error_summary(wa, wb, t1, t2, modes=None, ASDs_and_total_masses=None):
     """
     Compute various errors between two waveforms.
 
@@ -27,12 +27,13 @@ def compute_error_summary(wa, wb, t1, t2, modes=None, ASDs=None, total_masses=No
     modes : list, optional
         Modes (ell, m) to include in error calculations.
         Default is all modes.
-    ASDs : dict of funcs, optional
-        Dictionary of functions mapping frequencies to the ASD of a detector(s).
+    ASDs_and_total_masses : dict of funcs, optional
+        Dictionary of functions mapping frequencies to the ASD of a detector(s)
+        and total masses to use for mismatch calculations with those ASDs, e.g.,
+        {
+            'CE': [CE_ASD, total_masses]
+        }
         Default is no frequency-domain mismatch is calculated.
-    total_masses : list of floats, optional
-        Total masses in solar masses to use for frequency-domain mismatches.
-        Default is 1.
 
     Returns
     -------
@@ -65,11 +66,9 @@ def compute_error_summary(wa, wb, t1, t2, modes=None, ASDs=None, total_masses=No
 
     wa_tilde = wa.fourier_transform()
     wb_tilde = wb.fourier_transform()
-    if ASDs is not None:
-        if total_masses is None:
-            raise ValueError("Need to specify total masses if ASDs are provided.")
-        for ASD in ASDs:
-            for total_mass in total_masses:
+    if ASDs_and_total_masses is not None:
+        for ASD_and_total_masses in ASDs_and_total_masses.values():
+            for total_mass in ASD_and_total_masses[1]:
                 # Note that we only need to make the frequency unitful, since the
                 # magnitude of the strain scales out in the mismatch.
                 # We make things unitful here because the fourier transform
@@ -83,7 +82,7 @@ def compute_error_summary(wa, wb, t1, t2, modes=None, ASDs=None, total_masses=No
                 wb_tilde_total_mass.t = wb_tilde_total_mass.t * frequency_factor
 
                 errors[f"mismatch {ASD} {total_mass}"] = mismatch(
-                    wa_tilde_total_mass, wb_tilde_total_mass, f1 * frequency_factor, modes=modes, ASD=ASDs[ASD]
+                    wa_tilde_total_mass, wb_tilde_total_mass, f1 * frequency_factor, modes=modes, ASD=ASD_and_total_masses[0]
                 )
 
     ell_min = max(wa.ell_min, wb.ell_min)
@@ -104,8 +103,7 @@ def analyze_simulation(
     analyze_levs=True,
     analyze_extrapolation=True,
     analyze_psi4=True,
-    ASDs=None,
-    total_masses=None,
+    ASDs_and_total_masses=None,
     nprocs=None,
 ):
     """
@@ -134,12 +132,13 @@ def analyze_simulation(
     analyze_psi4 : bool, optional
         Whether or not to analyze the psi4 constraint -h.ddot = psi4..
         Default is True.
-    ASDs : dict of funcs, optional
-        Dictionary of functions mapping frequencies to the ASD of a detector(s).
+    ASDs_and_total_masses : dict of funcs, optional
+        Dictionary of functions mapping frequencies to the ASD of a detector(s)
+        and total masses to use for mismatch calculations with those ASDs, e.g.,
+        {
+            'CE': [CE_ASD, total_masses]
+        }
         Default is no frequency-domain mismatch is calculated.
-    total_masses : list of floats, optional
-        Total masses in solar masses to use for frequency-domain mismatches.
-        Default is 1.
     nprocs : int, optional
         Number of cpus to use.  Default is maximum number.  If -1 is provided,
         then no multiprocessing is performed.
@@ -164,7 +163,7 @@ def analyze_simulation(
                 w_low_lev_prime, transformation, L2_norm, t1, t2 = align_simulations(
                     sim_low_lev, sim_high_lev, alignment_method="4d", nprocs=nprocs
                 )
-                errors[f"(Lev{lev - 1}, Lev{lev}) 4d"] = compute_error_summary(w_low_lev_prime, w_high_lev, t1, t2)
+                errors[f"(Lev{lev - 1}, Lev{lev}) 4d"] = compute_error_summary(w_low_lev_prime, w_high_lev, t1, t2, ASDs_and_total_masses=ASDs_and_total_masses)
                 errors[f"(Lev{lev - 1}, Lev{lev}) 4d transformation"] = transformation
 
             w_low_lev_prime, transformation, _, t1, t2 = align_simulations(
@@ -210,8 +209,7 @@ def analyze_simulations(
     analyze_levs=True,
     analyze_extrapolation=True,
     analyze_psi4=True,
-    ASDs=None,
-    total_masses=None,
+    ASDs_and_total_masses=None,
     nprocs=None,
 ):
     """
@@ -240,12 +238,13 @@ def analyze_simulations(
     analyze_psi4 : bool, optional
         Whether or not to analyze the psi4 constraint -h.ddot = psi4..
         Default is True.
-    ASDs : dict of funcs, optional
-        Dictionary of functions mapping frequencies to the ASD of a detector(s).
+    ASDs_and_total_masses : dict of funcs, optional
+        Dictionary of functions mapping frequencies to the ASD of a detector(s)
+        and total masses to use for mismatch calculations with those ASDs, e.g.,
+        {
+            'CE': [CE_ASD, total_masses]
+        }
         Default is no frequency-domain mismatch is calculated.
-    total_masses : list of floats, optional
-        Total masses in solar masses to use for frequency-domain mismatches.
-        Default is 1.
     nprocs : int, optional
         Number of cpus to use.  Default is maximum number.  If -1 is provided,
         then no multiprocessing is performed.
@@ -261,7 +260,7 @@ def analyze_simulations(
             results = pool.starmap(
                 analyze_simulation,
                 [
-                    (sim_name, analyze_levs, analyze_extrapolation, analyze_psi4, ASDs, total_masses, -1)
+                    (sim_name, analyze_levs, analyze_extrapolation, analyze_psi4, ASDs_and_total_masses, -1)
                     for sim_name in sim_names
                 ],
             )
@@ -270,7 +269,7 @@ def analyze_simulations(
     else:
         for sim_name in sim_names:
             errors[sim_name] = analyze_simulation(
-                sim_name, analyze_levs, analyze_extrapolation, analyze_psi4, ASDs, total_masses, -1
+                sim_name, analyze_levs, analyze_extrapolation, analyze_psi4, ASDs_and_total_masses, -1
             )
 
     return errors
