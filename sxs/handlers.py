@@ -350,7 +350,9 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
     return loaded
 
 
-def load_via_sxs_id(sxsid, location, *, download=None, cache=None, progress=None, truepath=None, **kwargs):
+def load_via_sxs_id(
+    sxsid, location, *, download=None, cache=None, progress=None, truepath=None, timeout=30, **kwargs
+):
     """Load a path via a (possibly versioned) SXS ID
     
     Given some SXS ID like "SXS:BBH:1234" or a versioned ID like
@@ -373,7 +375,7 @@ def load_via_sxs_id(sxsid, location, *, download=None, cache=None, progress=None
     import requests
     from .utilities import sxs_path_to_system_path
     url = f"{doi_url}{sxsid}"
-    response = requests.head(url, allow_redirects=True)
+    response = requests.head(url, allow_redirects=True, timeout=timeout)
     if response.status_code != 200:
         raise ValueError(f"Could not load via DOI {url=}")
     final_url = f"{response.url}/{location}"
