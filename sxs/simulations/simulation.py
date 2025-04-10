@@ -210,7 +210,7 @@ def Simulation(location, *args, **kwargs):
     # TODO: In that case, deal with Lev numbers somehow
 
     # We want to do this *after* deprecation checking, to avoid possibly unnecessary web requests
-    if 1 <= float(version[1:]) < 3.0:
+    if 1 <= float(version[1:]) < 3.0 and "files" in metadata:
         # The simulation metadata is points to files with a different version
         del metadata["files"]
     files = get_file_info(metadata, sxs_id, download=kwargs.get("download_file_info", None))
