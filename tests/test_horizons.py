@@ -19,14 +19,9 @@ def test_spec_format():
         "DimensionfulInertialSpinMag", "chiInertial", "chiMagInertial"
     ]
 
-    with contextlib.redirect_stdout(None):
-        catalog = sxs.load("catalog")
-    selected = catalog.select_files(file_name)
-    selected_path = sxs.utilities.sxs_path_to_system_path(list(selected.values())[0]["truepath"])
-
-    with contextlib.redirect_stdout(None):
-        horizons = sxs.load(file_name)
-    cached_path = sxs.sxs_directory("cache") / selected_path
+    sim = sxs.load("SXS:BBH:4000v3.0")
+    horizons = sim.horizons
+    cached_path = horizons.__file__
 
     with h5py.File(cached_path, "r") as f:
         for horizon in "ABC":
@@ -41,9 +36,8 @@ def test_spec_format():
 
 @skip_macOS_GH_actions_downloads
 def test_xmb_format():
-    # horizons_spec = sxs.horizons.spec_horizons_h5.load(file_name)
-    with contextlib.redirect_stdout(None):
-        horizons_spec = sxs.load(file_name)
+    sim = sxs.load("SXS:BBH:4000v3.0")
+    horizons_spec = sim.horizons
 
     with tempfile.TemporaryDirectory() as temp_dir:
         file = pathlib.Path(temp_dir) / 'horizons.h5'
