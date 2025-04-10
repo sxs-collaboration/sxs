@@ -100,6 +100,7 @@ def Simulation(location, *args, **kwargs):
     arguments other than those listed above.
     
     """
+    import numpy as np
     from .. import load, sxs_directory
     from ..metadata.metric import MetadataMetric
 
@@ -217,7 +218,7 @@ def Simulation(location, *args, **kwargs):
 
     # If Lev is given as part of `location`, use it; otherwise, use the highest available
     lev_numbers = sorted({lev for f in files if (lev:=lev_number(f))})
-    output_lev_number = input_lev_number or max(lev_numbers)
+    output_lev_number = input_lev_number or max(lev_numbers, default=np.nan)
     location = f"{sxs_id_stem}{version}/Lev{output_lev_number}"
 
     # Finally, figure out which version of the simulation to load and dispatch
@@ -403,7 +404,7 @@ class SimulationBase:
         warning_threshold : float, optional
             Threshold distance above which a warning will be issued
             that the closest simulation is fairly distant.  Default is
-            1e-3.
+            1e-2.
 
         Returns
         -------
