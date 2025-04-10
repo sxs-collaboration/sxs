@@ -210,6 +210,9 @@ def Simulation(location, *args, **kwargs):
     # TODO: In that case, deal with Lev numbers somehow
 
     # We want to do this *after* deprecation checking, to avoid possibly unnecessary web requests
+    if 1 <= float(version[1:]) < 3.0:
+        # The simulation metadata is points to files with a different version
+        del metadata["files"]
     files = get_file_info(metadata, sxs_id, download=kwargs.get("download_file_info", None))
 
     # If Lev is given as part of `location`, use it; otherwise, use the highest available
@@ -795,9 +798,12 @@ class Simulation_v2(SimulationBase):
     also `SimulationBase` for the base class that this class inherits
     from.
     """
+    # Default extrapolation order for this simulation version
+    default_extrapolation = "N2"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.extrapolation = kwargs.get("extrapolation", "N2")
+        self.extrapolation = kwargs.get("extrapolation", self.default_extrapolation)
 
     @property
     def horizons_path(self):
@@ -846,7 +852,29 @@ class Simulation_v2(SimulationBase):
 
 
 class Simulation_v3(Simulation_v2):
-    pass
+    # Default extrapolation order for this simulation version
+    default_extrapolation = "N2"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.extrapolation = kwargs.get("extrapolation", self.default_extrapolation)
+
+    @property
+    def strain_path(self):
+        return (
+            f"{self.lev}:Strain_{self.extrapolation}",
+            "/"
+        ) if self.extrapolation == self.default_extrapolation else (
+            f"{self.lev}:ExtraWaveforms",
+            f"/Strain_{self.extrapolation}.dir"
+        )
+
+    @property
+    def psi4_path(self):
+        return (
+            f"{self.lev}:ExtraWaveforms",
+            f"/Psi4_{self.extrapolation}.dir"
+        )
 
 
 def get_file_info(metadata, sxs_id, download=None):
