@@ -65,7 +65,7 @@ def create_unified_waveforms(wa, wb, t1, t2, padding_time_factor=0.2):
     return wa_interp[:,ia1:ia2], wb_interp[:,ib1:ib2]
 
 
-def compute_L2_norm(wa, wb, t1=-np.inf, t2=np.inf, modes=None, modes_for_norm=None, normalize=True):
+def L2_difference(wa, wb, t1=-np.inf, t2=np.inf, modes=None, modes_for_norm=None, normalize=True):
     """Compute L² norm of difference between two waveforms
     
     The norm is integrated over the time window (`t1`, `t2`), and over
@@ -151,7 +151,7 @@ def compute_L2_norm(wa, wb, t1=-np.inf, t2=np.inf, modes=None, modes_for_norm=No
         return L2_norm_unnormalized, norm
 
 
-def compute_inner_product(wa, wb, ASD_values=None):
+def inner_product(wa, wb, ASD_values=None):
     """Compute the inner product between two waveforms
 
     No interpolation is performed, including for the `ASD`.  If the
@@ -195,7 +195,7 @@ def compute_inner_product(wa, wb, ASD_values=None):
     return inner_product
 
 
-def compute_mismatch(wa, wb, x1=-np.inf, x2=np.inf, modes=None, ASD=None):
+def mismatch(wa, wb, x1=-np.inf, x2=np.inf, modes=None, ASD=None):
     """Compute the mismatch between two waveforms
 
     The mismatch is calculated over the time or frequency window
@@ -263,10 +263,8 @@ def compute_mismatch(wa, wb, x1=-np.inf, x2=np.inf, modes=None, ASD=None):
     else:
         ASD_values = 1
 
-    wa_wb_overlap = compute_inner_product(wa, wb, ASD_values=ASD_values).real
-    wa_norm = compute_inner_product(wa, wa, ASD_values=ASD_values).real
-    wb_norm = compute_inner_product(wb, wb, ASD_values=ASD_values).real
+    wa_wb_overlap = inner_product(wa, wb, ASD_values=ASD_values).real
+    wa_norm = inner_product(wa, wa, ASD_values=ASD_values).real
+    wb_norm = inner_product(wb, wb, ASD_values=ASD_values).real
 
-    mismatch = 1 - wa_wb_overlap / np.sqrt(wa_norm * wb_norm)
-
-    return mismatch
+    return 1 - wa_wb_overlap / np.sqrt(wa_norm * wb_norm)

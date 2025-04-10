@@ -1,6 +1,6 @@
 import multiprocessing
 
-from ..waveforms.norms import create_unified_waveforms, compute_L2_norm, compute_mismatch
+from ..waveforms.norms import create_unified_waveforms, L2_difference, mismatch
 from ..waveforms.alignment import align_waveforms, align_simulations
 from ..handlers import load
 
@@ -51,9 +51,9 @@ def compute_error_summary(wa, wb, t1, t2, modes=None, ASDs=None, total_masses=No
 
     wa, wb = create_unified_waveforms(wa, wb, t1, t2, padding_time_factor=0)
 
-    errors["mismatch"] = compute_mismatch(wa, wb, t1, t2, modes=modes)
+    errors["mismatch"] = mismatch(wa, wb, t1, t2, modes=modes)
 
-    errors["residual L2 norm"] = compute_L2_norm(wa, wb, t1, t2, modes=modes)
+    errors["residual L2 norm"] = L2_difference(wa, wb, t1, t2, modes=modes)
 
     i1 = wa.index_closest_to(t1)
     i0, i2 = max(0, i1-5), min(i1+6, wa.n_times-1)
@@ -82,7 +82,7 @@ def compute_error_summary(wa, wb, t1, t2, modes=None, ASDs=None, total_masses=No
                 wa_tilde_total_mass.t = wa_tilde_total_mass.t * frequency_factor
                 wb_tilde_total_mass.t = wb_tilde_total_mass.t * frequency_factor
 
-                errors[f"mismatch {ASD} {total_mass}"] = compute_mismatch(
+                errors[f"mismatch {ASD} {total_mass}"] = mismatch(
                     wa_tilde_total_mass, wb_tilde_total_mass, f1 * frequency_factor, modes=modes, ASD=ASDs[ASD]
                 )
 
@@ -90,7 +90,7 @@ def compute_error_summary(wa, wb, t1, t2, modes=None, ASDs=None, total_masses=No
     ell_max = min(wa.ell_max, wb.ell_max)
     for L in range(ell_min, ell_max + 1):
         for M in range(-L, L + 1):
-            absolute_error, norm = compute_L2_norm(
+            absolute_error, norm = L2_difference(
                 wa, wb, t1, t2, modes=[(L, M)], modes_for_norm=[(L, M)], normalize=False
             )
             errors[f"(L, M) = {(L, M)} residual L2 norm"] = absolute_error
@@ -170,7 +170,7 @@ def analyze_simulation(
             w_low_lev_prime, transformation, _, t1, t2 = align_simulations(
                 sim_low_lev, sim_high_lev, alignment_method="independent alignment", nprocs=nprocs
             )
-            errors[f"(Lev{lev - 1}, Lev{lev})"] = compute_L2_norm(w_high_lev, w_low_lev_prime, t1, t2)
+            errors[f"(Lev{lev - 1}, Lev{lev})"] = L2_difference(w_high_lev, w_low_lev_prime, t1, t2)
 
     # Extrapolation order analysis
     if analyze_extrapolation:
@@ -186,7 +186,7 @@ def analyze_simulation(
                 w_other, w_n2, t1, alignment_method="independent alignment", nprocs=nprocs
             )
 
-            L2_norm = compute_L2_norm(w_n2, w_other_prime, t1, t2)
+            L2_norm = L2_difference(w_n2, w_other_prime, t1, t2)
 
             errors[f"(N2, {extrapolation})"] = L2_norm
 
@@ -198,7 +198,7 @@ def analyze_simulation(
         t1 = sim.metadata.relaxation_time
         t2 = h_as_psi4.t[-1]
 
-        L2_norm = compute_L2_norm(h_as_psi4, psi4, t1, t2)
+        L2_norm = L2_difference(h_as_psi4, psi4, t1, t2)
 
         errors[f"(-h.ddot, psi4)"] = L2_norm
 

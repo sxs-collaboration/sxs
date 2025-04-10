@@ -7,7 +7,7 @@ from scipy.integrate import trapezoid
 import multiprocessing as mp
 from functools import partial
 
-from .norms import compute_L2_norm
+from .norms import L2_difference
 
 
 def align1d(wa, wb, t1, t2, n_brute_force=None):
@@ -753,7 +753,7 @@ def align_waveforms(
 
     δSpin3 = δSpin3.canonicalized
 
-    return wa_prime, np.array([δt, *δSpin3.ndarray]), compute_L2_norm(wa_prime, wb, t1, t2), t1, t2
+    return wa_prime, np.array([δt, *δSpin3.ndarray]), L2_difference(wa_prime, wb, t1, t2), t1, t2
 
 
 def align_simulations(
