@@ -22,8 +22,11 @@ def check_time_constraint(wa, wb, t1, t2):
 
 
 def create_unified_waveforms(wa, wb, t1, t2, padding_time_factor=0.2):
-    """Make two WaveformModes objects share a common time array
-    that contains the times t1 and t2.
+    """Convert WaveformModes to common time and modes
+
+    The output waveforms will be interpolated to a set of times
+    including — as nearly as possible — the times `t1` and `t2`,
+    padded by the given fraction of `(t2-t1)` on other side.
 
     Parameters
     ----------
@@ -32,13 +35,13 @@ def create_unified_waveforms(wa, wb, t1, t2, padding_time_factor=0.2):
     t1 : float
     t2 : float
     padding_time_factor : float, optional
-        Extra time of size (t2 - t1)*padding_time_factor to include in the waveforms.
-        Default is 0.2.
+        Extra time of size (t2 - t1)*padding_time_factor to include
+        int the waveforms.  Default is 0.2.
 
     Returns
     -------
     wa_interp : WaveformModes
-    wa_interp : WaveformModes
+    wb_interp : WaveformModes
     """
     check_time_constraint(wa, wb, t1, t2)
 
@@ -54,21 +57,25 @@ def create_unified_waveforms(wa, wb, t1, t2, padding_time_factor=0.2):
 
     ell_min = max(wa_interp.ell_min, wb_interp.ell_min)
     ell_max = min(wa_interp.ell_max, wb_interp.ell_max)
-    ell_min_idx = wa_interp.index(ell_min, -ell_min)
-    ell_max_idx = wa_interp.index(ell_max + 1, -(ell_max + 1))
+    ia1 = wa_interp.index(ell_min, -ell_min)
+    ia2 = wa_interp.index(ell_max, ell_max) + 1
+    ib1 = wb_interp.index(ell_min, -ell_min)
+    ib2 = wb_interp.index(ell_max, ell_max) + 1
 
-    return wa_interp[:,ell_min_idx:ell_max_idx], wb_interp[:,ell_min_idx:ell_max_idx]
+    return wa_interp[:,ia1:ia2], wb_interp[:,ib1:ib2]
 
 
-def compute_L2_norm(wa, wb, t1=None, t2=None, modes=None, modes_for_norm=None, normalize=True):
-    """Compute the L² norm of the residual between two waveforms over the
-    time window (t1, t2) using the modes specified by `modes`.
+def compute_L2_norm(wa, wb, t1=-np.inf, t2=np.inf, modes=None, modes_for_norm=None, normalize=True):
+    """Compute L² norm of difference between two waveforms
+    
+    The norm is integrated over the time window (`t1`, `t2`), and over
+    the sphere using the modes specified by `modes`.
 
     Parameters
     ----------
     wa : WaveformModes
     wb : WaveformModes
-        Interpolated to wa over (t1, t2).
+        Waveforms to compare.
     t1 : float
         Beginning of L² norm integral.
     t2 : float
@@ -77,29 +84,32 @@ def compute_L2_norm(wa, wb, t1=None, t2=None, modes=None, modes_for_norm=None, n
         Modes (ell, m) to include in numerator of L² norm calculation.
         Default is all modes.
     modes_for_norm : list, optional
-        Modes (ell, m) to include in denominator of L² norm calculation.
-        Default is all modes.
+        Modes (ell, m) to include in denominator of L² norm
+        calculation.  Default is all modes.
     normalize : bool, optional
-        Whether or not to divide by sqrt(||wa||²||wb||²) in the sqrt. If False, returns
-        the unnormalized L² norm of the residual and what would have been the normalization.
-        Default is True.
+        Whether or not to divide by sqrt(||wa||²||wb||²) in the sqrt.
+        If False, returns the unnormalized L² norm of the residual and
+        what would have been the normalization.  Default is True.
 
     Returns
     -------
     L2_norm: float
-        L² norm of the residual between the waveforms
-        This is sqrt( ||wa - wb||² / sqrt(||wa||² ||wb||²) )
+        L² norm of the residual between the waveforms.  This is sqrt(
+        ||wa - wb||² / sqrt(||wa||² ||wb||²) )
     """
-    wa = wa.copy()
-    wb = wb.copy()
+    t1 = max(wa.t[0], wb.t[0], t1)
+    t2 = min(wa.t[-1], wb.t[-1], t2)
 
-    if t1 is None:
-        t1 = max(wa.t[0], wb.t[0])
+    already_unified = (
+        np.array_equal(wa.t, wb.t)
+        and (wa.ndim == wb.ndim == 1 or np.array_equal(wa.LM, wb.LM))
+    )
 
-    if t2 is None:
-        t2 = min(wa.t[-1], wb.t[-1])
-
-    if not (wa.t.size == wb.t.size and all(wa.t == wb.t)):
+    if already_unified:
+        i1, i2 = np.argmin(abs(wa.t - t1)), np.argmin(abs(wa.t - t2)) + 1
+        wa = wa.copy()[i1:i2]
+        wb = wb.copy()[i1:i2]
+    else:
         wa, wb = create_unified_waveforms(wa, wb, t1, t2, padding_time_factor=0)
 
     data_diff = wa.data - wb.data
@@ -142,14 +152,19 @@ def compute_L2_norm(wa, wb, t1=None, t2=None, modes=None, modes_for_norm=None, n
 
 
 def compute_inner_product(wa, wb, ASD_values=None):
-    """Compute the inner product between two waveforms over the
-    window (x1, x2).
+    """Compute the inner product between two waveforms
 
-    Note that this can be provided with time-domain or frequency-domain waveforms,
-    either over the two-sphere (WaveformModes) or at a point on the two-sphere (TimeSeries).
-
-    For frequency-domain waveforms, the .t attribute should be the frequency.
-
+    No interpolation is performed, including for the `ASD`.  If the
+    inputs are `WaveformModes` objects, the modes are assumed to match
+    between the two waveforms.
+    
+    Note that this can be provided with time-domain or
+    frequency-domain waveforms, either over the two-sphere
+    (WaveformModes) or at a point on the two-sphere (TimeSeries).
+      
+    For frequency-domain waveforms, the .t attribute should be the
+    frequency.
+    
     Parameters
     ----------
     wa : WaveformModes or TimeSeries
@@ -180,23 +195,28 @@ def compute_inner_product(wa, wb, ASD_values=None):
     return inner_product
 
 
-def compute_mismatch(wa, wb, x1=None, x2=None, modes=None, ASD=None):
-    """Compute the mismatch between two waveforms over the
-    window (x1, x2) using the modes specified by `modes`.
+def compute_mismatch(wa, wb, x1=-np.inf, x2=np.inf, modes=None, ASD=None):
+    """Compute the mismatch between two waveforms
 
-    Note that this can be provided with time-domain or frequency-domain waveforms,
-    either over the two-sphere (WaveformModes) or at a point on the two-sphere (TimeSeries).
+    The mismatch is calculated over the time or frequency window
+    (`x1`, `x2`), and — if relevant — over the sphere using the modes
+    specified by `modes`.
 
-    For frequency-domain waveforms, the .t attribute should be the frequency.
+    Note that this can be provided with time-domain or
+    frequency-domain waveforms, either over the two-sphere
+    (WaveformModes) or at a point on the two-sphere (TimeSeries).
+
+    For frequency-domain waveforms, the .t attribute should be the
+    frequency.
 
     Parameters
     ----------
     wa : WaveformModes or TimeSeries
     wb : WaveformModes or TimeSeries
-    x1 : float
-        Beginning of mismatch integral.
-    x2 : float
-        End of mismach integral.
+    x1 : float, optional
+        Beginning of mismatch integral.  Default uses all values.
+    x2 : float, optional
+        End of mismatch integral.  Default uses all values.
     modes : list, optional
         Modes (ell, m) to include in the mismatch calculation.
         Default is all modes.
@@ -209,31 +229,34 @@ def compute_mismatch(wa, wb, x1=None, x2=None, modes=None, ASD=None):
     mismatch : float
         Mismatch between the two waveforms.
     """
-    wa = wa.copy()
-    wb = wb.copy()
+    x1 = max(wa.t[0], wb.t[0], x1)
+    x2 = min(wa.t[-1], wb.t[-1], x2)
 
-    if x1 is None:
-        x1 = max(wa.t[0], wb.t[0])
+    already_unified = (
+        np.array_equal(wa.t, wb.t)
+        and (wa.ndim == wb.ndim == 1 or np.array_equal(wa.LM, wb.LM))
+    )
 
-    if x2 is None:
-        x2 = min(wa.t[-1], wb.t[-1])
-
-    if not (wa.t.size == wb.t.size and all(wa.t == wb.t)):
+    if already_unified:
+        i1, i2 = np.argmin(abs(wa.t - x1)), np.argmin(abs(wa.t - x2)) + 1
+        wa = wa.copy()[i1:i2]
+        wb = wb.copy()[i1:i2]
+    else:
         wa, wb = create_unified_waveforms(wa, wb, x1, x2, padding_time_factor=0)
 
     # Eliminate unwanted modes
-    if wa.ndim > 1:
-        if modes is not None:
-            ell_min = min(wa.ell_min, wb.ell_min)
-            ell_max = max(wa.ell_max, wb.ell_max)
-            for L in range(ell_min, ell_max + 1):
+    if modes is not None:
+        if wa.ndim > 1:
+            for L in range(wa.ell_min, wa.ell_max + 1):
                 for M in range(-L, L + 1):
                     if not (L, M) in modes:
                         wa.data[:, wa.index(L, M)] *= 0
                         wb.data[:, wb.index(L, M)] *= 0
-
-    wa = wa[np.argmin(abs(wa.t - x1)) : np.argmin(abs(wa.t - x2)) + 1]
-    wb = wb[np.argmin(abs(wb.t - x1)) : np.argmin(abs(wb.t - x2)) + 1]
+        else:
+            raise ValueError(
+                "A `modes` argument was provided, but the input `wa` "
+                "and `wb` only have one dimension."
+            )
 
     if ASD is not None:
         ASD_values = ASD(wa.t)

@@ -634,15 +634,15 @@ def align_waveforms(
         End of integration interval.
         Default is 60% of the ringdown, or 100M before peak if there is no merger.
     alignment_method : str
-        Alignment method to use;
+        Alignment method to use:
           - "independent alignment" aligns each simulation to some frame at t_ref;
             - time is set to zero at the peak;
             - angular velocity vector is aligned with z a t_ref;
-            - phase of (2,2) is set to zer at t_ref;
+            - phase of (2,2) is set to zero at t_ref;
             - real part of the (2,1) mode is made positive at t_ref (fixes π freedom);
           - "1d" performs a 1d optimization over time translations;
           - "2d" performs a 2d optimization over time translations and rotations about the z axis;
-          - "4d" performs a 4d optimization over time translations and SO(3) rotations;
+          - "4d" performs a 4d optimization over time translations and SO(3) rotations.
     use_initial_guess : bool
         Whether or not to use "independent alignment" as an initial guess.
         Default is True.
