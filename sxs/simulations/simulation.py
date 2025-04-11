@@ -101,18 +101,21 @@ def Simulation(location, *args, **kwargs):
     
     """
     import numpy as np
+    from packaging.version import Version
     from .. import load, sxs_directory
     from ..metadata.metric import MetadataMetric
 
     # Load the simulation catalog
     simulations = load("simulations")
+    v = Version(simulations.tag)
+    latest_version = f"v{v.major}.{v.minor}"
 
     # Extract the simulation ID, version, and Lev from the location string
     simulation_id, input_version = sxs_id_and_version(location)
     if not simulation_id:
         if location.split("/Lev")[0] in simulations:
             simulation_id = location.split("/Lev")[0]
-            input_version = "v0.0"
+            input_version = latest_version
         else:
             raise ValueError(f"Invalid SXS ID in '{simulation_id}'")
     input_lev_number = lev_number(location)  # Will be `None` if not present
@@ -133,8 +136,8 @@ def Simulation(location, *args, **kwargs):
 
     # Check if the specified version exists in the simulation catalog
     if not hasattr(metadata, "DOI_versions"):
-        input_version = "v0.0"  # A fake version, to signal this sim doesn't know about DOIs
-    if input_version != "v0.0" and input_version not in metadata.DOI_versions:
+        input_version = latest_version
+    if input_version != latest_version and input_version not in metadata.DOI_versions:
         raise ValueError(f"Version '{input_version}' not found in simulation catalog for '{simulation_id}'")
 
     # Set various pieces of information about the simulation
@@ -207,9 +210,6 @@ def Simulation(location, *args, **kwargs):
     # Note the deprecation status in the kwargs, even if ignoring deprecation
     kwargs["deprecated"] = deprecated
 
-    # TODO: Default to not downloading file info
-    # TODO: In that case, deal with Lev numbers somehow
-
     # We want to do this *after* deprecation checking, to avoid possibly unnecessary web requests
     if 1 <= float(version[1:]) < 3.0 and "files" in metadata:
         # The simulation metadata is points to files with a different version
@@ -218,8 +218,22 @@ def Simulation(location, *args, **kwargs):
 
     # If Lev is given as part of `location`, use it; otherwise, use the highest available
     lev_numbers = sorted({lev for f in files if (lev:=lev_number(f))})
-    output_lev_number = input_lev_number or max(lev_numbers, default=np.nan)
+    if input_lev_number is not None and lev_numbers:
+        if input_lev_number not in lev_numbers:
+            raise ValueError(
+                f"Lev number '{input_lev_number}' not found in simulation files for {sxs_id}"
+            )
+    max_lev_number = max(lev_numbers, default=np.nan)
+    output_lev_number = input_lev_number or max_lev_number
     location = f"{sxs_id_stem}{version}/Lev{output_lev_number}"
+
+    # Keep the metadata around unless we're asking for an old version
+    # or a less-than-maximal Lev
+    if (
+        version != latest_version
+        or (lev_numbers and output_lev_number != max_lev_number)
+    ):
+        metadata = None
 
     # Finally, figure out which version of the simulation to load and dispatch
     version_number = float(version[1:])
@@ -231,7 +245,7 @@ def Simulation(location, *args, **kwargs):
         sim = Simulation_v2(
             metadata, series, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
         )
-    elif 3 <= version_number < 4.0 or version == "v0.0":
+    elif 3 <= version_number < 4.0 or version == latest_version:
         sim = Simulation_v3(
             metadata, series, version, sxs_id_stem, sxs_id, url, files, lev_numbers, output_lev_number, location, *args, **kwargs
         )
@@ -249,8 +263,9 @@ class SimulationBase:
     
     Attributes
     ----------
-    metadata : Metadata
-        Metadata object for the simulation
+    metadata : Metadata or None
+        Metadata object for the simulation.  If `None`, the metadata
+        will be loaded automatically.
     series : pandas.Series
         The metadata, as extracted from the `simulations.dataframe`,
         meaning that it has columns consistent with other simulations,
@@ -311,7 +326,6 @@ class SimulationBase:
         metadata, series, version, sxs_id_stem, sxs_id, url, files, lev_numbers, lev_number, location,
         *args, **kwargs
     ):
-        self.metadata = metadata
         self.series = series
         self.version = version
         self.sxs_id_stem = sxs_id_stem
@@ -322,6 +336,7 @@ class SimulationBase:
         self.lev_number = lev_number
         self.location = location
         self.deprecated = kwargs.get("deprecated", False)
+        self.metadata = metadata or self.load_metadata()
 
     def __repr__(self):
         chi1 = self.series["reference_dimensionless_spin1"]
@@ -434,11 +449,33 @@ class SimulationBase:
 
     @property
     def lev(self):
-        return f"Lev{self.lev_number}"
+        if self.lev_number is None:
+            return ""
+        else:
+            return f"Lev{self.lev_number}"
 
     @property
     def Lev(self):
         return self.lev
+
+    @property
+    def metadata_path(self):
+        for separator in [":", "/"]:
+            for ending in [".json", ".txt"]:
+                prefix = f"{self.lev}{separator}" if self.lev else ""
+                if (fn := f"{prefix}metadata{ending}") in self.files:
+                    return fn
+        raise ValueError(
+            f"Metadata file not found in simulation files for {self.location}"
+        )
+
+    def load_metadata(self):
+        from .. import load
+        metadata_path = self.metadata_path
+        metadata_location = self.files.get(metadata_path)["link"]
+        sxs_id_path = Path(self.sxs_id)
+        metadata_truepath = Path(sxs_path_to_system_path(sxs_id_path / metadata_path))
+        return Metadata(load(metadata_location, truepath=metadata_truepath))
 
     def load_horizons(self):
         from .. import load
@@ -721,7 +758,8 @@ class Simulation_v1(SimulationBase):
 
     @property
     def horizons_path(self):
-        return f"{self.lev}/Horizons.h5"
+        prefix = f"{self.lev}/" if self.lev else ""
+        return f"{prefix}Horizons.h5"
     
     def load_horizons(self):
         from .. import load
@@ -743,25 +781,27 @@ class Simulation_v1(SimulationBase):
 
     @property
     def strain_path(self):
+        prefix = f"{self.lev}/" if self.lev else ""
         extrapolation = (
             f"Extrapolated_{self.extrapolation}.dir"
             if self.extrapolation != "Outer"
             else "OutermostExtraction.dir"
         )
         return (
-            f"{self.lev}/rhOverM_Asymptotic_GeometricUnits_CoM.h5",
+            f"{prefix}rhOverM_Asymptotic_GeometricUnits_CoM.h5",
             extrapolation
         )
 
     @property
     def psi4_path(self):
+        prefix = f"{self.lev}/" if self.lev else ""
         extrapolation = (
             f"Extrapolated_{self.extrapolation}.dir"
             if self.extrapolation != "Outer"
             else "OutermostExtraction.dir"
         )
         return (
-            f"{self.lev}/rMPsi4_Asymptotic_GeometricUnits_CoM.h5",
+            f"{prefix}rMPsi4_Asymptotic_GeometricUnits_CoM.h5",
             extrapolation
         )
 
@@ -808,12 +848,14 @@ class Simulation_v2(SimulationBase):
 
     @property
     def horizons_path(self):
-        return f"{self.lev}:Horizons.h5"
+        prefix = f"{self.lev}:" if self.lev else ""
+        return f"{prefix}Horizons.h5"
 
     @property
     def strain_path(self):
+        prefix = f"{self.lev}:" if self.lev else ""
         return (
-            f"{self.lev}:Strain_{self.extrapolation}",
+            f"{prefix}Strain_{self.extrapolation}",
             "/"
         )
 
@@ -824,8 +866,9 @@ class Simulation_v2(SimulationBase):
             if self.extrapolation != "Outer"
             else "OutermostExtraction.dir"
         )
+        prefix = "{self.lev}:" if self.lev else ""
         return (
-            f"{self.lev}:ExtraWaveforms",
+            f"ExtraWaveforms",
             f"/rMPsi4_Asymptotic_GeometricUnits_CoM_Mem/{extrapolation}"
         )
 
@@ -862,18 +905,20 @@ class Simulation_v3(Simulation_v2):
 
     @property
     def strain_path(self):
+        prefix = f"{self.lev}:" if self.lev else ""
         return (
-            f"{self.lev}:Strain_{self.extrapolation}",
+            f"{prefix}Strain_{self.extrapolation}",
             "/"
         ) if self.extrapolation == self.default_extrapolation else (
-            f"{self.lev}:ExtraWaveforms",
+            f"{prefix}ExtraWaveforms",
             f"/Strain_{self.extrapolation}.dir"
         )
 
     @property
     def psi4_path(self):
+        prefix = f"{self.lev}:" if self.lev else ""
         return (
-            f"{self.lev}:ExtraWaveforms",
+            f"{prefix}ExtraWaveforms",
             f"/Psi4_{self.extrapolation}.dir"
         )
 

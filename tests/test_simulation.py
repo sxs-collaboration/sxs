@@ -24,6 +24,18 @@ def test_sxs_load_v2():
 
 @skip_macOS_GH_actions_downloads
 def test_sxs_load_v2_levs():
+    # Check that a bad Lev raises an error
+    with pytest.raises(ValueError):
+        sxs.load("SXS:BBH:1001v2.0/Lev189", ignore_deprecation=True)
+    # Check that the default Lev works, and different Levs produce different metadata
+    assert (
+        sxs.load("SXS:BBH:1001v2.0").metadata.reference_time
+        == sxs.load("SXS:BBH:1001v2.0/Lev3").metadata.reference_time
+    )
+    assert (
+        sxs.load("SXS:BBH:1001v2.0/Lev1").metadata.reference_time
+        != sxs.load("SXS:BBH:1001v2.0/Lev3").metadata.reference_time
+    )
     for lev, lev_number in [("", 3), ("/Lev3", 3), ("/Lev2", 2), ("/Lev1", 1)]:
         s = sxs.load(f"SXS:BBH:1001v2.0{lev}", ignore_deprecation=True)
         assert s.sxs_id_stem == "SXS:BBH:1001"
