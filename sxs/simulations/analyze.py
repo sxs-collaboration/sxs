@@ -1,3 +1,5 @@
+import os
+import json
 import multiprocessing
 
 from ..waveforms.norms import create_unified_waveforms, L2_difference, mismatch
@@ -104,6 +106,7 @@ def analyze_simulation(
     analyze_extrapolation=True,
     analyze_psi4=True,
     ASDs_and_total_masses=None,
+    path_to_analysis_cache=None,
     nprocs=None,
 ):
     """
@@ -201,6 +204,26 @@ def analyze_simulation(
 
         errors[f"(-h.ddot, psi4)"] = L2_norm
 
+    if path_to_analysis_cache is not None:
+        if not os.path.exists(path_to_analysis_cache):
+            os.makedirs(path_to_analysis_cache)
+
+        def default(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            raise TypeError("Not serializable")
+
+        sim_name = sim_name.replace(':','_')
+        with open(f"{path_to_analysis_cache}/{sim_name}.json", "w") as output_file:
+            json.dump(
+                errors,
+                output_file,
+                indent=2,
+                separators=(",", ": "),
+                ensure_ascii=True,
+                default=default,
+            )
+
     return errors
 
 
@@ -210,6 +233,7 @@ def analyze_simulations(
     analyze_extrapolation=True,
     analyze_psi4=True,
     ASDs_and_total_masses=None,
+    path_to_analysis_cache=None,
     nprocs=None,
 ):
     """
@@ -245,6 +269,10 @@ def analyze_simulations(
             'CE': [CE_ASD, total_masses]
         }
         Default is no frequency-domain mismatch is calculated.
+    path_to_analysis_cache : str, optional
+        Path to directory to cache indvidual simulation analyses.
+        If None, no caching is performed.
+        Default is no cashing is performed.
     nprocs : int, optional
         Number of cpus to use.  Default is maximum number.  If -1 is provided,
         then no multiprocessing is performed.
@@ -253,14 +281,14 @@ def analyze_simulations(
     -------
     errors : dict
         Dictionary of the errors described above.
-    """
+    """ 
     errors = {}
     if nprocs != -1:
         with multiprocessing.Pool(processes=nprocs) as pool:
             results = pool.starmap(
                 analyze_simulation,
                 [
-                    (sim_name, analyze_levs, analyze_extrapolation, analyze_psi4, ASDs_and_total_masses, -1)
+                    (sim_name, analyze_levs, analyze_extrapolation, analyze_psi4, ASDs_and_total_masses, path_to_analysis_cache, -1)
                     for sim_name in sim_names
                 ],
             )
@@ -269,7 +297,7 @@ def analyze_simulations(
     else:
         for sim_name in sim_names:
             errors[sim_name] = analyze_simulation(
-                sim_name, analyze_levs, analyze_extrapolation, analyze_psi4, ASDs_and_total_masses, -1
+                sim_name, analyze_levs, analyze_extrapolation, analyze_psi4, ASDs_and_total_masses, path_to_analysis_cache, -1
             )
 
     return errors
