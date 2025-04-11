@@ -924,18 +924,33 @@ class Simulation_v3(Simulation_v2):
 
 
 def get_file_info(metadata, sxs_id, download=None):
-    # TODO: Allow an existing zenodo_metadata.json file to be used
-    from .. import load_via_sxs_id
+    from .. import load, load_via_sxs_id
     if "files" in metadata:
         return metadata["files"]
     truepath = Path(sxs_path_to_system_path(sxs_id)) / "zenodo_metadata.json"
     record = load_via_sxs_id(sxs_id, "export/json", truepath=truepath, download=download)
-    entries = record["files"]["entries"]
-    return {
-        str(filename): {
-            "checksum": entry["checksum"],
-            "size": entry["size"],
-            "link": entry["links"]["content"],
+    if not record.get("files", {}).get("entries", []):
+        # CaltechDATA files should generally be already stored in the `simulations`,
+        # but just in case, we get to this point
+        truepath = Path(sxs_path_to_system_path(sxs_id)) / "caltechdata_files.json"
+        url = record["links"]["files"]
+        record = load(url, truepath=truepath, download=download)
+        entries = record["entries"]
+        return {
+            entry["key"]: {
+                "checksum": entry["checksum"],
+                "size": entry["size"],
+                "link": entry["links"]["content"],
+            }
+            for entry in entries
         }
-        for filename, entry in entries.items()
-    }
+    else:
+        entries = record["files"]["entries"]
+        return {
+            str(filename): {
+                "checksum": entry["checksum"],
+                "size": entry["size"],
+                "link": entry["links"]["content"],
+            }
+            for filename, entry in entries.items()
+        }
