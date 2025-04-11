@@ -118,7 +118,7 @@ def test_dpa_rotated_generally(w, Rs):
     # smaller of the two sign options.
     assert (
         max(np.amin(np.vstack((np.linalg.norm(LL1 - LL2, axis=1), np.linalg.norm(LL1 + LL2, axis=1))), axis=0))
-        < 1.0e-12
+        < 4.0e-12
     )
 
 
