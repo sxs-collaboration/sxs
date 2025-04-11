@@ -866,9 +866,9 @@ class Simulation_v2(SimulationBase):
             if self.extrapolation != "Outer"
             else "OutermostExtraction.dir"
         )
-        prefix = "{self.lev}:" if self.lev else ""
+        prefix = f"{self.lev}:" if self.lev else ""
         return (
-            f"ExtraWaveforms",
+            f"{prefix}ExtraWaveforms",
             f"/rMPsi4_Asymptotic_GeometricUnits_CoM_Mem/{extrapolation}"
         )
 
