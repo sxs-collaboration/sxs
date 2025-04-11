@@ -67,7 +67,7 @@ def compute_error_summary(wa, wb, t1, t2, modes=None, ASDs_and_total_masses=None
     wa_tilde = wa.fourier_transform()
     wb_tilde = wb.fourier_transform()
     if ASDs_and_total_masses is not None:
-        for ASD_and_total_masses in ASDs_and_total_masses.values():
+        for ASD, ASD_and_total_masses in ASDs_and_total_masses.items():
             for total_mass in ASD_and_total_masses[1]:
                 # Note that we only need to make the frequency unitful, since the
                 # magnitude of the strain scales out in the mismatch.
