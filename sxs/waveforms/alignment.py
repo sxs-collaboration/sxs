@@ -838,7 +838,10 @@ def align_simulations(
 
     if t1 is None:
         # Default to reference time
-        t1 = simb.metadata.reference_time
+        t1 = max(
+            sima.metadata.reference_time,
+            simb.metadata.reference_time
+        )
 
     wa_prime, transformation, L2_norm, t1, t2 = align_waveforms(
         sima.h,
