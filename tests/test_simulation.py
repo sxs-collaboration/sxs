@@ -73,13 +73,13 @@ def test_sxs_load_v3_levs():
     with pytest.raises(ValueError):
         sxs.load("SXS:BBH:4000v3.0/Lev189", ignore_deprecation=True)
     # Check that the default Lev works, and different Levs produce different metadata
-    assert (
-        sxs.load("SXS:BBH:4000v3.0").metadata.reference_time
-        == sxs.load("SXS:BBH:4000v3.0/Lev3").metadata.reference_time
+    assert (  # Check that the default Lev loads the highest Lev
+        sxs.load("SXS:BBH:4000v3.0", ignore_deprecation=True).metadata.reference_time
+        == sxs.load("SXS:BBH:4000v3.0/Lev3", ignore_deprecation=True).metadata.reference_time
     )
-    assert (
-        sxs.load("SXS:BBH:4000v3.0/Lev1").metadata.reference_time
-        != sxs.load("SXS:BBH:4000v3.0/Lev3").metadata.reference_time
+    assert (  # Check that different Levs have different reference times
+        sxs.load("SXS:BBH:4000v3.0/Lev1", ignore_deprecation=True).metadata.reference_time
+        != sxs.load("SXS:BBH:4000v3.0/Lev3", ignore_deprecation=True).metadata.reference_time
     )
     for lev, lev_number in [("", 3), ("/Lev3", 3), ("/Lev2", 2), ("/Lev1", 1)]:
         s = sxs.load(f"SXS:BBH:4000v3.0{lev}", ignore_deprecation=True)
@@ -92,6 +92,89 @@ def test_sxs_load_v3_levs():
         s.Strain
         s.horizons
         s.Horizons
+
+
+@pytest.mark.many_downloads  # runs only with pytest flag ` --run_many_downloads`
+def test_sxs_load_v3_catalog():
+    # This test goes right up to the point of loading every simulation
+    # at each Lev with each extrapolation order, but doesn't download
+    # any data
+    from pathlib import Path
+
+    def fake_load_metadata(self):
+        metadata_path = self.metadata_path
+        if metadata_path not in self.files:
+            return False
+        if "link" not in self.files[metadata_path]:
+            return False
+        if self.files[metadata_path].get("size", 0) < 500:
+            return False
+        return True
+
+    def fake_load_horizons(self):
+        horizons_path = self.horizons_path
+        if horizons_path in self.files:
+            if "link" not in self.files[horizons_path]:
+                return False
+        else:
+            # Some simulations used the SXS ID as a prefix in file paths
+            # within the Zenodo upload in version 1.x of the catalog.
+            if (extended_location := f"{self.sxs_id_stem}/{horizons_path}") in self.files:
+                if "link" not in self.files[extended_location]:
+                    return False
+                elif self.files[extended_location].get("size", 0) < 500:
+                    return False
+            else:
+                return False
+        return True
+
+    def fake_load_waveform(self, file_name, group):
+        file_name = Path(file_name)
+        h5_path = str(file_name.with_suffix(".h5"))
+        json_path = str(file_name.with_suffix(".json"))
+        return bool(
+            self.files.get(h5_path, {}).get("link", False)
+            and self.files.get(h5_path, {}).get("size", 0) > 500
+            and self.files.get(json_path, {}).get("link", False)
+            and self.files.get(json_path, {}).get("size", 0) > 500
+        )
+
+    simulations = sxs.load("simulations")
+
+    success = True
+    for sxs_id, metadata in simulations.items():
+        sim = sxs.load(sxs_id, ignore_deprecation=True)
+        if sim.version != "v3.0":
+            # print(
+            #     f"Skipping {sxs_id} because its version is {sim.version} != v3.0"
+            # )
+            continue
+
+        for lev_number in metadata["lev_numbers"]:
+            for extrapolation in ["Outer", "N2", "N3", "N4"]:
+                sim = sxs.load(
+                    f"{sxs_id}/Lev{lev_number}",
+                    extrapolation=extrapolation,
+                    ignore_deprecation=True,
+                )
+
+                if not fake_load_metadata(sim):
+                    print(f"Failed to load {sxs_id}/Lev{lev_number} {extrapolation} metadata")
+                    success = False
+
+                if not fake_load_horizons(sim):
+                    print(f"Failed to load {sxs_id}/Lev{lev_number} {extrapolation} horizons")
+                    success = False
+
+                if not fake_load_waveform(sim, *sim.strain_path):
+                    print(f"Failed to load {sxs_id}/Lev{lev_number} {extrapolation} strain")
+                    success = False
+
+                if not fake_load_waveform(sim, *sim.psi4_path):
+                    print(f"Failed to load {sxs_id}/Lev{lev_number} {extrapolation} psi4")
+                    success = False
+
+    assert success
 
 
 @skip_macOS_GH_actions_downloads
