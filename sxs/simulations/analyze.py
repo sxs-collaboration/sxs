@@ -181,7 +181,7 @@ def analyze_simulation(
 
             w_n2 = sim.h
             w_other = other.h
-
+                            
             t1 = sim.metadata.relaxation_time
 
             w_other_prime, transformation, _, t1, t2 = align_waveforms(
