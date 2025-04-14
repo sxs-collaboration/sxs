@@ -2,6 +2,21 @@ import pytest
 import sxs
 from .conftest import skip_macOS_GH_actions_downloads
 
+@pytest.mark.xfail(reason="Missing files in the catalog should be updated soon")
+def test_catalog_file_sizes():
+    simulations = sxs.load("simulations")
+    success = True
+    missing_files = ""
+    for sxs_id, metadata in simulations.items():
+        for filename, fileinfo in metadata.get("files", {}).items():
+            if fileinfo.get("size", 0) < 500:
+                missing_files += f"{sxs_id} {filename}\n"
+                success = False
+    if not success:
+        print("\nThe following files are missing or suspiciously small:")
+        print(missing_files)
+    assert success
+
 
 @skip_macOS_GH_actions_downloads
 def test_sxs_load_v2():
