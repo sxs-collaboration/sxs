@@ -760,24 +760,6 @@ class Simulation_v1(SimulationBase):
     def horizons_path(self):
         prefix = f"{self.lev}/" if self.lev else ""
         return f"{prefix}Horizons.h5"
-    
-    def load_horizons(self):
-        from .. import load
-        sxs_id_path = Path(self.sxs_id)
-        horizons_path = self.horizons_path
-        if horizons_path in self.files:
-            horizons_location = self.files.get(horizons_path)["link"]
-        else:
-            # Some simulations used the SXS ID as a prefix in file paths
-            # within the Zenodo upload in version 1.x of the catalog.
-            if (extended_horizons_path := f"{self.sxs_id_stem}/{horizons_path}") in self.files:
-                horizons_location = self.files.get(extended_horizons_path)["link"]
-            else:
-                raise ValueError(
-                    f"File '{horizons_path}' not found in simulation files for {self.location}"
-                )
-        horizons_truepath = Path(sxs_path_to_system_path(sxs_id_path / horizons_path))
-        return load(horizons_location, truepath=horizons_truepath)
 
     @property
     def strain_path(self):
