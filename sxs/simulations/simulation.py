@@ -113,8 +113,8 @@ def Simulation(location, *args, **kwargs):
     # Extract the simulation ID, version, and Lev from the location string
     simulation_id, input_version = sxs_id_and_version(location)
     if not simulation_id:
-        if location.split("/Lev")[0] in simulations:
-            simulation_id = location.split("/Lev")[0]
+        if (sim_id := location.split("/Lev")[0]) in simulations:
+            simulation_id = sim_id
             input_version = latest_version
         else:
             raise ValueError(f"Invalid SXS ID in '{simulation_id}'")
@@ -129,7 +129,11 @@ def Simulation(location, *args, **kwargs):
     series = simulations.dataframe.loc[simulation_id]
 
     # If input_version is not the default, remove "files" from metadata
-    if input_version and input_version != max(metadata.get("DOI_versions", []), default=""):
+    version_is_not_default = (
+        input_version
+        and input_version != max(metadata.get("DOI_versions", []), default="")
+    )
+    if version_is_not_default:
         metadata = type(metadata)({
             key: value for key, value in metadata.items() if key != "files"
         })
@@ -211,9 +215,10 @@ def Simulation(location, *args, **kwargs):
     kwargs["deprecated"] = deprecated
 
     # We want to do this *after* deprecation checking, to avoid possibly unnecessary web requests
-    if 1 <= float(version[1:]) < 3.0 and "files" in metadata:
-        # The simulation metadata is points to files with a different version
-        del metadata["files"]
+    if version_is_not_default:
+        # The default metadata points to files with a different version, so delete this info
+        if "files" in metadata:
+            del metadata["files"]
     files = get_file_info(metadata, sxs_id, download=kwargs.get("download_file_info", None))
 
     # If Lev is given as part of `location`, use it; otherwise, use the highest available
@@ -230,7 +235,7 @@ def Simulation(location, *args, **kwargs):
     # Keep the metadata around unless we're asking for an old version
     # or a less-than-maximal Lev
     if (
-        version != latest_version
+        version_is_not_default
         or (lev_numbers and output_lev_number != max_lev_number)
     ):
         metadata = None
