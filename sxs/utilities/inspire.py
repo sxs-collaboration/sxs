@@ -44,7 +44,7 @@ def inspire2doi(inspire_bibtex_key, raise_exceptions=False):
 
 
 def query(
-    query,
+    query_string,
     sort="mostrecent",
     page=1,
     size=1000,
@@ -56,7 +56,7 @@ def query(
 
     Parameters
     ----------
-    query : str
+    query_string : str
         The search query.  For details, see
         https://github.com/inspirehep/rest-api-doc/tree/master#search-query
     fields : str, optional
@@ -93,32 +93,37 @@ def query(
 
     """
     import sys
-    import requests
-    from requests.adapters import HTTPAdapter
-    from urllib3.util.retry import Retry
 
-    session = requests.Session()
+    # Reuse the same session, in case user repeatedly calls query
+    if not hasattr(query, "session"):
+        import requests
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
+
+        query.session = requests.Session()
+
+        ## Retry automatically on certain types of errors
+        retry = Retry(
+            total=10,
+            backoff_factor=0.1,
+            status_forcelist=[
+                413,  # Request Entity Too Large
+                429,  # Too Many Requests
+                500,  # Internal Server Error
+                502,  # Bad Gateway
+                503,  # Service Unavailable
+                504,  # Gateway Timeout
+            ],
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        query.session.mount("https://", adapter)
+
+    session = query.session
     collected_results = []
-
-    ## Retry automatically on certain types of errors
-    retry = Retry(
-        total=10,
-        backoff_factor=0.1,
-        status_forcelist=[
-            413,  # Request Entity Too Large
-            429,  # Too Many Requests
-            500,  # Internal Server Error
-            502,  # Bad Gateway
-            503,  # Service Unavailable
-            504,  # Gateway Timeout
-        ],
-    )
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount("https://", adapter)
 
     url = api_url.format(record_type=record_type)
     params = {
-        "q": query,
+        "q": query_string,
         "sort": sort,
         "size": size,
         "page": page,
