@@ -467,9 +467,9 @@ class SimulationBase:
     def metadata_path(self):
         for separator in [":", "/"]:
             for ending in [".json", ".txt"]:
-                prefix = f"{self.lev}{separator}" if self.lev else ""
-                if (fn := f"{prefix}metadata{ending}") in self.files:
-                    return fn
+                for prefix in ["", f"{self.lev}{separator}" if self.lev else ""]:
+                    if (fn := f"{prefix}metadata{ending}") in self.files:
+                        return fn
         raise ValueError(
             f"Metadata file not found in simulation files for {self.location}"
         )
