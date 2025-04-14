@@ -222,14 +222,22 @@ def Simulation(location, *args, **kwargs):
     files = get_file_info(metadata, sxs_id, download=kwargs.get("download_file_info", None))
 
     # If Lev is given as part of `location`, use it; otherwise, use the highest available
-    lev_numbers = sorted({lev for f in files if (lev:=lev_number(f))})
-    if input_lev_number is not None and lev_numbers:
-        if input_lev_number not in lev_numbers:
-            raise ValueError(
-                f"Lev number '{input_lev_number}' not found in simulation files for {sxs_id}"
-            )
-    max_lev_number = max(lev_numbers, default=np.nan)
+    lev_numbers = metadata.get(
+        "lev_numbers",
+        sorted({lev_num for f in metadata.get("files", []) if (lev_num:=lev_number(f))})
+    )
+    if not lev_numbers:
+        raise ValueError(f"Could not find Levs for {location}")
+    if input_lev_number is not None and input_lev_number not in lev_numbers:
+        raise ValueError(
+            f"Lev number '{input_lev_number}' not found in simulation files for {sxs_id}"
+        )
+    max_lev_number = max(lev_numbers)
     output_lev_number = input_lev_number or max_lev_number
+    if output_lev_number is None:
+        raise ValueError(
+            f"No Lev number found for {location}"
+        )
     location = f"{sxs_id_stem}{version}/Lev{output_lev_number}"
 
     # Keep the metadata around unless we're asking for an old version
@@ -763,12 +771,12 @@ class Simulation_v1(SimulationBase):
 
     @property
     def horizons_path(self):
-        prefix = f"{self.lev}/" if self.lev else ""
+        prefix = f"{self.lev}/" if len(self.lev_numbers)>1 else ""
         return f"{prefix}Horizons.h5"
 
     @property
     def strain_path(self):
-        prefix = f"{self.lev}/" if self.lev else ""
+        prefix = f"{self.lev}/" if len(self.lev_numbers)>1 else ""
         extrapolation = (
             f"Extrapolated_{self.extrapolation}.dir"
             if self.extrapolation != "Outer"
@@ -781,7 +789,7 @@ class Simulation_v1(SimulationBase):
 
     @property
     def psi4_path(self):
-        prefix = f"{self.lev}/" if self.lev else ""
+        prefix = f"{self.lev}/" if len(self.lev_numbers)>1 else ""
         extrapolation = (
             f"Extrapolated_{self.extrapolation}.dir"
             if self.extrapolation != "Outer"
@@ -835,12 +843,12 @@ class Simulation_v2(SimulationBase):
 
     @property
     def horizons_path(self):
-        prefix = f"{self.lev}:" if self.lev else ""
+        prefix = f"{self.lev}:" if len(self.lev_numbers)>1 else ""
         return f"{prefix}Horizons.h5"
 
     @property
     def strain_path(self):
-        prefix = f"{self.lev}:" if self.lev else ""
+        prefix = f"{self.lev}:" if len(self.lev_numbers)>1 else ""
         return (
             f"{prefix}Strain_{self.extrapolation}",
             "/"
@@ -853,7 +861,7 @@ class Simulation_v2(SimulationBase):
             if self.extrapolation != "Outer"
             else "OutermostExtraction.dir"
         )
-        prefix = f"{self.lev}:" if self.lev else ""
+        prefix = f"{self.lev}:" if len(self.lev_numbers)>1 else ""
         return (
             f"{prefix}ExtraWaveforms",
             f"/rMPsi4_Asymptotic_GeometricUnits_CoM_Mem/{extrapolation}"
@@ -892,7 +900,7 @@ class Simulation_v3(Simulation_v2):
 
     @property
     def strain_path(self):
-        prefix = f"{self.lev}:" if self.lev else ""
+        prefix = f"{self.lev}:" if len(self.lev_numbers)>1 else ""
         return (
             f"{prefix}Strain_{self.extrapolation}",
             "/"
@@ -903,7 +911,7 @@ class Simulation_v3(Simulation_v2):
 
     @property
     def psi4_path(self):
-        prefix = f"{self.lev}:" if self.lev else ""
+        prefix = f"{self.lev}:" if len(self.lev_numbers)>1 else ""
         return (
             f"{prefix}ExtraWaveforms",
             f"/Psi4_{self.extrapolation}.dir"
