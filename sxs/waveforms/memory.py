@@ -13,6 +13,7 @@ h_with_memory = sxs.waveforms.memory.add_memory(h, integration_start_time=1000.0
 """
 
 import numpy as np
+from . import WaveformModes
 from . import waveform_mts
 
 
