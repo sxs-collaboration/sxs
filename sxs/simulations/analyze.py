@@ -166,13 +166,13 @@ def analyze_simulation(
                 w_low_lev_prime, transformation, L2_norm, t1, t2 = align_simulations(
                     sim_low_lev, sim_high_lev, alignment_method="4d", nprocs=nprocs
                 )
-                errors[f"(Lev{lev - 1}, Lev{lev}) 4d"] = compute_error_summary(w_low_lev_prime, w_high_lev, t1, t2, ASDs_and_total_masses=ASDs_and_total_masses)
-                errors[f"(Lev{lev - 1}, Lev{lev}) 4d transformation"] = transformation
+                errors[f"(Lev{low_lev}, Lev{high_lev}) 4d"] = compute_error_summary(w_low_lev_prime, w_high_lev, t1, t2, ASDs_and_total_masses=ASDs_and_total_masses)
+                errors[f"(Lev{low_lev}, Lev{high_lev}) 4d transformation"] = transformation
 
             w_low_lev_prime, transformation, _, t1, t2 = align_simulations(
                 sim_low_lev, sim_high_lev, alignment_method="independent alignment", nprocs=nprocs
             )
-            errors[f"(Lev{lev - 1}, Lev{lev})"] = L2_difference(w_high_lev, w_low_lev_prime, t1, t2)
+            errors[f"(Lev{low_lev}, Lev{high_lev})"] = L2_difference(w_high_lev, w_low_lev_prime, t1, t2)
 
     # Extrapolation order analysis
     if analyze_extrapolation:
