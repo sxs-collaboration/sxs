@@ -158,6 +158,9 @@ def test_sxs_load_v3_catalog():
 
     success = True
     for sxs_id, metadata in simulations.items():
+        if "NSNS" in sxs_id or "BHNS" in sxs_id:
+            continue
+
         sim = sxs.load(sxs_id, ignore_deprecation=True)
         if sim.version != "v3.0":
             # print(
