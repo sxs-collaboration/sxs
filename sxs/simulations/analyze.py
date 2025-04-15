@@ -156,9 +156,9 @@ def analyze_simulation(
     sim = load(sim_name)
 
     # Lev analysis
-    if analyze_levs:
+    if analyze_levs and not len(sim.lev_numbers) < 2:
         for i, lev in enumerate(sim.lev_numbers[1:][::-1]):
-            sim_low_lev = load(f"{sim_name}/Lev{lev - 1}")
+            sim_low_lev = load(f"{sim_name}/Lev{sim.lev_numbers[::-1][i + 1]}")
             sim_high_lev = load(f"{sim_name}/Lev{lev}")
 
             w_high_lev = sim_high_lev.h
