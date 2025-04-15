@@ -44,19 +44,29 @@ def pytest_addoption(parser):
                      help="Maximum ell value to test with slow tests")
     parser.addoption("--run_slow_tests", action="store_true", default=False,
                      help="Run all tests, including slow ones")
+    parser.addoption("--run_many_downloads", action="store_true", default=False,
+                     help="Run tests marked with @many_downloads")
 
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "slow: marks tests as slow")
 
 
+def pytest_configure(config):
+    config.addinivalue_line("markers", "many_downloads: marks tests that require many downloads")
+
+
 def pytest_collection_modifyitems(config, items):
-    if config.getoption("--run_slow_tests"):
-        return
-    skip_slow = pytest.mark.skip(reason="need --run_slow_tests option to run")
-    for item in items:
-        if "slow" in item.keywords:
-            item.add_marker(skip_slow)
+    if not config.getoption("--run_slow_tests"):
+        skip_slow = pytest.mark.skip(reason="need --run_slow_tests option to run")
+        for item in items:
+            if "slow" in item.keywords:
+                item.add_marker(skip_slow)
+    if not config.getoption("--run_many_downloads"):
+        skip_many_downloads = pytest.mark.skip(reason="need --run_many_downloads option to run")
+        for item in items:
+            if "many_downloads" in item.keywords:
+                item.add_marker(skip_many_downloads)
 
 
 def pytest_runtest_setup(item):

@@ -34,6 +34,11 @@ jobs:
         exclude:
           - os: windows-latest
             python-version: '3.13'
+          - os: macos-latest
+            python-version: '3.13'
+        include:
+          - os: macos-latest
+            python-version: '3.12'
 
     steps:
       - name: Skip replicates unless on main branch or using ubuntu-latest

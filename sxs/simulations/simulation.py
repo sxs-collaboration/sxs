@@ -7,6 +7,32 @@ from ..utilities import (
 )
 
 
+def search_prefixes(file, lev, files, ending=""):
+    """Find the actual filename present in the list of files
+
+    Different versions of Zenodo and CaltechDATA place different
+    restrictions on filenames — and specifically, things I would
+    consider to be directories.  If there are multiple Levs for a
+    simulation, we have to somehow specify the Lev in the filename.
+    The permitted strings for doing so have changed over the years, so
+    the directory separator was allowed to be a "/" for old systems,
+    but must be something else now; we settled on ":".  However, if
+    there is just one Lev in a simulation, and we try to save the
+    files in a consistent way — including the Lev with the appropriate
+    separator, different versions of Zenodo and CaltechDATA will
+    either allow or silently remove that prefix.  The simplest
+    approach is to just search over all possibilities, for which
+    filename is actually present in the data.  That's what this
+    function does.
+    
+    """
+    for prefix in [f"{lev}:", f"{lev}/", ""]:
+        fn = f"{prefix}{file}"
+        if f"{fn}{ending}" in files:
+            return fn
+    raise ValueError(f"{file}{ending} not found in any form in files")
+
+
 def Simulation(location, *args, **kwargs):
     """Construct a Simulation object from a location string
 
@@ -113,8 +139,8 @@ def Simulation(location, *args, **kwargs):
     # Extract the simulation ID, version, and Lev from the location string
     simulation_id, input_version = sxs_id_and_version(location)
     if not simulation_id:
-        if location.split("/Lev")[0] in simulations:
-            simulation_id = location.split("/Lev")[0]
+        if (sim_id := location.split("/Lev")[0]) in simulations:
+            simulation_id = sim_id
             input_version = latest_version
         else:
             raise ValueError(f"Invalid SXS ID in '{simulation_id}'")
@@ -129,7 +155,11 @@ def Simulation(location, *args, **kwargs):
     series = simulations.dataframe.loc[simulation_id]
 
     # If input_version is not the default, remove "files" from metadata
-    if input_version and input_version != max(metadata.get("DOI_versions", []), default=""):
+    version_is_not_default = (
+        input_version
+        and input_version != max(metadata.get("DOI_versions", []), default="")
+    )
+    if version_is_not_default:
         metadata = type(metadata)({
             key: value for key, value in metadata.items() if key != "files"
         })
@@ -211,26 +241,35 @@ def Simulation(location, *args, **kwargs):
     kwargs["deprecated"] = deprecated
 
     # We want to do this *after* deprecation checking, to avoid possibly unnecessary web requests
-    if 1 <= float(version[1:]) < 3.0 and "files" in metadata:
-        # The simulation metadata is points to files with a different version
-        del metadata["files"]
+    if version_is_not_default:
+        # The default metadata points to files with a different version, so delete this info
+        if "files" in metadata:
+            del metadata["files"]
     files = get_file_info(metadata, sxs_id, download=kwargs.get("download_file_info", None))
 
     # If Lev is given as part of `location`, use it; otherwise, use the highest available
-    lev_numbers = sorted({lev for f in files if (lev:=lev_number(f))})
-    if input_lev_number is not None and lev_numbers:
-        if input_lev_number not in lev_numbers:
-            raise ValueError(
-                f"Lev number '{input_lev_number}' not found in simulation files for {sxs_id}"
-            )
-    max_lev_number = max(lev_numbers, default=np.nan)
+    lev_numbers = metadata.get(
+        "lev_numbers",
+        sorted({lev_num for f in metadata.get("files", []) if (lev_num:=lev_number(f))})
+    )
+    if not lev_numbers:
+        raise ValueError(f"Could not find Levs for {location}")
+    if input_lev_number is not None and input_lev_number not in lev_numbers:
+        raise ValueError(
+            f"Lev number '{input_lev_number}' not found in simulation files for {sxs_id}"
+        )
+    max_lev_number = max(lev_numbers)
     output_lev_number = input_lev_number or max_lev_number
+    if output_lev_number is None:
+        raise ValueError(
+            f"No Lev number found for {location}"
+        )
     location = f"{sxs_id_stem}{version}/Lev{output_lev_number}"
 
     # Keep the metadata around unless we're asking for an old version
     # or a less-than-maximal Lev
     if (
-        version != latest_version
+        version_is_not_default
         or (lev_numbers and output_lev_number != max_lev_number)
     ):
         metadata = None
@@ -462,9 +501,9 @@ class SimulationBase:
     def metadata_path(self):
         for separator in [":", "/"]:
             for ending in [".json", ".txt"]:
-                prefix = f"{self.lev}{separator}" if self.lev else ""
-                if (fn := f"{prefix}metadata{ending}") in self.files:
-                    return fn
+                for prefix in ["", f"{self.lev}{separator}" if self.lev else ""]:
+                    if (fn := f"{prefix}metadata{ending}") in self.files:
+                        return fn
         raise ValueError(
             f"Metadata file not found in simulation files for {self.location}"
         )
@@ -758,50 +797,29 @@ class Simulation_v1(SimulationBase):
 
     @property
     def horizons_path(self):
-        prefix = f"{self.lev}/" if self.lev else ""
-        return f"{prefix}Horizons.h5"
-    
-    def load_horizons(self):
-        from .. import load
-        sxs_id_path = Path(self.sxs_id)
-        horizons_path = self.horizons_path
-        if horizons_path in self.files:
-            horizons_location = self.files.get(horizons_path)["link"]
-        else:
-            # Some simulations used the SXS ID as a prefix in file paths
-            # within the Zenodo upload in version 1.x of the catalog.
-            if (extended_horizons_path := f"{self.sxs_id_stem}/{horizons_path}") in self.files:
-                horizons_location = self.files.get(extended_horizons_path)["link"]
-            else:
-                raise ValueError(
-                    f"File '{horizons_path}' not found in simulation files for {self.location}"
-                )
-        horizons_truepath = Path(sxs_path_to_system_path(sxs_id_path / horizons_path))
-        return load(horizons_location, truepath=horizons_truepath)
+        return search_prefixes("Horizons.h5", self.lev, self.files)
 
     @property
     def strain_path(self):
-        prefix = f"{self.lev}/" if self.lev else ""
         extrapolation = (
             f"Extrapolated_{self.extrapolation}.dir"
             if self.extrapolation != "Outer"
             else "OutermostExtraction.dir"
         )
         return (
-            f"{prefix}rhOverM_Asymptotic_GeometricUnits_CoM.h5",
+            search_prefixes("rhOverM_Asymptotic_GeometricUnits_CoM.h5", self.lev, self.files),
             extrapolation
         )
 
     @property
     def psi4_path(self):
-        prefix = f"{self.lev}/" if self.lev else ""
         extrapolation = (
             f"Extrapolated_{self.extrapolation}.dir"
             if self.extrapolation != "Outer"
             else "OutermostExtraction.dir"
         )
         return (
-            f"{prefix}rMPsi4_Asymptotic_GeometricUnits_CoM.h5",
+            search_prefixes("rMPsi4_Asymptotic_GeometricUnits_CoM.h5", self.lev, self.files),
             extrapolation
         )
 
@@ -848,14 +866,12 @@ class Simulation_v2(SimulationBase):
 
     @property
     def horizons_path(self):
-        prefix = f"{self.lev}:" if self.lev else ""
-        return f"{prefix}Horizons.h5"
+        return search_prefixes("Horizons.h5", self.lev, self.files)
 
     @property
     def strain_path(self):
-        prefix = f"{self.lev}:" if self.lev else ""
         return (
-            f"{prefix}Strain_{self.extrapolation}",
+            search_prefixes(f"Strain_{self.extrapolation}", self.lev, self.files, ".h5"),
             "/"
         )
 
@@ -866,9 +882,9 @@ class Simulation_v2(SimulationBase):
             if self.extrapolation != "Outer"
             else "OutermostExtraction.dir"
         )
-        prefix = f"{self.lev}:" if self.lev else ""
+        prefix = f"{self.lev}:" if len(self.lev_numbers)>1 else ""
         return (
-            f"{prefix}ExtraWaveforms",
+            search_prefixes(f"ExtraWaveforms", self.lev, self.files, ".h5"),
             f"/rMPsi4_Asymptotic_GeometricUnits_CoM_Mem/{extrapolation}"
         )
 
@@ -905,20 +921,18 @@ class Simulation_v3(Simulation_v2):
 
     @property
     def strain_path(self):
-        prefix = f"{self.lev}:" if self.lev else ""
         return (
-            f"{prefix}Strain_{self.extrapolation}",
+            search_prefixes(f"Strain_{self.extrapolation}", self.lev, self.files, ".h5"),
             "/"
         ) if self.extrapolation == self.default_extrapolation else (
-            f"{prefix}ExtraWaveforms",
+            search_prefixes("ExtraWaveforms", self.lev, self.files, ".h5"),
             f"/Strain_{self.extrapolation}.dir"
         )
 
     @property
     def psi4_path(self):
-        prefix = f"{self.lev}:" if self.lev else ""
         return (
-            f"{prefix}ExtraWaveforms",
+            search_prefixes("ExtraWaveforms", self.lev, self.files, ".h5"),
             f"/Psi4_{self.extrapolation}.dir"
         )
 
