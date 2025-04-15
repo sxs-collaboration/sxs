@@ -69,8 +69,8 @@ def compute_error_summary(wa, wb, t1, t2, modes=None, ASDs_and_total_masses=None
     wa_tilde = wa.fourier_transform()
     wb_tilde = wb.fourier_transform()
     if ASDs_and_total_masses is not None:
-        for ASD, ASD_and_total_masses in ASDs_and_total_masses.items():
-            for total_mass in ASD_and_total_masses[1]:
+        for ASD_name, (ASD_data, total_masses) in ASDs_and_total_masses.items():
+            for total_mass in total_masses:
                 # Note that we only need to make the frequency unitful, since the
                 # magnitude of the strain scales out in the mismatch.
                 # We make things unitful here because the fourier transform
@@ -84,7 +84,7 @@ def compute_error_summary(wa, wb, t1, t2, modes=None, ASDs_and_total_masses=None
                 wb_tilde_total_mass.t = wb_tilde_total_mass.t * frequency_factor
 
                 errors[f"mismatch {ASD} {total_mass}"] = mismatch(
-                    wa_tilde_total_mass, wb_tilde_total_mass, f1 * frequency_factor, modes=modes, ASD=ASD_and_total_masses[0]
+                    wa_tilde_total_mass, wb_tilde_total_mass, f1 * frequency_factor, modes=modes, ASD=ASD_data
                 )
 
     ell_min = max(wa.ell_min, wb.ell_min)
@@ -156,10 +156,10 @@ def analyze_simulation(
     sim = load(sim_name)
 
     # Lev analysis
-    if analyze_levs and not len(sim.lev_numbers) < 2:
-        for i, lev in enumerate(sim.lev_numbers[1:][::-1]):
-            sim_low_lev = load(f"{sim_name}/Lev{sim.lev_numbers[::-1][i + 1]}")
-            sim_high_lev = load(f"{sim_name}/Lev{lev}")
+    if analyze_levs and len(sim.lev_numbers) > 1:
+        for i, (low_lev, high_lev) in enumerate(zip(sim.lev_numbers[:-1][::-1], sim.lev_numbers[1:][::-1])):
+            sim_low_lev = load(f"{sim_name}/Lev{low_lev}")
+            sim_high_lev = load(f"{sim_name}/Lev{high_lev}")
 
             w_high_lev = sim_high_lev.h
             if i == 0:
