@@ -7,6 +7,32 @@ from ..utilities import (
 )
 
 
+def search_prefixes(file, lev, files, ending=""):
+    """Find the actual filename present in the list of files
+
+    Different versions of Zenodo and CaltechDATA place different
+    restrictions on filenames — and specifically, things I would
+    consider to be directories.  If there are multiple Levs for a
+    simulation, we have to somehow specify the Lev in the filename.
+    The permitted strings for doing so have changed over the years, so
+    the directory separator was allowed to be a "/" for old systems,
+    but must be something else now; we settled on ":".  However, if
+    there is just one Lev in a simulation, and we try to save the
+    files in a consistent way — including the Lev with the appropriate
+    separator, different versions of Zenodo and CaltechDATA will
+    either allow or silently remove that prefix.  The simplest
+    approach is to just search over all possibilities, for which
+    filename is actually present in the data.  That's what this
+    function does.
+    
+    """
+    for prefix in [f"{lev}:", f"{lev}/", ""]:
+        fn = f"{prefix}{file}"
+        if f"{fn}{ending}" in files:
+            return fn
+    raise ValueError(f"{file}{ending} not found in any form in files")
+
+
 def Simulation(location, *args, **kwargs):
     """Construct a Simulation object from a location string
 
@@ -771,32 +797,29 @@ class Simulation_v1(SimulationBase):
 
     @property
     def horizons_path(self):
-        prefix = f"{self.lev}/" if len(self.lev_numbers)>1 else ""
-        return f"{prefix}Horizons.h5"
+        return search_prefixes("Horizons.h5", self.lev, self.files)
 
     @property
     def strain_path(self):
-        prefix = f"{self.lev}/" if len(self.lev_numbers)>1 else ""
         extrapolation = (
             f"Extrapolated_{self.extrapolation}.dir"
             if self.extrapolation != "Outer"
             else "OutermostExtraction.dir"
         )
         return (
-            f"{prefix}rhOverM_Asymptotic_GeometricUnits_CoM.h5",
+            search_prefixes("rhOverM_Asymptotic_GeometricUnits_CoM.h5", self.lev, self.files),
             extrapolation
         )
 
     @property
     def psi4_path(self):
-        prefix = f"{self.lev}/" if len(self.lev_numbers)>1 else ""
         extrapolation = (
             f"Extrapolated_{self.extrapolation}.dir"
             if self.extrapolation != "Outer"
             else "OutermostExtraction.dir"
         )
         return (
-            f"{prefix}rMPsi4_Asymptotic_GeometricUnits_CoM.h5",
+            search_prefixes("rMPsi4_Asymptotic_GeometricUnits_CoM.h5", self.lev, self.files),
             extrapolation
         )
 
@@ -843,14 +866,12 @@ class Simulation_v2(SimulationBase):
 
     @property
     def horizons_path(self):
-        prefix = f"{self.lev}:" if len(self.lev_numbers)>1 else ""
-        return f"{prefix}Horizons.h5"
+        return search_prefixes("Horizons.h5", self.lev, self.files)
 
     @property
     def strain_path(self):
-        prefix = f"{self.lev}:" if len(self.lev_numbers)>1 else ""
         return (
-            f"{prefix}Strain_{self.extrapolation}",
+            search_prefixes(f"Strain_{self.extrapolation}", self.lev, self.files, ".h5"),
             "/"
         )
 
@@ -863,7 +884,7 @@ class Simulation_v2(SimulationBase):
         )
         prefix = f"{self.lev}:" if len(self.lev_numbers)>1 else ""
         return (
-            f"{prefix}ExtraWaveforms",
+            search_prefixes(f"ExtraWaveforms", self.lev, self.files, ".h5"),
             f"/rMPsi4_Asymptotic_GeometricUnits_CoM_Mem/{extrapolation}"
         )
 
@@ -900,20 +921,18 @@ class Simulation_v3(Simulation_v2):
 
     @property
     def strain_path(self):
-        prefix = f"{self.lev}:" if len(self.lev_numbers)>1 else ""
         return (
-            f"{prefix}Strain_{self.extrapolation}",
+            search_prefixes(f"Strain_{self.extrapolation}", self.lev, self.files, ".h5"),
             "/"
         ) if self.extrapolation == self.default_extrapolation else (
-            f"{prefix}ExtraWaveforms",
+            search_prefixes("ExtraWaveforms", self.lev, self.files, ".h5"),
             f"/Strain_{self.extrapolation}.dir"
         )
 
     @property
     def psi4_path(self):
-        prefix = f"{self.lev}:" if len(self.lev_numbers)>1 else ""
         return (
-            f"{prefix}ExtraWaveforms",
+            search_prefixes("ExtraWaveforms", self.lev, self.files, ".h5"),
             f"/Psi4_{self.extrapolation}.dir"
         )
 
