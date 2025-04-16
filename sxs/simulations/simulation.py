@@ -233,7 +233,7 @@ def Simulation(location, *args, **kwargs):
                 )
                 warn(message)
                 new_location = f"{superseding}{input_version}"
-                if input_lev_number:
+                if input_lev_number is not None:
                     new_location += f"/Lev{input_lev_number}"
                 return Simulation(new_location, *args, **kwargs)
 
@@ -250,7 +250,7 @@ def Simulation(location, *args, **kwargs):
     # If Lev is given as part of `location`, use it; otherwise, use the highest available
     lev_numbers = metadata.get(
         "lev_numbers",
-        sorted({lev_num for f in metadata.get("files", []) if (lev_num:=lev_number(f))})
+        sorted({lev_num for f in metadata.get("files", []) if (lev_num:=lev_number(f)) is not None})
     )
     if not lev_numbers:
         raise ValueError(f"Could not find Levs for {location}")
@@ -259,7 +259,10 @@ def Simulation(location, *args, **kwargs):
             f"Lev number '{input_lev_number}' not found in simulation files for {sxs_id}"
         )
     max_lev_number = max(lev_numbers)
-    output_lev_number = input_lev_number or max_lev_number
+    if input_lev_number is not None:
+        output_lev_number = input_lev_number
+    else:
+        output_lev_number = max_lev_number
     if output_lev_number is None:
         raise ValueError(
             f"No Lev number found for {location}"
@@ -270,7 +273,7 @@ def Simulation(location, *args, **kwargs):
     # or a less-than-maximal Lev
     if (
         version_is_not_default
-        or (lev_numbers and output_lev_number != max_lev_number)
+        or output_lev_number != max_lev_number
     ):
         metadata = None
 

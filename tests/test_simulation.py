@@ -107,6 +107,16 @@ def test_sxs_load_v3_levs():
         s.Strain
         s.horizons
         s.Horizons
+    # Check that Lev-1 and Lev0 work and are not the same as the highest Lev
+    s = sxs.load(f"SXS:BBH:1132v3.0", ignore_deprecation=True)
+    sm1 = sxs.load(f"SXS:BBH:1132v3.0/Lev-1", ignore_deprecation=True)
+    s0 = sxs.load(f"SXS:BBH:1132v3.0/Lev0", ignore_deprecation=True)
+    assert s.lev_number == 4
+    assert sm1.lev_number == -1
+    assert s0.lev_number == 0
+    assert s.metadata != sm1.metadata
+    assert s.metadata != s0.metadata
+    assert sm1.metadata != s0.metadata
 
 
 @pytest.mark.many_downloads  # runs only with pytest flag ` --run_many_downloads`
