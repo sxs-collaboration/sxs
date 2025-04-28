@@ -120,6 +120,24 @@ def test_sxs_load_v3_levs():
 
 
 @pytest.mark.many_downloads  # runs only with pytest flag ` --run_many_downloads`
+def test_sxs_load_all_doi_versions():
+    print()
+    for sxs_id in list(range(303, 324+1)) + list(range(4425, 4434+1)):
+        sxs_id = f"SXS:BBH:{sxs_id:04}"
+        print(f"    Loading {sxs_id}")
+        sim = sxs.load(sxs_id, ignore_deprecation=True)
+        for doi_version in sim.metadata["DOI_versions"]:
+            if not doi_version:  # Skip the default version, which was loaded above
+                continue
+            # This line will actually load the metadata, which is already a strong test
+            sim = sxs.load(f"{sxs_id}{doi_version}", ignore_deprecation=True)
+            assert sim.metadata_path
+            assert sim.horizons_path
+            assert sim.strain_path
+            assert sim.psi4_path
+
+
+@pytest.mark.many_downloads  # runs only with pytest flag ` --run_many_downloads`
 def test_sxs_load_v3_catalog():
     # This test goes right up to the point of loading every simulation
     # at each Lev with each extrapolation order, but doesn't download

@@ -7,7 +7,7 @@ from ..utilities import (
 )
 
 
-def search_prefixes(file, lev, files, ending=""):
+def search_prefixes(file, sxs_id_stem, lev, files, ending=""):
     """Find the actual filename present in the list of files
 
     Different versions of Zenodo and CaltechDATA place different
@@ -20,16 +20,18 @@ def search_prefixes(file, lev, files, ending=""):
     there is just one Lev in a simulation, and we try to save the
     files in a consistent way — including the Lev with the appropriate
     separator, different versions of Zenodo and CaltechDATA will
-    either allow or silently remove that prefix.  The simplest
+    either allow or silently remove that prefix.  On top of all that,
+    early uploads also got the SXS ID as a prefix.  The simplest
     approach is to just search over all possibilities, for which
     filename is actually present in the data.  That's what this
     function does.
     
     """
-    for prefix in [f"{lev}:", f"{lev}/", ""]:
-        fn = f"{prefix}{file}"
-        if f"{fn}{ending}" in files:
-            return fn
+    for directory in ["", f"{sxs_id_stem}/", f"{sxs_id_stem}:"]:
+        for prefix in [f"{lev}:", f"{lev}/", ""]:
+            fn = f"{directory}{prefix}{file}"
+            if f"{fn}{ending}" in files:
+                return fn
     raise ValueError(f"{file}{ending} not found in any form in files")
 
 
@@ -502,11 +504,12 @@ class SimulationBase:
 
     @property
     def metadata_path(self):
-        for separator in [":", "/"]:
-            for ending in [".json", ".txt"]:
-                for prefix in ["", f"{self.lev}{separator}" if self.lev else ""]:
-                    if (fn := f"{prefix}metadata{ending}") in self.files:
-                        return fn
+        for beginning in ["", f"{self.sxs_id_stem}/", f"{self.sxs_id_stem}:"]:
+            for separator in [":", "/"]:
+                for ending in [".json", ".txt"]:
+                    for prefix in ["", f"{self.lev}{separator}" if self.lev else ""]:
+                        if (fn := f"{beginning}{prefix}metadata{ending}") in self.files:
+                            return fn
         raise ValueError(
             f"Metadata file not found in simulation files for {self.location}"
         )
@@ -800,7 +803,10 @@ class Simulation_v1(SimulationBase):
 
     @property
     def horizons_path(self):
-        return search_prefixes("Horizons.h5", self.lev, self.files)
+        return search_prefixes(
+            "Horizons.h5",
+            self.sxs_id_stem, self.lev, self.files
+        )
 
     @property
     def strain_path(self):
@@ -810,7 +816,10 @@ class Simulation_v1(SimulationBase):
             else "OutermostExtraction.dir"
         )
         return (
-            search_prefixes("rhOverM_Asymptotic_GeometricUnits_CoM.h5", self.lev, self.files),
+            search_prefixes(
+                "rhOverM_Asymptotic_GeometricUnits_CoM.h5",
+                self.sxs_id_stem, self.lev, self.files
+            ),
             extrapolation
         )
 
@@ -822,7 +831,10 @@ class Simulation_v1(SimulationBase):
             else "OutermostExtraction.dir"
         )
         return (
-            search_prefixes("rMPsi4_Asymptotic_GeometricUnits_CoM.h5", self.lev, self.files),
+            search_prefixes(
+                "rMPsi4_Asymptotic_GeometricUnits_CoM.h5",
+                self.sxs_id_stem, self.lev, self.files
+            ),
             extrapolation
         )
 
@@ -869,12 +881,18 @@ class Simulation_v2(SimulationBase):
 
     @property
     def horizons_path(self):
-        return search_prefixes("Horizons.h5", self.lev, self.files)
+        return search_prefixes(
+            "Horizons.h5",
+            self.sxs_id_stem, self.lev, self.files
+        )
 
     @property
     def strain_path(self):
         return (
-            search_prefixes(f"Strain_{self.extrapolation}", self.lev, self.files, ".h5"),
+            search_prefixes(
+                f"Strain_{self.extrapolation}",
+                self.sxs_id_stem, self.lev, self.files, ".h5"
+            ),
             "/"
         )
 
@@ -887,7 +905,10 @@ class Simulation_v2(SimulationBase):
         )
         prefix = f"{self.lev}:" if len(self.lev_numbers)>1 else ""
         return (
-            search_prefixes(f"ExtraWaveforms", self.lev, self.files, ".h5"),
+            search_prefixes(
+                f"ExtraWaveforms",
+                self.sxs_id_stem, self.lev, self.files, ".h5"
+            ),
             f"/rMPsi4_Asymptotic_GeometricUnits_CoM_Mem/{extrapolation}"
         )
 
@@ -925,17 +946,26 @@ class Simulation_v3(Simulation_v2):
     @property
     def strain_path(self):
         return (
-            search_prefixes(f"Strain_{self.extrapolation}", self.lev, self.files, ".h5"),
+            search_prefixes(
+                f"Strain_{self.extrapolation}",
+                self.sxs_id_stem, self.lev, self.files, ".h5"
+            ),
             "/"
         ) if self.extrapolation == self.default_extrapolation else (
-            search_prefixes("ExtraWaveforms", self.lev, self.files, ".h5"),
+            search_prefixes(
+                "ExtraWaveforms",
+                self.sxs_id_stem, self.lev, self.files, ".h5"
+            ),
             f"/Strain_{self.extrapolation}.dir"
         )
 
     @property
     def psi4_path(self):
         return (
-            search_prefixes("ExtraWaveforms", self.lev, self.files, ".h5"),
+            search_prefixes(
+                "ExtraWaveforms",
+                self.sxs_id_stem, self.lev, self.files, ".h5"
+            ),
             f"/Psi4_{self.extrapolation}.dir"
         )
 
