@@ -8,7 +8,7 @@ containing the Python code you want to run.
 ## Getting Mathematica working with Python
 
 As of this writing, Mathematica *claims* that it works with all reasonably
-modern versions of Python — specificaly ["Python 2.6+ and Python
+modern versions of Python — specifically ["Python
 3.4+"](https://reference.wolfram.com/language/ref/externalevaluationsystem/Python.html).
 Assuming this is true, the only extra thing to worry about is that Mathematica
 requires the `pyzmq` package to interface with Python.
