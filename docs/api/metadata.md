@@ -1,3 +1,3 @@
 # `Metadata` class
 
-::: sxs.Metadata
+::: sxscatalog.metadata.metadata.Metadata
