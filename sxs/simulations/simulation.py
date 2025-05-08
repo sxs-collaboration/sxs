@@ -938,6 +938,13 @@ class Simulation_v2(SimulationBase):
 
 
 class Simulation_v3(Simulation_v2):
+    """Simulation object for version 3 of the data format
+        
+    Note that users almost certainly never need to call this function;
+    see the `Simulation` function or `sxs.load` function instead.  See
+    also `SimulationBase` for the base class that this class inherits
+    from.
+    """
     # Default extrapolation order for this simulation version
     default_extrapolation = "N2"
 
