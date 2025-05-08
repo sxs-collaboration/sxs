@@ -520,7 +520,9 @@ class SimulationBase:
         metadata_location = self.files.get(metadata_path)["link"]
         sxs_id_path = Path(self.sxs_id)
         metadata_truepath = Path(sxs_path_to_system_path(sxs_id_path / metadata_path))
-        return Metadata(load(metadata_location, truepath=metadata_truepath))
+        return Metadata(
+            load(metadata_location, truepath=metadata_truepath)
+        ).add_standard_parameters()
 
     def load_horizons(self):
         from .. import load
