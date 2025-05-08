@@ -18,7 +18,7 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Astronomy"
 ]
 dependencies = [
-  "sxscatalog >=3.0.13",
+  "sxscatalog >=3.0.14",
   "numpy >=1.25",
   "scipy >=1.13",
   "numba >=0.55; implementation_name == 'cpython'",
