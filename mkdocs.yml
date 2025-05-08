@@ -17,7 +17,7 @@ nav:
   - Home: "index.md"
   - Tutorials:
     - "tutorials/00-Introduction.ipynb"
-    - "tutorials/01-Simulations_and_Metadata.ipynb"
+    - "tutorials/01-Catalog_Dataframe.ipynb"
     - "tutorials/02-Simulation.ipynb"
     - "tutorials/03-Horizons.ipynb"
     - "tutorials/04-Waveforms.ipynb"

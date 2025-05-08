@@ -32,35 +32,24 @@ particular, with a reasonably modern installation, you can just run a command
 like
 
 ```bash
-conda install -c conda-forge sxs
-```
-
-or
-
-```bash
 python -m pip install sxs
 ```
 
-Here, `conda` requires the [conda](https://docs.anaconda.com/anaconda/install/)
-installation of python, which is the most recommended approach for scientific
-python; the second command assumes that you have an appropriate python
-environment set up in some other way.  Either of these commands will download
-and install the `sxs` package and its most vital requirements.
-
-If you want to install all the goodies that enable things like jupyter
-notebooks with plots and interactive tables, you could run
-
-```bash
-conda install -c conda-forge sxs-ecosystem
-```
-
 or
 
 ```bash
-python -m pip install sxs[ecosystem]
+mamba install -c conda-forge sxs
 ```
 
-You will probably also want to set some sensible defaults to automatically
+Here, the first command assumes that you have an appropriate python
+environment set up in some other way;
+[`mamba`](https://mamba.readthedocs.io/en/latest/index.html) is the
+newer replacement for `conda`, and is a convenient way to install
+python and manage environments.  Either of these commands will
+download and install the `sxs` package and its most vital
+requirements.
+
+You may also want to set some convenient defaults to automatically
 download and cache data:
 
 ```bash
@@ -87,31 +76,30 @@ There are five important objects to understand in this package:
 ```python
 import sxs
 
-simulations = sxs.load("simulations")
+df = sxs.load("dataframe", tag="3.0.0")  # or whichever version you want
 sxs_bbh_1234 = sxs.load("SXS:BBH:1234")
-metadata = sxs_bbh_1234.metadata
 horizons = sxs_bbh_1234.horizons
 h = sxs_bbh_1234.h
 ```
 
-[The `simulations`
-object](https://sxs.readthedocs.io/en/main/api/simulations/) contains
-information about every simulation in the catalog, including all
-available data files, and information about how to get them.  You
+Note that `tag` is optional, but is good to include because it sets
+the version of the catalog from which data is loaded, which ensures
+reproducibility.  Leave it out to see the most recent version
+available, and then use that version consistently in any analysis.  Be
+sure to cite the specific version of the catalog you used in any
+publications.
+
+[The "dataframe"](https://sxs.readthedocs.io/en/main/api/dataframe/)
+contains information about every simulation in the catalog, including
+all available data files, and information about how to get them.  You
 probably don't need to actually know about details like where to get
-the data, but `simulations` can help you find the simulations you care
-about.  It is a `dict` object, where the keys are names of simulations
-(like "SXS:BBH:0123") and the values are the same types as [the
-`metadata`
-object](https://sxs.readthedocs.io/en/main/api/sxs.metadata.metadata/#sxs.metadata.metadata.Metadata),
-which contains metadata about that simulation — things like mass
-ratio, spins, etc.  This `metadata` reflects the actual output of the
-simulations, which leads to some inconsistencies in their formats.  A
-more consistent interface (though it is biased toward returning NaNs
-where a human might glean more information) is provided by
-`simulations.dataframe`, which returns a
-[`pandas`](https://pandas.pydata.org/docs/) `DataFrame` with specific
-data types for each column.
+the data, but `dataframe` can help you find the simulations you care
+about.  It is a [`pandas.DataFrame`](https://pandas.pydata.org/docs/)
+object, where the rows are names of simulations (like "SXS:BBH:0123")
+and the columns include [the
+`metadata`](https://sxs.readthedocs.io/en/main/api/sxs.metadata.metadata/#sxs.metadata.metadata.Metadata)
+for the simulations — things like mass ratio, spins, eccentricity,
+etc. — in addition to extra refinements like spin magnitudes, etc.
 
 The actual data itself is primarily contained in the next two objects.  [The
 `horizons`
@@ -123,8 +111,14 @@ be `None`.  Otherwise, each of these three is a
 [`HorizonQuantities`](https://sxs.readthedocs.io/en/main/api/sxs.horizons/#sxs.horizons.HorizonQuantities)
 object, containing several timeseries relating to mass, spin, and position.
 
-Finally, the
-[`waveform`](https://sxs.readthedocs.io/en/main/api/sxs.waveforms.waveform_modes/#sxs.waveforms.waveform_modes.WaveformModes)
-encapsulates the modes of the waveform and the corresponding time information,
-along with relevant metadata like data type, spin weight, etc., and useful
-features like numpy-array-style slicing.
+Finally, the [`h`
+waveform](https://sxs.readthedocs.io/en/main/api/sxs.waveforms.waveform_modes/#sxs.waveforms.waveform_modes.WaveformModes)
+encapsulates the modes of the strain waveform and the corresponding
+time information, along with relevant metadata like data type, spin
+weight, etc., with useful features like numpy-array-style slicing.
+
+There is also `psi4` data available, which is computed with entirely
+different methods; `h` and `psi4` are not just computed one from the
+other by a double integral or differentiation.  As a result, we
+generally recommend using `h` instead of `psi4` unless you have very
+specific requirements.
