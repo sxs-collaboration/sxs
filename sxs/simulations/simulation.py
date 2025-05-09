@@ -45,10 +45,10 @@ def Simulation(location, *args, **kwargs):
     the version number must be in the form "v2.0", not "2.0", and it
     must exist, or no files will be found to load the data from.
 
-    The returned object will be either a `Simulation_v1` or
-    `Simulation_v2` object, depending on the version number.
-    Hopefully, most details of the two versions will be hidden from
-    the user, so that the interface is identical.
+    The returned object will be either a `Simulation_v1`,
+    `Simulation_v2`, or `Simulation_v3` object, depending on the
+    version number.  Hopefully, most details of the two versions will
+    be hidden from the user, so that the interface is identical.
 
     Note that some simulations are deprecated and/or superseded by
     other simulations.  By default, this function will raise an error
@@ -119,13 +119,13 @@ def Simulation(location, *args, **kwargs):
     Returns
     -------
     simulation : SimulationBase
-        A `Simulation_v1` or `Simulation_v2` object, depending on the
-        version of the simulation data.
+        A `Simulation_v1`, `Simulation_v2`, or `Simulation_v3` object,
+        depending on the version of the simulation data.
 
     Note that all remaining arguments (including keyword arguments)
-    are passed on to the `SimulationBase`, `Simulation_v1`, and/or
-    `Simulation_v2` constructors, though none currently recognize any
-    arguments other than those listed above.
+    are passed on to the `SimulationBase`, `Simulation_v1`,
+    `Simulation_v2`, and/or `Simulation_v3` constructors, though none
+    currently recognize any arguments other than those listed above.
     
     """
     import numpy as np
