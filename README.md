@@ -17,11 +17,11 @@ automatically select the newest or highest-resolution dataset for a given
 simulation, or return a range of versions or resolutions.  Currently, the
 high-level objects encapsulate
 
-  * Simulations — a catalog of all simulations produced by the SXS collaboration
+  * Dataframe — a catalog of all simulations produced by the SXS collaboration
   * Simulation — an object encapsulating all data for a single simulation
   * Metadata — data describing the simulation parameters
   * Horizons — time-series data describing the apparent horizons
-  * Waveforms — time-series data describing the extrapolated gravitational-wave
+  * Waveform — time-series data describing the extrapolated gravitational-wave
     modes
 
 
@@ -62,6 +62,15 @@ directory returned by `sxs.sxs_directory("cache")`.  See [that function's
 documentation](https://sxs.readthedocs.io/en/main/api/sxs.utilities.sxs_directories/#sxsutilitiessxs_directoriessxs_directory)
 for details.
 
+## Citing this package and/or data
+
+If you use this package and/or the data it provides in your research,
+please cite them, including the *specific version of the data* that
+you use.  To help with this, we provide the function `sxs.cite`, which
+will print out a citation (in BibTeX format or just the DOIs) for the
+package, the most recent paper describing the catalog, the catalog
+data itself, and optionally individual simulations.
+
 
 ## Usage
 
@@ -71,15 +80,54 @@ interactive jupyter notebooks that are actually running this code and some
 pre-downloaded data.  The following is just a very brief overview of the `sxs`
 package's main components.
 
-There are five important objects to understand in this package:
+### Loading a specific version of the catalog
+
+For the purposes of reproducibility — both reproducing your own
+results and allowing others to reproduce them — it is important to be
+aware of which version of the catalog you are using, and to cite it
+when you publish results using SXS data.  Whenever `sxs` tries to load
+data, it most first load some version of the catalog.  If you do not
+specify a version, it will automatically find and load the most recent
+version available via github, and print out a message telling you
+which version it is using, like
+
+```python
+Loading SXS simulations using latest tag 'v3.0.0', published at 2025-05-12T10:00:00Z.
+```
+
+For the rest of that Python session, all data loaded will be from that
+version of the catalog.  If you want to use a different version, you
+can specify it explicitly while loading the catalog — preferably as
+
+```python
+sxs.load("dataframe", tag="3.0.0")
+```
+
+Even if you do not use the returned object from this command, it will
+ensure that all data will be loaded from the specified version of the
+catalog.  Thus, it is best practice to make this call as soon as you
+import the `sxs` package.
+
+
+### Interacting with the data
+
+
+There are four important objects to understand in this package:
 
 ```python
 import sxs
 
-df = sxs.load("dataframe", tag="3.0.0")  # or whichever version you want
-sxs_bbh_1234 = sxs.load("SXS:BBH:1234")
-horizons = sxs_bbh_1234.horizons
-h = sxs_bbh_1234.h
+# Load a specific version of the catalog for reproducibility
+df = sxs.load("dataframe", tag="3.0.0")
+
+# Load a specific simulation
+sim = sxs.load("SXS:BBH:4001")
+
+# Obtain data about the horizons
+horizons = sim.horizons
+
+# Obtain data about the gravitational-wave strain
+h = sim.h
 ```
 
 Note that `tag` is optional, but is good to include because it sets
@@ -90,16 +138,25 @@ sure to cite the specific version of the catalog you used in any
 publications.
 
 [The "dataframe"](https://sxs.readthedocs.io/en/main/api/dataframe/)
-contains information about every simulation in the catalog, including
-all available data files, and information about how to get them.  You
-probably don't need to actually know about details like where to get
-the data, but `dataframe` can help you find the simulations you care
-about.  It is a [`pandas.DataFrame`](https://pandas.pydata.org/docs/)
-object, where the rows are names of simulations (like "SXS:BBH:0123")
-and the columns include [the
+`df` contains information about every simulation in the catalog,
+including all available data files, and information about how to get
+them.  You probably don't need to actually know about details like
+where to get the data, but `df` can help you find the simulations you
+care about.  It is a
+[`pandas.DataFrame`](https://pandas.pydata.org/docs/) object, where
+the rows are names of simulations (like "SXS:BBH:0123") and the
+columns include [the
 `metadata`](https://sxs.readthedocs.io/en/main/api/sxs.metadata.metadata/#sxs.metadata.metadata.Metadata)
 for the simulations — things like mass ratio, spins, eccentricity,
 etc. — in addition to extra refinements like spin magnitudes, etc.
+
+Once you have found a simulation you want to work with, you can load
+it with, e.g., `sxs.load("SXS:BBH:4001")`, which will return a
+[`Simulation`](https://sxs.readthedocs.io/en/main/api/sxs.simulation/#sxs.simulation.Simulation)
+object, which contains metadata about the simulation, and allows you
+to load data from the simulation.  By default, it uses the
+highest-resolution run of the simulation, though this lower
+resolutions can be specified.
 
 The actual data itself is primarily contained in the next two objects.  [The
 `horizons`
