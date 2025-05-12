@@ -7,6 +7,11 @@ def cite(*sxs_ids, bibtex=True):
 
     Note that this function makes web requests to obtain the DOIs and
     corresponding BibTeX entries.
+
+    If you want to cite a specific version of the SXS catalog data, be
+    sure to load it with `sxs.load("dataframe", tag="v3.0.0")` or
+    similar *before* calling this function.  Otherwise, the most recent
+    version will be used.
     
     Parameters
     ----------
@@ -18,11 +23,14 @@ def cite(*sxs_ids, bibtex=True):
     
     Returns
     -------
-    list[str] or str
-        A list of DOI strings, or a string containing BibTeX entries.
+    str or list[str]
+        A string containing BibTeX entries, or a list of DOI strings.
     
     """
     from . import doi_prefix, load, __version__
+    from . import sxs_id as sxs_identifier
+
+    simulations = load("simulations")
 
     # Get the DOI for this version of this package
     package_version = f"v{__version__}"
@@ -32,27 +40,46 @@ def cite(*sxs_ids, bibtex=True):
     paper_doi = f"{doi_prefix}/SXSCatalog3"
 
     # Get the DOI for this version of the catalog
-    catalog_tag = getattr(load("simulations"), "tag", "v3.0.0")
+    catalog_tag = getattr(simulations, "tag", "v3.0.0")
     catalog_doi = get_zenodo_doi(
         "The SXS catalog of simulations",
         catalog_tag
     )
 
+    sxs_id_references = {
+        doi
+        for sxs_id in sxs_ids
+        for doi in simulations[sxs_identifier(sxs_id)].get("citation_dois", [])
+        if doi.startswith("10.")
+    } - {package_doi, paper_doi, catalog_doi}
+
     if bibtex:
         package_bibtex = doi2bibtex(package_doi, key=f"SXSPackage_{package_version}")
         paper_bibtex = doi2bibtex(paper_doi, key="SXSCatalogPaper_3")
-        catalog_bibtex = doi2bibtex(catalog_doi, key=f"SXSCatalogData_{catalog_tag[1:]}")
+        catalog_bibtex = doi2bibtex(
+            catalog_doi,
+            key=f"SXSCatalogData_{catalog_tag[1:]}",
+            title_suffix=f" {catalog_tag}"
+        )
+        sxs_id_references_bibtex = [
+            doi2bibtex(doi) for doi in sxs_id_references
+        ]
         sxs_id_bibtex = [
             doi2bibtex(f"{doi_prefix}/{sxs_id}", key=sxs_id)
             for sxs_id in sxs_ids
         ]
-        return "\n".join([package_bibtex, paper_bibtex, catalog_bibtex] + sxs_id_bibtex)
+        return "\n".join(
+            [package_bibtex, paper_bibtex, catalog_bibtex]
+            + sxs_id_references_bibtex
+            + sxs_id_bibtex
+        )
     else:
+        sxs_id_references_dois = list(sxs_id_references)
         sxs_id_dois = [f"{doi_prefix}/{sxs_id}" for sxs_id in sxs_ids]
-        return [package_doi, paper_doi, catalog_doi] + sxs_id_dois
+        return [package_doi, paper_doi, catalog_doi] + sxs_id_references_dois + sxs_id_dois
 
 
-def doi2bibtex(doi, key=""):
+def doi2bibtex(doi, key="", title_suffix=""):
     """Convert a DOI to a BibTeX entry
 
     This function queries doi.org — and possibly the service it
@@ -128,6 +155,9 @@ def doi2bibtex(doi, key=""):
                     replacement += "v" + match.group("version")
 
                 title.value = title.value.replace(m.group("sxs_identifier"), replacement)
+                entry.set_field(title)
+            elif title_suffix:
+                title.value += title_suffix
                 entry.set_field(title)
 
         bibtex = bibtexparser.write_string(library, bibtex_format=bibtex_format)
