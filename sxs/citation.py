@@ -1,19 +1,20 @@
-def cite(*sxs_ids, bibtex=False):
+def cite(*sxs_ids, bibtex=True):
     """Cite this package and/or data
 
     Prints out a citation for the package, the most recent paper
     describing the catalog, the catalog data itself, and optionally
     individual simulations.
+
+    Note that this function makes web requests to obtain the DOIs and
+    corresponding BibTeX entries.
     
     Parameters
     ----------
     sxs_ids : str
         Any number of SXS IDs to include in the citation.
     bibtex : bool, optional
-        If True, return BibTeX entries.  In that case, the
-        `doi2bibtex` function is used, which makes web requests to
-        obtain the bibtex information.  Default is False, which just
-        returns a list of DOIs to cite.
+        If True — the default — returns full BibTeX entries.
+        Otherwise, just returns a list of DOIs to cite.
     
     Returns
     -------
