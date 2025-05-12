@@ -66,10 +66,11 @@ for details.
 
 If you use this package and/or the data it provides in your research,
 please cite them, including the *specific version of the data* that
-you use.  To help with this, we provide the function `sxs.cite`, which
-will print out a citation (in BibTeX format or just the DOIs) for the
-package, the most recent paper describing the catalog, the catalog
-data itself, and optionally individual simulations.
+you use (see below).  To help with this, we provide the function
+`sxs.cite`, which will print out a citation — in BibTeX format or just
+the DOIs — for the package, the most recent paper describing the
+catalog, the catalog data itself, and optionally individual
+simulations.
 
 
 ## Usage
