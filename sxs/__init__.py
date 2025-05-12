@@ -20,6 +20,7 @@ from .utilities import (
     sxs_id, lev_number, sxs_id_to_url,
     jit, vectorize, guvectorize, version_info
 )
+from .citation import cite
 from .time_series import TimeSeries
 from .metadata import Metadata
 from .catalog import Catalog
