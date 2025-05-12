@@ -237,7 +237,7 @@ class Login(object):
         -------------------
         q: string [optional]
             Search query, using Elasticsearch query string syntax.  See
-            https://help.zenodo.org/guides/search/ for details.
+            https://help.zenodo.org/help/search/ for details.
         status: string, either 'draft' or 'published' [optional]
             Filter result based on deposit status.
         sort: string [optional]
