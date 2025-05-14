@@ -98,28 +98,33 @@ def test_sxs_directory_unwritable(directory_type, tmp_path, monkeypatch):
     import os
     import stat
     from pathlib import Path
+    import shutil
 
     d = tmp_path / "unwritable"
-    d.mkdir(mode=0o000)
-    assert d.exists()
-    assert d.is_dir()
-    assert stat.filemode(d.stat().st_mode) == "d---------"
-    assert not os.access(str(d), os.W_OK)
+    try:
+        d.mkdir(mode=0o000)
+        assert d.exists()
+        assert d.is_dir()
+        assert stat.filemode(d.stat().st_mode) == "d---------"
+        assert not os.access(str(d), os.W_OK)
 
-    with monkeypatch.context() as mp:
-        mp.setattr(Path, "home", lambda: d)
-        mp.setenv(f"SXS{directory_type.upper()}DIR", str(d))
-        for dir_type in ["config", "cache"]:
-            mp.delenv(f'XDG_{dir_type.upper()}_HOME', raising=False)
-        sxs.utilities.sxs_directory.cache_clear()
-        with pytest.warns(UserWarning):
-            sxs_dir = sxs.utilities.sxs_directory(directory_type, persistent=True)
-        assert ".sxs" not in str(sxs_dir), (str(sxs_dir), str(d))
-        sxs_config_dir = sxs.utilities.sxs_directory("config", persistent=True)
-        assert str(sxs_config_dir) in str(sxs_dir)
+        with monkeypatch.context() as mp:
+            mp.setattr(Path, "home", lambda: d)
+            mp.setenv(f"SXS{directory_type.upper()}DIR", str(d))
+            for dir_type in ["config", "cache"]:
+                mp.delenv(f'XDG_{dir_type.upper()}_HOME', raising=False)
+            sxs.utilities.sxs_directory.cache_clear()
+            with pytest.warns(UserWarning):
+                sxs_dir = sxs.utilities.sxs_directory(directory_type, persistent=True)
+            assert ".sxs" not in str(sxs_dir), (str(sxs_dir), str(d))
+            sxs_config_dir = sxs.utilities.sxs_directory("config", persistent=True)
+            assert str(sxs_config_dir) in str(sxs_dir)
 
-    d.chmod(0o777)
-    time.sleep(0.1)
+        d.chmod(0o777)
+        time.sleep(0.1)
+    finally:
+        # Remove the subdirectory manually, because forking scares the file system
+        shutil.rmtree(str(d))
 
 
 def test_read_write_config(tmp_path, monkeypatch):
