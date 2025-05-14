@@ -3,6 +3,7 @@ import sxs
 from .conftest import skip_macOS_GH_actions_downloads
 
 
+@skip_macOS_GH_actions_downloads
 def test_catalog_file_sizes():
     simulations = sxs.load("simulations")
     success = True
