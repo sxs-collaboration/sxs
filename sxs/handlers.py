@@ -199,29 +199,36 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
     -----
     This function can load data in various ways.
 
-      1) Given an absolute or relative path to a local file, it just
-         loads the data directly.
-
-      2) If `truepath` is set, and points to a file that exists —
+      1) If `truepath` is set, and points to a file that exists —
          whether absolute, relative to the current working directory,
          or relative to the cache directory — that file will be
          loaded.
 
-      3) If `location` is a valid URL including the scheme (https://,
+      2) Given an absolute or relative path to a local file, it just
+         loads the data directly.
+
+      3) If `location` is one of "simulations" or "dataframe" (or the
+         deprecated "catalog"), the corresponding catalog data is
+         loaded.  The "simulations" option returns a dictionary mapping
+         SXS IDs to raw metadata, while "dataframe" returns a pandas
+         DataFrame indexed by SXS ID, but the metadata is processed
+         into more consistent form.
+
+      4) If `location` is a valid URL including the scheme (https://,
          or http://), it will be downloaded regardless of the
          `download` parameter and optionally cached.
 
-      4) Given an SXS simulation specification — like "SXS:BBH:1234",
+      5) Given an SXS simulation specification — like "SXS:BBH:1234",
          "SXS:BBH:1234v2.0", "SXS:BBH:1234/Lev5", or
          "SXS:BBH:1234v2.0/Lev5" — the simulation is loaded as an
          `sxs.Simulation` object.
 
-      5) Given an SXS path — like
+      6) Given an SXS path — like
          "SXS:BBH:1234/Lev5/h_Extrapolated_N2.h5" — the file is
          located in the catalog for details.  This function then looks
          in the local cache directory and loads it if present.
 
-      6) If the SXS path is not found in the cache directory and
+      7) If the SXS path is not found in the cache directory and
          `download` is set to `True` (when this function is called, or
          in the sxs config file) this function attempts to download
          the data.  Note that `download` must be explicitly set in
@@ -263,6 +270,15 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
         elif truepath and (testpath := cache_path / sxs_path_to_system_path(truepath)).exists():
             path = testpath
 
+        elif _safe_resolve_exists(path):
+            pass  # We already have the correct path
+
+        elif location == "catalog":
+            return Catalog.load(download=download)
+
+        elif location in ["simulations", "dataframe"]:
+            return sxscatalog.load(location, download=download, **kwargs)
+
         elif _safe_resolve_exists(h5_path):
             path = h5_path
 
@@ -277,12 +293,6 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
                 if download is False:  # Again, we want literal False, not casting to False
                     raise ValueError(f"File '{truepath}' not found in cache, but downloading turned off")
                 download_file(location, path, progress=progress)
-
-        elif location == "catalog":
-            return Catalog.load(download=download)
-
-        elif location in ["simulations", "dataframe"]:
-            return sxscatalog.load(location, download=download, **kwargs)
 
         elif sxs_id_version_lev_exact_re.match(location):
             return Simulation(location, download=download, cache=cache, progress=progress, **kwargs)
