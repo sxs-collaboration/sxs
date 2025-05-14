@@ -2,7 +2,7 @@ import pytest
 import sxs
 from .conftest import skip_macOS_GH_actions_downloads
 
-@pytest.mark.xfail(reason="Missing files in the catalog should be updated soon")
+
 def test_catalog_file_sizes():
     simulations = sxs.load("simulations")
     success = True
