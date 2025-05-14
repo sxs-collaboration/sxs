@@ -30,6 +30,7 @@ nav:
     - "Time Series": "api/time_series.md"
     - "Horizons": "api/horizons.md"
     - "Waveforms": "api/waveforms.md"
+    - "Cite": "api/cite.md"
   - "Calling from Mathematica": "mathematica.md"
   - "Calling from Julia": "julia.md"
 

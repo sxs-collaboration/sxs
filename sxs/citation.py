@@ -1,7 +1,7 @@
 def cite(*sxs_ids, bibtex=True):
     """Cite this package and/or data
 
-    Prints out a citation for the package, the most recent paper
+    Prints out a citation for this package, the most recent paper
     describing the catalog, the catalog data itself, and optionally
     individual simulations.
 

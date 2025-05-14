@@ -67,11 +67,11 @@ for details.
 If you use this package and/or the data it provides in your research,
 please cite them, including the *specific version of the data* that
 you use (see below).  To help with this, we provide the function
-`sxs.cite`, which will print out a citation — in BibTeX format or just
-the DOIs — for the package, the most recent paper describing the
-catalog, the catalog data itself, and optionally individual
-simulations.
-
+`sxs.cite`.  Use `print(sxs.cite())` to see BibTeX citations for the
+version of this package you are using, the most recent paper
+describing the catalog, and the catalog data itself.  Use, e.g.,
+`print(sxs.cite("SXS:BBH:0001", "SXS:BBH:4001"))` to include citations
+for those specific simulations *and* the papers that introduced them.
 
 ## Usage
 
