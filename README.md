@@ -181,7 +181,7 @@ other by a double integral or differentiation.  As a result, we
 generally recommend using `h` instead of `psi4` unless you have very
 specific requirements.
 
-# Contributing
+## Contributing
 
 Contributions are welcome!  There are at least two ways to contribute
 to this codebase:
@@ -201,7 +201,7 @@ detailed in the [MIT license](LICENSE).  For any type of contribution,
 please follow the [code of
 conduct](https://github.com/sxs-collaboration/.github/blob/master/CODE_OF_CONDUCT.md).
 
-# Reporting catalog data issues
+## Reporting catalog data issues
 
 If you find an issue with our data or metadata, please let us know!
 [Fill out an issue with the catalog data
