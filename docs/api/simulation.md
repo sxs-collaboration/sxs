@@ -1,6 +1,6 @@
 # `Simulation` classes
 
-The `Simulation` classes are the primary interface for accessing
+The `Simulation` classes form the primary interface for accessing
 simulation data.  They are the top-level objects that contain all the
 data for a single simulation.  These classes are designed to be
 lightweight and to load data only when needed.
@@ -21,3 +21,6 @@ return the appropriate object.
 
 ## `Simulation_v2` class
 ::: sxs.simulations.simulation.Simulation_v2
+
+## `Simulation_v3` class
+::: sxs.simulations.simulation.Simulation_v3
