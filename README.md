@@ -183,16 +183,27 @@ specific requirements.
 
 # Contributing
 
-Contributions are welcome! There are at least two ways to contribute to this codebase:
+Contributions are welcome!  There are at least two ways to contribute
+to this codebase:
 
-1. If you find a bug or want to suggest an enhancement, use the [issue tracker](https://github.com/sxs-collaboration/sxs/issues) on GitHub. It's a good idea to look through past issues, too, to see if anybody has run into the same problem or made the same suggestion before.
-2. If you will write or edit the python code, we use the [fork and pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) model.
+1. If you find a bug or want to suggest an enhancement, use the [issue
+   tracker](https://github.com/sxs-collaboration/sxs/issues) on
+   GitHub.  It's a good idea to look through past issues, too, to see
+   if anybody has run into the same problem or made the same
+   suggestion before.
+2. If you will write or edit the python code, we use the [fork and
+   pull
+   request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/)
+   model.
 
-You are also allowed to make use of this code for other purposes, as detailed in the [MIT license](LICENSE). For any type of contribution, please follow the [code of conduct](https://github.com/sxs-collaboration/.github/blob/master/CODE_OF_CONDUCT.md).
+You are also allowed to make use of this code for other purposes, as
+detailed in the [MIT license](LICENSE).  For any type of contribution,
+please follow the [code of
+conduct](https://github.com/sxs-collaboration/.github/blob/master/CODE_OF_CONDUCT.md).
 
 # Reporting catalog data issues
 
-If you find an issue with our data or metadata, please let us know! [Fill out an
-issue with the catalog data
+If you find an issue with our data or metadata, please let us know!
+[Fill out an issue with the catalog data
 template](https://github.com/sxs-collaboration/sxs/issues/new?template=catalog-data-issue-template.md)
 and we will take a look as soon as possible.
