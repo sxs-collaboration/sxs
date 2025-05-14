@@ -30,6 +30,9 @@ def cite(*sxs_ids, bibtex=True):
     from . import doi_prefix, load, __version__
     from . import sxs_id as sxs_identifier
 
+    if len(sxs_ids) == 1 and isinstance(sxs_ids[0], (list, tuple)):
+        sxs_ids = tuple(sxs_ids[0])
+
     simulations = load("simulations")
 
     # Get the DOI for this version of this package
