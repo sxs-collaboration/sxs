@@ -12,8 +12,9 @@
 > As described in our [latest paper](https://arxiv.org/abs/2505.13378), our
 > waveforms now include memory effects.  Specifically, when using any
 > simulation with version 3 or greater, you should expect to see memory effects,
-> most visible in the $(\ell, 0)$ modes, and generally resulting in ringdowns
-> that do not approach 0 at late times.
+> resulting in ringdowns that do not approach 0 at late times.
+> These effects are most prominent in the $(\ell, 0)$ modes for $\ell \\% 2 = 0$,
+> but they can also appear in other modes if the system is asymmetric.
 
 
 The `sxs` python package provides a high-level interface for using data
