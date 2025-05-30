@@ -8,6 +8,14 @@
 
 # Simulating eXtreme Spacetimes package
 
+> [!NOTE]
+> As described in our [latest paper](https://arxiv.org/abs/2505.13378), our
+> waveforms now include memory effects.  Specifically, when using any
+> simulation with version 3 or greater, you should expect to see memory effects,
+> most visible in the $(\ell, 0)$ modes, and generally resulting in ringdowns
+> that do not approach 0 at late times.
+
+
 The `sxs` python package provides a high-level interface for using data
 produced by the SXS collaboration.  In particular, the function `sxs.load` can
 automatically find, download, and load data, returning objects that provide
