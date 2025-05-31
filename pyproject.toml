@@ -64,6 +64,9 @@ ecosystem = [
 Homepage = "https://github.com/sxs-collaboration/sxs"
 Documentation = "https://sxs.readthedocs.io/"
 
+[project.entry-points."mkdocs.plugins"]
+admonitions_translation = "mkdocs_preprocess:AdmonitionTranslationPlugin"
+
 
 [build-system]
 requires = ["hatchling"]
