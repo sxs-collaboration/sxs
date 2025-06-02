@@ -2,14 +2,15 @@
 
 This code is based on the paper "Adding Gravitational Memory to Waveform
 Catalogs using BMS Balance Laws" by Mitman et al.  The main result of that
-paper is encapsulated in the `add_memory` function.  Basic usage looks like
-this:
+paper is encapsulated in the `add_memory` function.  All waveforms in 
+version > 3 contain memory, added via this function. If desired, 
+memory can be removed via the function 'remove_memory', e.g.,
 
 ```python
-h = sxs.load("SXS:BBH:0123/Lev/rhOverM", extrapolation_order=3)
-h_with_memory = sxs.waveforms.memory.add_memory(h, integration_start_time=1000.0)
+sim = sxs.load("SXS:BBH:0123")
+h = sim.h
+h_without_memory = sxs.waveforms.memory.remove_memory(h, integration_start_time=sim.metadata.relaxation_time)
 ```
-
 """
 
 import numpy as np
@@ -209,7 +210,7 @@ def J_J(h):
 
 
 def add_memory(h, integration_start_time=None, psi4=None):
-    """Add electric component of null memory to strain and optionally psi4
+    """Add electric component of null memory to strain and optionally psi4.
 
     This adds the contribution from the energy flux to the strain, and
     optionally adds minus the 2nd derivative of this contribution to psi4.
@@ -242,3 +243,38 @@ def add_memory(h, integration_start_time=None, psi4=None):
         psi4_with_memory = WaveformModes(waveform_mts.MTS(psi4) - waveform_mts.MTS(h_memory_correction).ddot)
         psi4_with_memory.register_modification(add_memory, integration_start_time=integration_start_time)
         return (h_with_memory, psi4_with_memory)
+
+def remove_memory(h, integration_start_time=None, psi4=None):
+    """Remove electric component of null memory to strain and optionally psi4.
+
+    This removes the contribution from the energy flux to the strain, and
+    optionally removes minus the 2nd derivative of this contribution to psi4.
+
+    Parameters
+    ----------
+    h : WaveformModes
+        WaveformModes object corresponding to the strain
+    integration_start_time : float, optional
+        Time at which the energy flux integral should begin.  The default is
+        `h.t[0]`.
+    psi4 : WaveformModes, optional
+        WaveformModes object corresponding to psi4
+
+    Returns
+    -------
+    h_without_memory : WaveformModes
+        WaveformModes object corresponding to the strain with electric memory
+    psi4_without_memory : WaveformModes, optional
+        WaveformModes object corresponding to `psi4` with electric memory.  If
+        `psi4` is `None`, then this is absent.
+
+    """
+    h_memory_correction = J_E(h, integration_start_time=integration_start_time)
+    h_without_memory = WaveformModes(waveform_mts.MTS(h) - h_memory_correction)
+    h_without_memory.register_modification(remove_memory, integration_start_time=integration_start_time)
+    if psi4 is None:
+        return h_without_memory
+    else:
+        psi4_without_memory = WaveformModes(waveform_mts.MTS(psi4) + waveform_mts.MTS(h_memory_correction).ddot)
+        psi4_without_memory.register_modification(remove_memory, integration_start_time=integration_start_time)
+        return (h_without_memory, psi4_without_memory)

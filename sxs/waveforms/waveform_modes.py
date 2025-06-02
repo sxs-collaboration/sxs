@@ -1358,8 +1358,32 @@ class WaveformModes(WaveformMixin, TimeSeries):
         h_tilde = h_tilde[h_tilde.t.size//2:]
 
         return h_tilde
-        
 
+    def remove_memory(self, integration_start_time):
+        """Remove memory from a waveform.
+
+        This uses sxs.waveforms.memory.remove_memory to remove
+        memory from the waveform. Note that to return the
+        waveform to a state as close as possible to before the
+        memory correction was applied, one should use the
+        simulation's relaxation time as the `integration_start_time`.
+        Even with this, however, the waveform will still be slightly
+        altered as this process is not invertible.
+
+        Parameters
+        ----------
+        integration_start_time : float
+            The time at which to start the integration for the
+            memory calculation. If this is not the relaxation time,
+            then the memory removal may be worse.
+        """
+        from .memory import remove_memory as raw_remove_memory
+        
+        h_without_memory = raw_remove_memory(self, integration_start_time=integration_start_time)
+
+        return h_without_memory
+        
+        
 class WaveformModesDict(MutableMapping, WaveformModes):
     """A dictionary-like class for storing waveform modes
 
