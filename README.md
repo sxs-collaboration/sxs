@@ -16,7 +16,8 @@
 > These effects are most prominent in the $(\ell, 0)$ modes for $\ell \\% 2 = 0$,
 > but they can also appear in other modes if the system is asymmetric.
 > If desired, these effects can be approximately removed by running, e.g.,
-> ```sim = sxs.load("SXS:BBH:0123")
+> ```
+> sim = sxs.load("SXS:BBH:0123")
 > h_without_memory = sim.h.remove_memory(sim.metadata.relaxation_time)
 > ```
 
