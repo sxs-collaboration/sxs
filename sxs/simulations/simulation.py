@@ -782,6 +782,7 @@ class SimulationBase:
         strain = self.load_waveform(
             *self.strain_path,
             transform_to_inertial=False,
+            drop_times_before=kwargs.pop("drop_times_before", 0)
         )
         return to_lvc_conventions(strain, self.horizons, **kwargs)
 
@@ -933,7 +934,7 @@ class Simulation_v2(SimulationBase):
             download_file(json_location, json_truepath)
         return load(
             h5_location, truepath=h5_truepath, group=group, metadata=self.metadata,
-            transform_to_inertial=transform_to_inertial
+            transform_to_inertial=transform_to_inertial, drop_times_before=0,
         )
 
 

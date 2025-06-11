@@ -387,9 +387,8 @@ def load(
         a string is given, the corresponding time will be used.  The
         "begin" option represents the earliest time in the data, so no
         data will be dropped; "reference" is the `reference_time`
-        reported in the metadata.  If `None`, the default, t=0 will be
-        used if present in the data, and the first time step
-        otherwise.
+        reported in the metadata.  If no argument is given, all times
+        will be used ("begin").
     metadata : Metadata, optional
         If given, this metadata will be used instead of attempting to
         load the metadata from an accompanying file.
@@ -582,7 +581,7 @@ def load(
         except ValueError as e:
             invalid(f"\n{e},\nbut one is expected for this data format.")
 
-    dtb = kwargs.pop("drop_times_before", 0)
+    dtb = kwargs.pop("drop_times_before", "begin")
     if dtb=="begin":
         i0 = 0
     elif dtb==0:
