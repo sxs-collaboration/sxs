@@ -36,6 +36,7 @@ def test_sxs_load_v2():
     s.Horizons
     s.psi4
     s.Psi4
+    assert s.h.t[0] >= 0
 
 
 @skip_macOS_GH_actions_downloads
@@ -63,6 +64,7 @@ def test_sxs_load_v2_levs():
         s.Strain
         s.horizons
         s.Horizons
+        assert s.h.t[0] >= 0
 
 
 @skip_macOS_GH_actions_downloads
@@ -81,6 +83,7 @@ def test_sxs_load_v3():
     s.Horizons
     s.psi4
     s.Psi4
+    assert s.h.t[0] >= 0
 
 
 @skip_macOS_GH_actions_downloads
@@ -108,6 +111,7 @@ def test_sxs_load_v3_levs():
         s.Strain
         s.horizons
         s.Horizons
+        assert s.h.t[0] >= 0
     # Check that Lev-1 and Lev0 work and are not the same as the highest Lev
     s = sxs.load(f"SXS:BBH:1132v3.0", ignore_deprecation=True)
     sm1 = sxs.load(f"SXS:BBH:1132v3.0/Lev-1", ignore_deprecation=True)
@@ -144,6 +148,7 @@ def test_sxs_load_v3_catalog():
     # at each Lev with each extrapolation order, but doesn't download
     # any data
     from pathlib import Path
+    from tqdm.auto import tqdm
 
     def fake_load_metadata(self):
         metadata_path = self.metadata_path
@@ -186,7 +191,7 @@ def test_sxs_load_v3_catalog():
     simulations = sxs.load("simulations")
 
     success = True
-    for sxs_id, metadata in simulations.items():
+    for sxs_id, metadata in tqdm(simulations.items()):
         if "NSNS" in sxs_id or "BHNS" in sxs_id:
             continue
 
@@ -263,3 +268,25 @@ def test_superseding(loader):
     # Version, ignore_deprecation, auto_supersede
     s = loader(f"{simulation}v2.0", ignore_deprecation=True, auto_supersede=True)
     assert s.sxs_id_stem == simulation
+
+
+def test_issue_116():
+    import tempfile
+    import contextlib
+    # Test that loading the strain as a user normally would drops
+    # times before 0
+    h = sxs.load("SXS:BBH:4000v3.0").h
+    assert h.t[0] >= 0
+    # Test that loading that same file directly *keeps* times before 0
+    h2 = sxs.load(h.__file__, metadata={})
+    assert h2.t[0] < 0
+    # Test that manually changing the time array and round-tripping
+    # through RPDMB preserves times
+    h3 = h.copy()
+    h3.t -= h3.max_norm_time()
+    with tempfile.TemporaryDirectory() as temp_dir:
+        with contextlib.redirect_stdout(None):
+            sxs.rpdmb.save(h3, f"{temp_dir}/test")
+            h4 = sxs.load(f"{temp_dir}/test", metadata={})
+    assert h4.t.size == h3.t.size == h.t.size
+    assert h4.t[0] == h3.t[0]
