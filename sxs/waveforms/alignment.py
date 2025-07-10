@@ -201,8 +201,6 @@ def align2d(
         Tolerance for termination by the change of the cost function F. 
         The optimization process is stopped when dF < ftol * F
 
-
-
     Returns
     -------
     error: float
@@ -267,7 +265,7 @@ def align2d(
                     wa.data[:, wa.index(L, M)] *= 0
                     wb.data[:, wb.index(L, M)] *= 0
 
-    # Define the cost function splines once
+    # Define the cost function
     modes_A = CubicSpline(wa.t, wa[:, wa.index(2, -2) : wa.index(ell_max + 1, -(ell_max + 1))].data)
     modes_B = CubicSpline(wb.t, wb[:, wb.index(2, -2) : wb.index(ell_max + 1, -(ell_max + 1))].data)(t_reference)
 
@@ -286,8 +284,12 @@ def align2d(
     for δΨ_factor in δΨ_factors:
         # Optimize by brute force with multiprocessing
         cost_wrapper = partial(_cost2d, args=[modes_A, modes_B, t_reference, m, δΨ_factor, normalization])
-        base_args = [modes_A, modes_B, t_reference, m, δΨ_factor, normalization]
-
+        initial_cost = cost_wrapper([0.0, 0.0])
+        if abs(initial_cost) == 0:
+            wa_prime = wa.copy()  
+            optimum = OptimizeResult(x=np.array([0.0, 0.0]), cost=initial_cost)
+            return initial_cost, wa_prime, optimum
+        
         if nprocs != -1:
             if nprocs is None:
                 nprocs = mp.cpu_count()
@@ -297,59 +299,33 @@ def align2d(
             pool.join()
         else:
             cost_brute_force = [cost_wrapper(δt_δϕ_brute_force_item) for δt_δϕ_brute_force_item in δt_δϕ_brute_force]
-            
-        best_idx = int(np.argmin(cost_brute_force))
-        best_dt_bf, best_dphi_bf = δt_δϕ_brute_force[best_idx]
 
-        prev_cost = [np.inf]
-        prev_x    = [None]
-        def tracked_cost(x):
-            # Created prev_cost and prev_x, store the last time value
-            c = cost_wrapper(x)
-            prev_cost[0] = c
-            prev_x[0]    = x
-            return c
-        
-        # Call tracked_cost so we have the historical cost
-        optimum = least_squares(
-            tracked_cost, [best_dt_bf, best_dphi_bf],
-            bounds=([δt_lower, 0], [δt_upper, 2 * np.pi]),
-            max_nfev=50000, ftol=ftol
-        )
-        cost_last = float(optimum.cost)
-        cost_prev = float(prev_cost[0])
+        δt_δϕ = δt_δϕ_brute_force[np.argmin(cost_brute_force)]
 
-        if cost_prev <= cost_last:
-            δt_final, δϕ_final = prev_x[0]
-            final_cost        = cost_prev
-            optimum = OptimizeResult(x=np.array(prev_x[0]), cost=cost_prev)
-        else:
-            δt_final, δϕ_final = optimum.x
-            final_cost        = cost_last
+        # Optimize explicitly
+        optimum = least_squares(cost_wrapper, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2 * np.pi)],
+                                 max_nfev=50000, ftol=ftol)
+        optimums.append(optimum)
+        δt, δϕ = optimum.x
 
-
-        # build aligned waveform
         wa_prime = WaveformModes(
             input_array=(
                 wa_orig[:, wa_orig.index(2, -2) : wa_orig.index(ell_max + 1, -(ell_max + 1))].data
-                * np.exp(1j * m * δϕ_final)
+                * np.exp(1j * m * δϕ)
                 * δΨ_factor
             ),
-            time=wa_orig.t - δt_final,
+            time=wa_orig.t - δt,
             time_axis=0,
             modes_axis=1,
             ell_min=2,
             ell_max=ell_max,
             spin_weight=wa.spin_weight,
         )
-        optimums.append(OptimizeResult(x=optimum.x, cost=final_cost))
         wa_primes.append(wa_prime)
 
-    # select among δΨ = ±1
-    costs = [opt.cost for opt in optimums]
-    idx = int(np.argmin(costs))
-    return optimums[idx].cost, wa_primes[idx], optimums[idx]
+    idx = np.argmin(abs(np.array([optimum.cost for optimum in optimums])))
 
+    return optimums[idx].cost, wa_primes[idx], optimums[idx]
 
 
 def _cost4d(δt_δso3, args):
