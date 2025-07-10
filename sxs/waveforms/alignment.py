@@ -325,6 +325,7 @@ def align2d(
         wa_primes.append(wa_prime)
 
     idx = np.argmin(abs(np.array([optimum.cost for optimum in optimums])))
+    
     return optimums[idx].cost, wa_primes[idx], optimums[idx]
 
 
