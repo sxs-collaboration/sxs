@@ -145,7 +145,7 @@ def align2d(
     use_δΨ=False,
     include_modes=None,
     nprocs=None,
-    max_nfev=50000
+    max_nfev=50000,
     ftol=1e-8,
 ):
     """Align waveforms by shifting in time and phase
@@ -375,6 +375,8 @@ def align4d(
     include_modes=None,
     align2d_first=False,
     nprocs=None,
+    max_nfev=50000,
+    ftol=1e-8,
 ):
     """Align waveforms by optimizing over a time translation and an SO(3) rotation.
 
@@ -425,6 +427,14 @@ def align4d(
     nprocs: int, optional
         Number of cpus to use.  Default is maximum number.  If -1 is provided,
         then no multiprocessing is performed.
+    max_nfev: None or int, optional
+        Parameter for scipy.optimize.least_squares.
+        Controls the maximum number of function evaluations used. 
+        If None (default), the value is 100 * number of parameters
+    ftol: float, optional
+        Parameter for scipy.optimize.least_squares.
+        Tolerance for termination by the change of the cost function F. 
+        The optimization process is stopped when dF < ftol * F
 
     Returns
     -------
@@ -447,7 +457,7 @@ def align4d(
 
     """
     from scipy.interpolate import CubicSpline
-    from scipy.optimize import least_squares
+    from scipy.optimize import least_squares, OptimizeResult
     from .. import WaveformModes
 
     if wa.spin_weight != wb.spin_weight:
@@ -526,7 +536,7 @@ def align4d(
 
     # Optimize by brute force with multiprocessing
     cost_wrapper = partial(_cost4d, args=[modes_A, modes_B, t_reference, normalization])
-
+    
     if nprocs != -1:
         if nprocs is None:
             nprocs = mp.cpu_count()
@@ -544,7 +554,7 @@ def align4d(
         cost_wrapper,
         δt_δso3,
         bounds=[(δt_lower, -np.pi / 2, -np.pi / 2, -np.pi / 2), (δt_upper, np.pi / 2, np.pi / 2, np.pi / 2)],
-        max_nfev=50000,
+        max_nfev=max_nfev, ftol=ftol
     )
     δt = optimum.x[0]
     δSpin3 = np.exp(quaternionic.array.from_vector_part(optimum.x[1:]))
