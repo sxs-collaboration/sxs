@@ -145,6 +145,7 @@ def align2d(
     use_δΨ=False,
     include_modes=None,
     nprocs=None,
+    max_nfev=50000
     ftol=1e-8,
 ):
     """Align waveforms by shifting in time and phase
@@ -196,6 +197,10 @@ def align2d(
     nprocs: int, optional
         Number of cpus to use. Default is maximum number.
         If -1 is provided, then no multiprocessing is performed.
+    max_nfev: None or int, optional
+        Parameter for scipy.optimize.least_squares.
+        Controls the maximum number of function evaluations used. 
+        If None (default), the value is 100 * number of parameters
     ftol: float, optional
         Parameter for scipy.optimize.least_squares.
         Tolerance for termination by the change of the cost function F. 
@@ -305,7 +310,7 @@ def align2d(
 
         # Optimize explicitly
         optimum = least_squares(cost_wrapper, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2 * np.pi)],
-                                 max_nfev=50000, ftol=ftol)
+                                 max_nfev=max_nfev, ftol=ftol)
         optimums.append(optimum)
         δt, δϕ = optimum.x
 
@@ -325,7 +330,7 @@ def align2d(
         wa_primes.append(wa_prime)
 
     idx = np.argmin(abs(np.array([optimum.cost for optimum in optimums])))
-    
+
     return optimums[idx].cost, wa_primes[idx], optimums[idx]
 
 
