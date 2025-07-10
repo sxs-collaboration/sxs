@@ -284,6 +284,7 @@ def align2d(
     for δΨ_factor in δΨ_factors:
         # Optimize by brute force with multiprocessing
         cost_wrapper = partial(_cost2d, args=[modes_A, modes_B, t_reference, m, δΨ_factor, normalization])
+
         initial_cost = cost_wrapper([0.0, 0.0])
         if abs(initial_cost) == 0:
             wa_prime = wa.copy()  
@@ -324,7 +325,6 @@ def align2d(
         wa_primes.append(wa_prime)
 
     idx = np.argmin(abs(np.array([optimum.cost for optimum in optimums])))
-
     return optimums[idx].cost, wa_primes[idx], optimums[idx]
 
 
