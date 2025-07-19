@@ -197,10 +197,10 @@ def align2d(
     nprocs: int, optional
         Number of cpus to use. Default is maximum number.
         If -1 is provided, then no multiprocessing is performed.
-    max_nfev: None or int, optional
+    max_nfev: int, optional
         Parameter for scipy.optimize.least_squares.
         Controls the maximum number of function evaluations used. 
-        If None (default), the value is 100 * number of parameters
+        By default, max_nfev = 50000
     ftol: float, optional
         Parameter for scipy.optimize.least_squares.
         Tolerance for termination by the change of the cost function F. 
@@ -427,10 +427,10 @@ def align4d(
     nprocs: int, optional
         Number of cpus to use.  Default is maximum number.  If -1 is provided,
         then no multiprocessing is performed.
-    max_nfev: None or int, optional
+    max_nfev: int, optional
         Parameter for scipy.optimize.least_squares.
         Controls the maximum number of function evaluations used. 
-        If None (default), the value is 100 * number of parameters
+        By default, max_nfev = 50000
     ftol: float, optional
         Parameter for scipy.optimize.least_squares.
         Tolerance for termination by the change of the cost function F. 
@@ -536,7 +536,7 @@ def align4d(
 
     # Optimize by brute force with multiprocessing
     cost_wrapper = partial(_cost4d, args=[modes_A, modes_B, t_reference, normalization])
-    
+
     if nprocs != -1:
         if nprocs is None:
             nprocs = mp.cpu_count()
