@@ -1,4 +1,5 @@
 import os
+import time
 import functools
 import pytest
 import numpy as np
@@ -35,6 +36,13 @@ if GITHUB_ACTIONS_MACOS:
     )
 else:
     skip_macOS_GH_actions_downloads = lambda f: f
+
+
+if GITHUB_ACTIONS_MACOS:
+    # Avoid rate limits by sleeping 5 second between tests
+    @pytest.hookimpl(tryfirst=True)
+    def pytest_runtest_teardown(item, nextitem):
+        time.sleep(5)
 
 
 def pytest_addoption(parser):
