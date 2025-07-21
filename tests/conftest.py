@@ -37,14 +37,6 @@ if GITHUB_ACTIONS_MACOS:
 else:
     skip_macOS_GH_actions_downloads = lambda f: f
 
-
-if GITHUB_ACTIONS_MACOS:
-    # Avoid rate limits by sleeping 5 second between tests
-    @pytest.hookimpl(tryfirst=True)
-    def pytest_runtest_teardown(item, nextitem):
-        time.sleep(5)
-
-
 def pytest_addoption(parser):
     parser.addoption("--ell_max", action="store", type=int, default=ell_max_default,
                      help="Maximum ell value to test")
