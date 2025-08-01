@@ -1,4 +1,5 @@
 import os
+import time
 import functools
 import pytest
 import numpy as np
@@ -35,7 +36,6 @@ if GITHUB_ACTIONS_MACOS:
     )
 else:
     skip_macOS_GH_actions_downloads = lambda f: f
-
 
 def pytest_addoption(parser):
     parser.addoption("--ell_max", action="store", type=int, default=ell_max_default,
