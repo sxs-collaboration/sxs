@@ -122,16 +122,26 @@ def align1d(wa, wb, t1, t2, n_brute_force=None):
     return optimum.x[0]
 
 
-def _cost2d(δt_δϕ, args):
-    modes_A, modes_B, t_reference, m, δΨ_factor, normalization = args
+# Cost for brute force
+def _cost2dbf(δt_δϕ, args):
+
+    modes_A, modes_B, t_reference, m, δΨ_factor = args
     δt, δϕ = δt_δϕ
 
-    # Take the sqrt because least_squares squares the inputs...
     diff = trapezoid(
-        np.sum(abs(modes_A(t_reference + δt) * np.exp(1j * m * δϕ) * δΨ_factor - modes_B) ** 2, axis=1),
-        t_reference,
+        np.sum(abs(modes_A(t_reference + δt) * np.exp(1j * m * δϕ) * float(δΨ_factor)**m - modes_B) ** 2,
+               axis=1), t_reference,
     )
-    return np.sqrt(diff / normalization)
+    return diff
+
+# Cost for least squares
+def _cost2dls(δt_δϕ, args):
+    modes_A, modes_B, t_reference, m, δΨ_factor = args
+    δt, δϕ = δt_δϕ
+
+    diff = (modes_A(t_reference + δt) * np.exp(1j * m * δϕ) * float(δΨ_factor)**m - modes_B)
+    
+    return diff.view(float).ravel()
 
 
 def align2d(
@@ -147,6 +157,7 @@ def align2d(
     nprocs=None,
     max_nfev=50000,
     ftol=1e-8,
+    method = 'lm',
 ):
     """Align waveforms by shifting in time and phase
 
@@ -181,10 +192,10 @@ def align2d(
     t2 : float
         Beginning and end of integration interval.
     n_brute_force_δt : int, optional
-        Number of evenly spaced δt values between (t1-t2) and (t2-t1) to sample
-        for the initial guess.  By default, this is just the maximum number of
-        time steps in the range (t1, t2) in the input waveforms.  If this is
-        too small, an incorrect local minimum may be found.
+        Number of evenly spaced δt values to sample for the initial guess.
+        By default, this is chosen so that the δt grid has the same density
+        as the time sampling of waveform `wb`.
+        If this is too small, an incorrect local minimum may be found.
     n_brute_force_δϕ : int, optional
         Number of evenly spaced δϕ values between 0 and 2π to sample
         for the initial guess.  By default, this is 2 * ell_max + 1.
@@ -205,12 +216,16 @@ def align2d(
         Parameter for scipy.optimize.least_squares.
         Tolerance for termination by the change of the cost function F. 
         The optimization process is stopped when dF < ftol * F
+    method: str, optional
+        Method of scipy.optimize.least_squares.
+        Here we support trf and lm
+        By default, method = 'lm'
 
     Returns
     -------
     error: float
         Cost of scipy.optimize.least_squares
-        This is 0.5 ||wa - wb||² / ||wb||²
+        This is 0.5 ||wa - wb||² 
     wa_prime: WaveformModes
         Resulting waveform after transforming `wa` using `optimum`
     optimum: OptimizeResult
@@ -247,10 +262,9 @@ def align2d(
     δt_lower = max(-max_δt, max(t1 - t2, t2 - wa.t[-1]))
     δt_upper = min(max_δt, min(t2 - t1, t1 - wa.t[0]))
 
-    # We'll start by brute forcing, sampling time offsets evenly at as many
-    # points as there are time steps in (t1,t2) in the input waveforms
+    # Apply brute forcing
     if n_brute_force_δt is None:
-        n_brute_force_δt = max(sum((wa.t >= t1) & (wa.t <= t2)), sum((wb.t >= t1) & (wb.t <= t2)))
+        n_brute_force_δt = sum((wb.t >= t1) & (wb.t <= t1 + δt_upper)) + sum((wb.t >= t2 + δt_lower) & (wb.t <= t2))
     δt_brute_force = np.array(list(np.linspace(δt_lower, δt_upper, num=n_brute_force_δt)) + [0.0])
 
     if n_brute_force_δϕ is None:
@@ -274,11 +288,6 @@ def align2d(
     modes_A = CubicSpline(wa.t, wa[:, wa.index(2, -2) : wa.index(ell_max + 1, -(ell_max + 1))].data)
     modes_B = CubicSpline(wb.t, wb[:, wb.index(2, -2) : wb.index(ell_max + 1, -(ell_max + 1))].data)(t_reference)
 
-    normalization = trapezoid(
-        CubicSpline(wb.t, wb[:, wb.index(2, -2) : wb.index(ell_max + 1, -(ell_max + 1))].norm ** 2)(t_reference),
-        t_reference,
-    )
-
     m = np.array([M for L in range(2, ell_max + 1) for M in range(-L, L + 1)])
 
     optimums = []
@@ -288,9 +297,10 @@ def align2d(
         δΨ_factors = [-1, +1]
     for δΨ_factor in δΨ_factors:
         # Optimize by brute force with multiprocessing
-        cost_wrapper = partial(_cost2d, args=[modes_A, modes_B, t_reference, m, δΨ_factor, normalization])
+        cost_wrapper_bf = partial(_cost2dbf, args=[modes_A, modes_B, t_reference, m, δΨ_factor])
+        cost_wrapper_ls = partial(_cost2dls, args=[modes_A, modes_B, t_reference, m, δΨ_factor])
 
-        initial_cost = cost_wrapper([0.0, 0.0])
+        initial_cost = cost_wrapper_bf([0.0, 0.0])
         if abs(initial_cost) == 0:
             wa_prime = wa.copy()  
             optimum = OptimizeResult(x=np.array([0.0, 0.0]), cost=initial_cost)
@@ -300,17 +310,24 @@ def align2d(
             if nprocs is None:
                 nprocs = mp.cpu_count()
             pool = mp.Pool(processes=nprocs)
-            cost_brute_force = pool.map(cost_wrapper, δt_δϕ_brute_force)
+            cost_brute_force = pool.map(cost_wrapper_bf, δt_δϕ_brute_force)
             pool.close()
             pool.join()
         else:
-            cost_brute_force = [cost_wrapper(δt_δϕ_brute_force_item) for δt_δϕ_brute_force_item in δt_δϕ_brute_force]
+            cost_brute_force = [cost_wrapper_bf(δt_δϕ_brute_force_item) for δt_δϕ_brute_force_item in δt_δϕ_brute_force]
 
         δt_δϕ = δt_δϕ_brute_force[np.argmin(cost_brute_force)]
 
         # Optimize explicitly
-        optimum = least_squares(cost_wrapper, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2 * np.pi)],
-                                 max_nfev=max_nfev, ftol=ftol)
+        if method == 'lm':
+            optimum = least_squares(cost_wrapper_ls, δt_δϕ,
+                                 method='lm', max_nfev=max_nfev, ftol=ftol)
+        elif method == 'trf':
+            optimum = least_squares(cost_wrapper_ls, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2 * np.pi)],
+                                 method='trf', max_nfev=max_nfev, ftol=ftol)
+        else:
+            raise ValueError(f"Unsupported method {method!r}")
+        
         optimums.append(optimum)
         δt, δϕ = optimum.x
 
@@ -318,7 +335,7 @@ def align2d(
             input_array=(
                 wa_orig[:, wa_orig.index(2, -2) : wa_orig.index(ell_max + 1, -(ell_max + 1))].data
                 * np.exp(1j * m * δϕ)
-                * δΨ_factor
+                * float(δΨ_factor)**m
             ),
             time=wa_orig.t - δt,
             time_axis=0,
