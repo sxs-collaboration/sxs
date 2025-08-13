@@ -181,8 +181,7 @@ def align2d(
         Beginning and end of integration interval.
     n_brute_force_δt : int, optional
         Number of evenly spaced δt values to sample for the initial guess.
-        By default, this is chosen so that the δt grid has the same density
-        as the time sampling of waveform `wb`.
+        By default, it matches the time resolution near the waveform peak.
         If this is too small, an incorrect local minimum may be found.
     n_brute_force_δϕ : int, optional
         Number of evenly spaced δϕ values between 0 and 2π to sample
