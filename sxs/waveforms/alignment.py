@@ -126,9 +126,9 @@ def _cost2d(stage, δt_δϕ, args):
     modes_A, modes_B, t_reference, m, δΨ_factor = args
     δt, δϕ = δt_δϕ
     diff = modes_A(t_reference + δt) * np.exp(1j * m * δϕ) * (δΨ_factor**m) - modes_B
-    if stage == "bf":   # brute force
+    if stage == "bf":     # brute force
         return trapezoid(np.sum(np.abs(diff)**2, axis=1), t_reference)
-    elif stage == "ls":              # least squares
+    elif stage == "ls":   # least squares
         return diff.view(float).ravel()
 
 
@@ -211,9 +211,8 @@ def align2d(
 
     Returns
     -------
-    error: float
-        Cost of scipy.optimize.least_squares
-        This is 0.5 ||wa - wb||² 
+    L2_norm: Float
+        Normalized L2 norm between two aligned waveforms
     wa_prime: WaveformModes
         Resulting waveform after transforming `wa` using `optimum`
     optimum: OptimizeResult
@@ -282,7 +281,7 @@ def align2d(
 
     optimums = []
     wa_primes = []
-    costs = []
+    L2_norm = []
     δΨ_factors = [1.0]
     if use_δΨ:
         δΨ_factors = [-1.0, +1.0]
@@ -290,7 +289,6 @@ def align2d(
         # Optimize by brute force with multiprocessing
         cost_wrapper_bf = partial(_cost2d, "bf", args=[modes_A, modes_B, t_reference, m, δΨ_factor])
         cost_wrapper_ls = partial(_cost2d, "ls", args=[modes_A, modes_B, t_reference, m, δΨ_factor])
-
 
         initial_cost = cost_wrapper_bf([0.0, 0.0])
         if abs(initial_cost) == 0:
@@ -345,11 +343,11 @@ def align2d(
             modes_for_norm=include_modes,
             normalize=True
         )
-        costs.append(float(l2))
+        L2_norm.append(float(l2))
 
     idx = np.argmin(abs(np.array([optimum.cost for optimum in optimums])))
 
-    return costs[idx], wa_primes[idx], optimums[idx]
+    return L2_norm[idx], wa_primes[idx], optimums[idx]
 
 
 def _cost4d(δt_δso3, args):
