@@ -122,26 +122,14 @@ def align1d(wa, wb, t1, t2, n_brute_force=None):
     return optimum.x[0]
 
 
-# Cost for brute force
-def _cost2dbf(δt_δϕ, args):
-
+def _cost2d(stage, δt_δϕ, args):
     modes_A, modes_B, t_reference, m, δΨ_factor = args
     δt, δϕ = δt_δϕ
-
-    diff = trapezoid(
-        np.sum(abs(modes_A(t_reference + δt) * np.exp(1j * m * δϕ) * float(δΨ_factor)**m - modes_B) ** 2,
-               axis=1), t_reference,
-    )
-    return diff
-
-# Cost for least squares
-def _cost2dls(δt_δϕ, args):
-    modes_A, modes_B, t_reference, m, δΨ_factor = args
-    δt, δϕ = δt_δϕ
-
-    diff = (modes_A(t_reference + δt) * np.exp(1j * m * δϕ) * float(δΨ_factor)**m - modes_B)
-    
-    return diff.view(float).ravel()
+    diff = modes_A(t_reference + δt) * np.exp(1j * m * δϕ) * (δΨ_factor**m) - modes_B
+    if stage == "bf":   # brute force
+        return trapezoid(np.sum(np.abs(diff)**2, axis=1), t_reference)
+    elif stage == "ls":              # least squares
+        return diff.view(float).ravel()
 
 
 def align2d(
@@ -218,8 +206,8 @@ def align2d(
         The optimization process is stopped when dF < ftol * F
     method: str, optional
         Method of scipy.optimize.least_squares.
-        Here we support trf and lm
-        By default, method = 'lm'
+        Here we support trf and lm.
+        By default, method = 'lm' due to high efficiency.
 
     Returns
     -------
@@ -264,7 +252,9 @@ def align2d(
 
     # Apply brute forcing
     if n_brute_force_δt is None:
-        n_brute_force_δt = sum((wb.t >= t1) & (wb.t <= t1 + δt_upper)) + sum((wb.t >= t2 + δt_lower) & (wb.t <= t2))
+        cnt_a = sum((wa.t >= wa.max_norm_time() + δt_lower) & (wa.t <= wa.max_norm_time() + δt_upper))
+        cnt_b = sum((wb.t >= wb.max_norm_time() + δt_lower) & (wb.t <= wb.max_norm_time() + δt_upper))
+        n_brute_force_δt = int(max(cnt_a, cnt_b))
     δt_brute_force = np.array(list(np.linspace(δt_lower, δt_upper, num=n_brute_force_δt)) + [0.0])
 
     if n_brute_force_δϕ is None:
@@ -292,13 +282,15 @@ def align2d(
 
     optimums = []
     wa_primes = []
-    δΨ_factors = [1]
+    costs = []
+    δΨ_factors = [1.0]
     if use_δΨ:
-        δΨ_factors = [-1, +1]
+        δΨ_factors = [-1.0, +1.0]
     for δΨ_factor in δΨ_factors:
         # Optimize by brute force with multiprocessing
-        cost_wrapper_bf = partial(_cost2dbf, args=[modes_A, modes_B, t_reference, m, δΨ_factor])
-        cost_wrapper_ls = partial(_cost2dls, args=[modes_A, modes_B, t_reference, m, δΨ_factor])
+        cost_wrapper_bf = partial(_cost2d, "bf", args=[modes_A, modes_B, t_reference, m, δΨ_factor])
+        cost_wrapper_ls = partial(_cost2d, "ls", args=[modes_A, modes_B, t_reference, m, δΨ_factor])
+
 
         initial_cost = cost_wrapper_bf([0.0, 0.0])
         if abs(initial_cost) == 0:
@@ -326,7 +318,7 @@ def align2d(
             optimum = least_squares(cost_wrapper_ls, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2 * np.pi)],
                                  method='trf', max_nfev=max_nfev, ftol=ftol)
         else:
-            raise ValueError(f"Unsupported method {method!r}")
+            raise ValueError(f"Unsupported method {method!r}, supported methods: 'lm' and 'trf' ")
         
         optimums.append(optimum)
         δt, δϕ = optimum.x
@@ -335,7 +327,7 @@ def align2d(
             input_array=(
                 wa_orig[:, wa_orig.index(2, -2) : wa_orig.index(ell_max + 1, -(ell_max + 1))].data
                 * np.exp(1j * m * δϕ)
-                * float(δΨ_factor)**m
+                * δΨ_factor**m
             ),
             time=wa_orig.t - δt,
             time_axis=0,
@@ -346,9 +338,18 @@ def align2d(
         )
         wa_primes.append(wa_prime)
 
+        # Calculate L2 norm
+        l2 = L2_difference(
+            wa_prime, wb, t1, t2,
+            modes=include_modes,
+            modes_for_norm=include_modes,
+            normalize=True
+        )
+        costs.append(float(l2))
+
     idx = np.argmin(abs(np.array([optimum.cost for optimum in optimums])))
 
-    return optimums[idx].cost, wa_primes[idx], optimums[idx]
+    return costs[idx], wa_primes[idx], optimums[idx]
 
 
 def _cost4d(δt_δso3, args):
