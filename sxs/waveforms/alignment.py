@@ -210,8 +210,9 @@ def align2d(
 
     Returns
     -------
-    L2_norm: Float
-        Normalized L2 norm between two aligned waveforms
+    L2_norm: float
+        Normalized L2 norm between two aligned waveforms.
+        See norms.py in the same directory for more information.
     wa_prime: WaveformModes
         Resulting waveform after transforming `wa` using `optimum`
     optimum: OptimizeResult
