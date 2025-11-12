@@ -915,7 +915,7 @@ class Simulation_v2(SimulationBase):
             f"/rMPsi4_Asymptotic_GeometricUnits_CoM_Mem/{extrapolation}"
         )
 
-    def load_waveform(self, file_name, group, transform_to_inertial=True):
+    def load_waveform(self, file_name, group, transform_to_inertial=True, drop_times_before=0):
         from .. import load
         # Note that `name` should not have the file ending on input,
         # but we will replace it regardless with `.with_suffix`.
@@ -934,7 +934,7 @@ class Simulation_v2(SimulationBase):
             download_file(json_location, json_truepath)
         return load(
             h5_location, truepath=h5_truepath, group=group, metadata=self.metadata,
-            transform_to_inertial=transform_to_inertial, drop_times_before=0,
+            transform_to_inertial=transform_to_inertial, drop_times_before=drop_times_before,
         )
 
 
