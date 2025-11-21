@@ -530,3 +530,38 @@ class Horizons(object):
     ω = Ω
     Omega = Ω
     omega = Ω
+
+    @property
+    def χₚ(self):
+        """Effective spin precession parameter χₚ as function of time
+
+        Returns
+        -------
+        χₚ : TimeSeries
+            This represents the effective spin precession parameter as
+            a function of time.
+
+        Notes
+        -----
+        There are multiple definitions of the effective spin
+        precession parameter in the literature.  This implementation
+        follows the definition given in Eq. (16) of the LVK's most
+        recent paper as of this writing,
+        [*GWTC-4.0*](https://arxiv.org/pdf/2508.18080).  See [this
+        paper](https://arxiv.org/abs/2011.11948) for discussion of the
+        differences between various definitions.
+
+        """
+        m1 = self.A.christodoulou_mass
+        m2 = self.B.christodoulou_mass
+        S1 = m1[:, np.newaxis] ** 2 * self.A.chi_inertial
+        S2 = m2[:, np.newaxis] ** 2 * self.B.chi_inertial
+        L̂ = self.ℓ̂
+        χₚ = (1 / m1) * np.maximum(
+            np.linalg.norm(np.cross(L̂, S1), axis=1) / m1,
+            ((3*m1 + 4*m2)/(3*m2+4*m1)) * np.linalg.norm(np.cross(L̂, S2), axis=1) / m2
+        )
+        return χₚ
+
+    χp = χₚ
+    chi_p = χₚ
