@@ -52,7 +52,7 @@ jobs:
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
         uses: actions/cache@v4
         with:
-          key: sxs-${{ runner.os }}-3 # Increment this number whenever the cached files should change
+          key: sxs-${{ runner.os }}-4 # Increment this number whenever the cached files should change
           path: |
             ${{ runner.os == 'Linux' && '/home/runner/.cache/sxs' || runner.os == 'Windows' && 'C:\Users\runneradmin\.sxs\cache' || '/Users/runner/.sxs/cache' }}
 
@@ -65,7 +65,6 @@ jobs:
         uses: julia-actions/cache@v2
         with:
           include-matrix: false
-          cache-name: julia-1-12  # Add a unique suffix to force fresh install
 
       - name: Check out code
         if: ${{ env.skipping_build_and_test_replicate != 'true' }}
