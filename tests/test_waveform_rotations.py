@@ -6,8 +6,6 @@ import sxs
 from .conftest import skip_macOS_GH_actions_downloads
 from .conftest import constant_waveform, linear_waveform, random_waveform
 
-print("numpy: ", np.__version__)
-
 
 @skip_macOS_GH_actions_downloads
 def test_modes_rotate(h, eps):
