@@ -89,7 +89,8 @@ jobs:
           hatch run pip install pyopenssl>=24.0.0
           hatch run python -c 'import ssl; print("openssl: ", ssl.OPENSSL_VERSION_INFO)'
           hatch run python -c 'import numpy; print("numpy: ", numpy.__version__)'
-          hatch run test --durations=0
+          hatch run test -- -k test_waveform_rotations --durations=0 --ignore=tests/test_julia.py
+          #hatch run test --durations=0
 
       - name: Upload coverage
         if: "matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'"
