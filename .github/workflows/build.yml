@@ -85,6 +85,7 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HATCH_VERBOSE: "2"  # 1 = normal verbose, 2 = very verbose
         run: |
           hatch run pip install pyopenssl>=24.0.0
           hatch run python -c 'import ssl; print("openssl: ", ssl.OPENSSL_VERSION_INFO)'
