@@ -151,6 +151,10 @@ def test_modes_squared_angular_momenta():
     import spherical as sf
     tolerance = 1e-13
     np.random.seed(1234)
+
+    def allclose(a, b):
+        return np.allclose(a.ndarray, b.ndarray, rtol=tolerance, atol=tolerance)
+
     L2 = sf.Modes.Lsquared
     Lz = sf.Modes.Lz
     Lp = sf.Modes.Lplus
@@ -168,17 +172,17 @@ def test_modes_squared_angular_momenta():
         # Test L^2 = 0.5(L+L- + L-L+) + LzLz
         m1 = L2(m)
         m2 = 0.5 * (Lp(Lm(m)) + Lm(Lp(m))) + Lz(Lz(m))
-        assert np.allclose(m1, m2, rtol=tolerance, atol=tolerance)
+        assert allclose(m1, m2)
 
         # Test R^2 = 0.5(R+R- + R-R+) + RzRz
         m1 = R2(m)
         m2 = 0.5 * (Rp(Rm(m)) + Rm(Rp(m))) + Rz(Rz(m))
-        assert np.allclose(m1, m2, rtol=tolerance, atol=tolerance)
+        assert allclose(m1, m2)
 
         # Test L^2 = R^2
         m1 = L2(m)
         m2 = R2(m)
-        assert np.allclose(m1, m2, rtol=tolerance, atol=tolerance)
+        assert allclose(m1, m2)
 
 
 def test_modes_derivative_commutators():
@@ -188,7 +192,6 @@ def test_modes_derivative_commutators():
     # Note that post-fix operators are in the opposite order compared
     # to prefixed commutators, so we pull the post-fix operators out
     # as functions to make things look right.
-    np.random.seed(1234)
     L2 = sf.Modes.Lsquared
     Lz = sf.Modes.Lz
     Lp = sf.Modes.Lplus
@@ -199,6 +202,10 @@ def test_modes_derivative_commutators():
     Rm = sf.Modes.Rminus
     eth = lambda modes: modes.eth
     ethbar = lambda modes: modes.ethbar
+
+    def allclose(a, b):
+        return np.allclose(a.ndarray, b.ndarray, rtol=tolerance, atol=tolerance)
+
     for s in range(-2, 2+1):
         ell_min = abs(s)
         ell_max = 8
@@ -215,19 +222,19 @@ def test_modes_derivative_commutators():
         for R in [Rz, Rp, Rm]:
             assert np.max(np.abs(R2(R(m)) - R(R2(m)))) < 5*tolerance
         # Test [Lz, Lp] = Lp
-        assert np.allclose(Lz(Lp(m)) - Lp(Lz(m)), Lp(m), rtol=tolerance, atol=tolerance)
+        assert allclose(Lz(Lp(m)) - Lp(Lz(m)), Lp(m))
         # Test [Lz, Lm] = -Lm
-        assert np.allclose(Lz(Lm(m)) - Lm(Lz(m)), -Lm(m), rtol=tolerance, atol=tolerance)
+        assert allclose(Lz(Lm(m)) - Lm(Lz(m)), -Lm(m))
         # Test [Lp, Lm] = 2Lz
-        assert np.allclose(Lp(Lm(m)) - Lm(Lp(m)), 2 * Lz(m), rtol=tolerance, atol=tolerance)
+        assert allclose(Lp(Lm(m)) - Lm(Lp(m)), 2 * Lz(m))
         # Test [Rz, Rp] = Rp
-        assert np.allclose(Rz(Rp(m)) - Rp(Rz(m)), Rp(m), rtol=tolerance, atol=tolerance)
+        assert allclose(Rz(Rp(m)) - Rp(Rz(m)), Rp(m))
         # Test [Rz, Rm] = -Rm
-        assert np.allclose(Rz(Rm(m)) - Rm(Rz(m)), -Rm(m), rtol=tolerance, atol=tolerance)
+        assert allclose(Rz(Rm(m)) - Rm(Rz(m)), -Rm(m))
         # Test [Rp, Rm] = 2Rz
-        assert np.allclose(Rp(Rm(m)) - Rm(Rp(m)), 2 * Rz(m), rtol=tolerance, atol=tolerance)
+        assert allclose(Rp(Rm(m)) - Rm(Rp(m)), 2 * Rz(m))
         # Test [ethbar, eth] = 2s
-        assert np.allclose(ethbar(eth(m)) - eth(ethbar(m)), 2 * m.s * m, rtol=tolerance, atol=tolerance)
+        assert allclose(ethbar(eth(m)) - eth(ethbar(m)), 2 * m.s * m)
 
 
 @skip_macOS_GH_actions_downloads
