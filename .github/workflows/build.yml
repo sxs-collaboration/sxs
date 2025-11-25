@@ -85,10 +85,7 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          hatch env prune  # Force fresh environment
-          hatch run python -c 'import ssl; print(ssl.OPENSSL_VERSION_INFO)'
-          hatch run test --durations=0
+        run: hatch run test --durations=0
 
       - name: Upload coverage
         if: "matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'"
