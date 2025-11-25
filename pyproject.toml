@@ -19,7 +19,7 @@ classifiers = [
 ]
 dependencies = [
   "sxscatalog >=3.0.14",
-  "numpy >=2.0",
+  "numpy >=2.3.5",
   "scipy >=1.13",
   "numba >=0.55; implementation_name == 'cpython'",
   "quaternionic >=1.0.15",
