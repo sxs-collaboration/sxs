@@ -121,8 +121,20 @@ class TimeSeries(np.ndarray):
         """
         from numbers import Integral
 
+        # The docs at
+        # https://numpy.org/doc/stable/user/basics.indexing.html#detailed-notes
+        # say, "An empty (tuple) index is a full scalar index into a
+        # zero-dimensional array.  `x[()]` returns a *scalar* if `x`
+        # is zero-dimensional and a view otherwise. On the other hand,
+        # `x[...]` always returns a view."  This was true in numpy 1 as well,
+        # but the behavior has actually changed in numpy 2 for non-0d arrays,
+        # which causes downstream errors.  So we have to change to handle this.
         if isinstance(key, tuple) and len(key) == 0:
-            raise ValueError(f"Empty index to {type(self).__name__} does not make sense")
+            if self.ndim == 0:
+                return super().__getitem__(key), key
+            else:
+                return self, key
+            # raise ValueError(f"Empty index to {type(self).__name__} does not make sense")
 
         def newaxis_type(e):
             return isinstance(e, (type(np.newaxis), type(None)))
