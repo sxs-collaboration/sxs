@@ -76,7 +76,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           uv run --with hatch hatch run python -c 'import ssl; print("openssl: ", ssl.OPENSSL_VERSION_INFO)'
-          uv run --with hatch hatch run test --durations=0
+          # Run the tests, but skip Julia installation on windows because these runners come with openssl 1!!!
+          uv run --with hatch hatch run test --durations=0 ${{ runner.os == 'Windows' && '--ignore=tests/test_julia.py' || '' }}
 
       - name: Upload coverage
         if: "matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'"
