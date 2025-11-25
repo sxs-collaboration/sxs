@@ -77,6 +77,7 @@ build-backend = "hatchling.build"
 path = "sxs/__version__.py"
 
 [tool.hatch.envs.default]
+installer = "uv"
 dependencies = [
   "ipython",
   "pytest",
