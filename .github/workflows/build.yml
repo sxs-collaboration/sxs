@@ -86,7 +86,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          hatch run pip install --upgrade juliacall
+          hatch env prune  # Force fresh environment
           hatch run test --durations=0
 
       - name: Upload coverage
