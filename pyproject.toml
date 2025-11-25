@@ -4,12 +4,12 @@ dynamic = ["version"]
 description = "Interface to data produced by the Simulating eXtreme Spacetimes collaboration"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {file = "LICENSE"}
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
   { name = "Michael Boyle", email = "michael.oliver.boyle@gmail.com" }
 ]
 classifiers = [
-  "License :: OSI Approved :: MIT License",
   "Development Status :: 5 - Production/Stable",
   "Programming Language :: Python :: 3",
   "Operating System :: OS Independent",
@@ -114,7 +114,7 @@ dependencies = [
 
 [tool.black]
 line-length = 120
-target-version = ["py38"]
+target-version = ["py310"]
 
 
 [tool.pytest.ini_options]
