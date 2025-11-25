@@ -87,6 +87,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           hatch env prune  # Force fresh environment
+          hatch run python -c 'import ssl; print(ssl.OPENSSL_VERSION_INFO)'
           hatch run test --durations=0
 
       - name: Upload coverage
