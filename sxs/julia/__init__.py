@@ -8,6 +8,9 @@ import juliacall
 PostNewtonian = juliacall.newmodule("PN")
 PostNewtonian.seval("using PostNewtonian")
 
+h_bang = PostNewtonian.seval("h!")
+Ψ_M_bang = PostNewtonian.seval("Ψ_M!")
+
 from . import GWFrames
 
 def pkg_update():
@@ -18,11 +21,12 @@ def pkg_update():
 
 def PNWaveform(
         M1, M2, chi1, chi2, Omega_i, *,
-        inertial=True,
-        ell_min=2, ell_max=8, waveform_pn_order=None,
+        modes_function=h_bang, inertial=True,
+        ell_min=None, ell_max=8, waveform_pn_order=None,
         **orbital_evolution_kwargs
 ):
-    """Generate a PN waveform.
+    """Generate a PN waveform. This could be strain or Moreschi Supermomentum
+    modes.
 
     The return value is an `sxs.WaveformModes` object with the
     following additional fields:
@@ -49,6 +53,12 @@ def PNWaveform(
     for details.  Also, the GWFrames submodule of this module provides
     another interface.
 
+    Optional kwargs
+    ---------------
+    modes_function: julia function, default is sxs.julia.h_bang
+        sxs.julia.h_bang - would generate strain modes.
+        sxs.julia.Ψ_M_bang - would generate Supermomentum modes.
+
     """
     # Integrate the orbital dynamics
     inspiral = PostNewtonian.orbital_evolution(
@@ -59,29 +69,49 @@ def PNWaveform(
     # Compute the waveform in the inertial frame
     waveform_pn_order = waveform_pn_order or PostNewtonian.typemax(PostNewtonian.Int)
     coorbital_frame = quaternionic.array(values[8:12, :].to_numpy().T)
+
+    if modes_function is h_bang:
+        spin_weight = -2
+        data_type = "h"
+    elif modes_function is Ψ_M_bang:
+        spin_weight = 0
+        data_type = "unknown"
+    else:
+        raise ValueError("spin_weight and data_type can not be inferred for unknown modes_function. modes_function should be h_bang or Ψ_M_bang.")
+
+    if ell_min is None:
+        if modes_function is h_bang:
+            ell_min = 2
+        elif modes_function is Ψ_M_bang:
+            ell_min = 0
+        else:
+            raise ValueError("ell_min can not be inferred for unknown modes_function.")
+
     if inertial:
         frame = np.array([quaternionic.one])
         frame_type = "inertial"
-        h = PostNewtonian.inertial_waveform(
-            inspiral, ell_min=ell_min, ell_max=ell_max, PNOrder=waveform_pn_order
+        w_pn = PostNewtonian.inertial_waveform(
+            inspiral, modes_function=modes_function, ell_min=ell_min,
+            ell_max=ell_max, PNOrder=waveform_pn_order
         ).to_numpy().T
     else:
         frame = coorbital_frame
         frame_type = "coorbital"
-        h = PostNewtonian.coorbital_waveform(
-            inspiral, ell_min=ell_min, ell_max=ell_max, PNOrder=waveform_pn_order
+        w_pn = PostNewtonian.coorbital_waveform(
+            inspiral, modes_function=modes_function, ell_min=ell_min,
+            ell_max=ell_max, PNOrder=waveform_pn_order
         ).to_numpy().T
 
     w = WaveformModes(
-        h,
+        w_pn,
         time=inspiral.t,
         modes_axis=1,
         ell_min=ell_min,
         ell_max=ell_max,
-        spin_weight=-2,
+        spin_weight=spin_weight,
         frame=frame,
         frame_type=frame_type,
-        data_type="h",
+        data_type=data_type,
         M1=values[0, :].to_numpy(),
         M2=values[1, :].to_numpy(),
         chi1=values[2:5, :].to_numpy().T,
