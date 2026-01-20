@@ -387,7 +387,7 @@ def load_via_sxs_id(
     url = f"{doi_url}{sxsid}"
     response = requests.head(url, allow_redirects=True, timeout=timeout)
     if response.status_code != 200:
-        raise ValueError(f"Could not load via DOI {url=}")
+        raise ValueError(f"Could not load via DOI {url=}, status_code = {response.status_code}, Response = {response.reason}")
     final_url = f"{response.url}/{location}"
     truepath = truepath or Path(sxs_path_to_system_path(sxsid)) / location
     return load(final_url, download, cache, progress, truepath, **kwargs)
