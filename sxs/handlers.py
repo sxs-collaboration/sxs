@@ -385,7 +385,8 @@ def load_via_sxs_id(
     import requests
     from .utilities import sxs_path_to_system_path
     url = f"{doi_url}{sxsid}"
-    response = requests.head(url, allow_redirects=True, timeout=timeout)
+    headers = {"User-Agent": "curl/8.18.0"}
+    response = requests.head(url, allow_redirects=True, timeout=timeout, headers=headers)
     if response.status_code != 200:
         raise ValueError(f"Could not load via DOI {url=}, status_code = {response.status_code}, Response = {response.reason}")
     final_url = f"{response.url}/{location}"
