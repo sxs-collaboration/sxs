@@ -16,6 +16,7 @@ from .format_handlers import (
     rotating_paired_xor_multishuffle_bzip2,
     spectre_cce_v1,
     grathena,
+    maya,
 )
 from .format_handlers.lvc import to_lvc_conventions
 from . import memory, transformations, alignment, norms
@@ -24,6 +25,7 @@ from . import memory, transformations, alignment, norms
 formats = {
     None: nrar,
     "": nrar,
+    "maya": maya,
     "nrar": nrar,
     "rotating_paired_xor_multishuffle_bzip2": rotating_paired_xor_multishuffle_bzip2,
     "rpxm": rotating_paired_xor_multishuffle_bzip2,
