@@ -8,10 +8,10 @@ from ... import waveforms
 def load(file_name, data_type="h"):
     """Load a waveform from an HDF5 file in the LVCNR format.
 
-    This function reads data from HDF5 files in the LVCNR format.
-    It extracts amplitude and phase information for spherical harmonic modes
-    and reconstructs the complex-valued data. This function can be extended
-    to further data types.
+    This function reads data from HDF5 files in the LVCNR format.  It
+    extracts amplitude and phase information for spherical harmonic
+    modes and reconstructs the complex-valued data.  This function can
+    be extended to further data types.
 
     Parameters
     ----------
@@ -19,23 +19,24 @@ def load(file_name, data_type="h"):
         Path to the HDF5 file to be loaded.
         
     data_type : str, optional
-        The type of data to be loaded. Default is 'h' for strain.
+        The type of data to be loaded.  Default is "h" for strain.
 
     Returns
     -------
     waveforms.WaveformModes
-        The loaded waveform data in WaveformModes format with spin weight
-        -2 and data type 'h' (strain). The waveform includes mode
-        decomposition information with ell_min and ell_max determined from
-        the file contents. The data type can be overriden if necessary, to
-        accomodate other types of data stored in LVCNR format.
+        The loaded waveform data in WaveformModes format with spin
+        weight -2 and data type "h" (strain).  The waveform includes
+        mode decomposition information with ell_min and ell_max
+        determined from the file contents.  The data type can be
+        overridden if necessary, to accommodate other types of data
+        stored in LVCNR format.
     """
 
     phase_re = re.compile("phase_l(?P<ell>.*)_m(?P<m>.*)")
 
     with h5py.File(file_name, "r") as f:
 
-        # Find the NRTimes array. RIT and MAYA have different 
+        # Find the NRTimes array.  RIT and MAYA have different 
         # capitalizations.
         nrtimes_matches = [
             key for key in f if key.lower() == "nrtimes"
