@@ -3,7 +3,7 @@
 This code is based on the paper "Adding Gravitational Memory to Waveform
 Catalogs using BMS Balance Laws" by Mitman et al.  The main result of that
 paper is encapsulated in the `add_memory` function.  All waveforms in 
-version > 3 contain memory, added via this function. If desired, 
+versions > 1 contain memory, added via this function.  If desired, 
 memory can be removed via the function 'remove_memory', e.g.,
 
 ```python
