@@ -1,12 +1,7 @@
 from .. import WaveformModes
-from enum import Enum
 
 
-class RadiusOption(Enum):
-    INNERMOST = 1
-    OUTERMOST = 2
-
-def load(file_name, radius=RadiusOption.OUTERMOST):
+def load(file_name, radius="outermost"):
     """Load waveforms from the new MAYA file format.
 
     Parameters
@@ -17,14 +12,29 @@ def load(file_name, radius=RadiusOption.OUTERMOST):
         of the string is taken to be the group within the HDF5 file in
         which the data is stored.
 
-    radius : str or Enum
-        The extraction radius to use. Default is the outermost radii RadiusOption.OUTERMOST.
+    radius : str
+        The extraction radius to use.
+        Default is "outermost" which corresponds to largest available extraction
+        radius. Another option is "innermost", corresponding to the smallest
+        extraction radius. The user can also specify a string correspond to any
+        extraction radius present in the HDF5 file. See notes.
 
     Notes
     =====
     Waveforms from MAYA are distributed as HDF5 files, containing finite-radius
-    data, for Psi4. Within each of those h5 files, we have finite-radii
-    waveforms corresponding to a series of extraction radii.
+    data for Psi4. Each file includes finite-radii waveforms corresponding to a series of extraction radii, which may include:
+
+    * "50.00"
+    * "60.00"
+    * "70.00"
+    * "80.00"
+    * "90.00"
+    * "100.00"
+    * "120.00"
+    * "140.00"
+
+    Note the two 0s after the decimal point. These radii correspond to the keys
+    of the group located at radiative/psi4 path in the HDF5 file.
 
     Returns
     =======
@@ -41,28 +51,24 @@ def load(file_name, radius=RadiusOption.OUTERMOST):
     if not path.exists():
         raise FileNotFoundError(f"Could not find {path}")
 
+    if not isinstance(radius, str):
+        raise ValueError(f"Radius can only be specified from a str instance; this object is of type `{type(radius)}`.")
+
     radius_re = re.compile(r"^radius=(?P<radius>.+)$")
 
     with h5py.File(path) as f:
         radii_group = f["radiative/psi4"]
 
-        radii = [m.group("radius")
-                 for key in radii_group.keys() if (m := radius_re.match(key))]
+        radii = [m.group("radius") for key in radii_group.keys() if (m := radius_re.match(key))]
 
-        if isinstance(radius, RadiusOption):
-            if radius == RadiusOption.OUTERMOST:
-                input_radius = max(radii, key=float)
-            elif radius == RadiusOption.INNERMOST:
-                input_radius = min(radii, key=float)
-        elif isinstance(radius, str):
-            if radius in radii:
-                input_radius = radius
-            else:
-                raise ValueError(f"Invalid radius string: {radius}. Must be one of {radii}.")
+        if radius == "outermost":
+            input_radius = max(radii, key=float)
+        elif radius == "innermost":
+            input_radius = min(radii, key=float)
+        elif radius in radii:
+            input_radius = radius
         else:
-            raise ValueError(
-                f"Radius can only be specified from a RadiusOption or str instance; this object is of type `{type(radius)}`."
-            )
+            raise ValueError(f"Invalid radius string: {radius}. Must be one of {radii}.")
 
         radius_key = f"radius={input_radius}"
 
@@ -71,8 +77,7 @@ def load(file_name, radius=RadiusOption.OUTERMOST):
 
         ells_re = re.compile(r"^l=(?P<ell_number>[0-9]+)$")
 
-        ells = [int(m.group("ell_number"))
-                for key in modes_group.keys() if (m := ells_re.match(key))]
+        ells = [int(m.group("ell_number")) for key in modes_group.keys() if (m := ells_re.match(key))]
         ell_min = min(ells)
         ell_max = max(ells)
 
@@ -82,8 +87,7 @@ def load(file_name, radius=RadiusOption.OUTERMOST):
 
         for ell in ells:
             ell_group = modes_group[f"l={ell}"]
-            emms = [int(m.group("emm_number"))
-                    for key in ell_group.keys() if (m := emms_re.match(key))]
+            emms = [int(m.group("emm_number")) for key in ell_group.keys() if (m := emms_re.match(key))]
             for emm in emms:
                 emm_group = ell_group[f"m={emm}"]
                 data[:, spherical.Yindex(ell, emm, ell_min=ell_min)] = (
