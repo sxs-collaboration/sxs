@@ -5,7 +5,7 @@ def load(file_name, radius="outermost"):
     """Load waveforms from the new MAYA file format.
 
     Parameters
-    ==========
+    ----------
     file_name : str or Path
         Relative or absolute path to the input HDF5 file.  If this
         string contains but does not *end* with `'.h5'`, the remainder
@@ -13,16 +13,19 @@ def load(file_name, radius="outermost"):
         which the data is stored.
 
     radius : str
-        The extraction radius to use.
-        Default is "outermost" which corresponds to largest available extraction
-        radius. Another option is "innermost", corresponding to the smallest
-        extraction radius. The user can also specify a string correspond to any
-        extraction radius present in the HDF5 file. See notes.
+        The extraction radius to use.  Default is "outermost" which
+        corresponds to largest available extraction radius. Another
+        option is "innermost", corresponding to the smallest
+        extraction radius. The user can also specify a string
+        correspond to any extraction radius present in the HDF5 file.
+        See notes.
 
     Notes
-    =====
-    Waveforms from MAYA are distributed as HDF5 files, containing finite-radius
-    data for Psi4. Each file includes finite-radii waveforms corresponding to a series of extraction radii, which may include:
+    -----
+    Waveforms from MAYA are distributed as HDF5 files, containing
+    finite-radius data for Psi4. Each file includes finite-radii
+    waveforms corresponding to a series of extraction radii, which may
+    include:
 
     * "50.00"
     * "60.00"
@@ -33,11 +36,12 @@ def load(file_name, radius="outermost"):
     * "120.00"
     * "140.00"
 
-    Note the two 0s after the decimal point. These radii correspond to the keys
-    of the group located at radiative/psi4 path in the HDF5 file.
+    Note the two 0s after the decimal point. These radii correspond to
+    the keys of the group located at radiative/psi4 path in the HDF5
+    file.
 
     Returns
-    =======
+    -------
     WaveformModes object.
     """
     import numpy as np
@@ -52,14 +56,20 @@ def load(file_name, radius="outermost"):
         raise FileNotFoundError(f"Could not find {path}")
 
     if not isinstance(radius, str):
-        raise ValueError(f"Radius can only be specified from a str instance; this object is of type `{type(radius)}`.")
+        raise ValueError(
+            "Radius can only be specified from a str instance; "
+            f"this object is of type `{type(radius)}`."
+        )
 
     radius_re = re.compile(r"^radius=(?P<radius>.+)$")
 
     with h5py.File(path) as f:
         radii_group = f["radiative/psi4"]
 
-        radii = [m.group("radius") for key in radii_group.keys() if (m := radius_re.match(key))]
+        radii = [
+            m.group("radius") for key in radii_group.keys()
+            if (m := radius_re.match(key))
+        ]
 
         if radius == "outermost":
             input_radius = max(radii, key=float)
@@ -68,7 +78,9 @@ def load(file_name, radius="outermost"):
         elif radius in radii:
             input_radius = radius
         else:
-            raise ValueError(f"Invalid radius string: {radius}. Must be one of {radii}.")
+            raise ValueError(
+                f"Invalid radius string: {radius}. Must be one of {radii}."
+            )
 
         radius_key = f"radius={input_radius}"
 
@@ -77,17 +89,26 @@ def load(file_name, radius="outermost"):
 
         ells_re = re.compile(r"^l=(?P<ell_number>[0-9]+)$")
 
-        ells = [int(m.group("ell_number")) for key in modes_group.keys() if (m := ells_re.match(key))]
+        ells = [
+            int(m.group("ell_number")) for key in modes_group.keys()
+            if (m := ells_re.match(key))
+        ]
         ell_min = min(ells)
         ell_max = max(ells)
 
         emms_re = re.compile(r"^m=(?P<emm_number>-?[0-9]+)$")
 
-        data = np.zeros((len(time), spherical.Ysize(int(ell_min), int(ell_max))), dtype=complex)
+        data = np.zeros(
+            (len(time), spherical.Ysize(int(ell_min), int(ell_max))),
+            dtype=complex
+        )
 
         for ell in ells:
             ell_group = modes_group[f"l={ell}"]
-            emms = [int(m.group("emm_number")) for key in ell_group.keys() if (m := emms_re.match(key))]
+            emms = [
+                int(m.group("emm_number")) for key in ell_group.keys()
+                if (m := emms_re.match(key))
+            ]
             for emm in emms:
                 emm_group = ell_group[f"m={emm}"]
                 data[:, spherical.Yindex(ell, emm, ell_min=ell_min)] = (
