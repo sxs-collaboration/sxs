@@ -22,6 +22,18 @@ from .format_handlers import (
 from .format_handlers.lvc import to_lvc_conventions
 from . import memory, transformations, alignment, norms
 
+from .flux import (
+    energy_flux,
+    momentum_flux,
+    angular_momentum_flux,
+    poincare_fluxes,
+)
+
+WaveformModes.energy_flux = energy_flux
+WaveformModes.momentum_flux = momentum_flux
+WaveformModes.angular_momentum_flux = angular_momentum_flux
+WaveformModes.poincare_fluxes = poincare_fluxes
+
 # Map a format string to the module that should be used to load a waveform with that format
 formats = {
     None: nrar,
