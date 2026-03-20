@@ -833,17 +833,12 @@ def align_simulations(
     t1 : float
     t2 : float
     """
-    wa = sima.h.copy()
-    wb = simb.h.copy()
 
     if t1 is None:
         # Default to reference time
-        t1 = max(
-            sima.metadata.reference_time,
-            simb.metadata.reference_time
-        )
+        t1 = max(sima.metadata.reference_time, simb.metadata.reference_time)
 
-    wa_prime, transformation, L2_norm, t1, t2 = align_waveforms(
+    wa, transformation, L2_norm, t1, t2 = align_waveforms(
         sima.h,
         simb.h,
         t1,
@@ -858,21 +853,21 @@ def align_simulations(
         nprocs=nprocs,
     )
 
-    if alignment_method == "independent_alignment":
+    if alignment_method == "independent alignment":
+        return wa, transformation, L2_norm, t1, t2
+
+    else:
+        wa_prime, transformation, L2_norm, t1, t2 = align_waveforms(
+            wa,
+            simb.h,
+            t1,
+            t2,
+            alignment_method=alignment_method,
+            t_ref=t_ref,
+            n_brute_force_δt=n_brute_force_δt,
+            n_brute_force_δϕ=n_brute_force_δϕ,
+            max_δt=max_δt,
+            omega_tol=omega_tol,
+            nprocs=nprocs,
+        )
         return wa_prime, transformation, L2_norm, t1, t2
-
-    wa_prime, transformation, L2_norm, t1, t2 = align_waveforms(
-        sima.h,
-        simb.h,
-        t1,
-        t2,
-        alignment_method=alignment_method,
-        t_ref=t_ref,
-        n_brute_force_δt=n_brute_force_δt,
-        n_brute_force_δϕ=n_brute_force_δϕ,
-        max_δt=max_δt,
-        omega_tol=omega_tol,
-        nprocs=nprocs,
-    )
-
-    return wa_prime, transformation, L2_norm, t1, t2
