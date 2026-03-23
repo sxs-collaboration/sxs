@@ -88,7 +88,7 @@ def PNWaveform(
             raise ValueError("ell_min can not be inferred for unknown modes_function.")
 
     if inertial:
-        frame = np.array([quaternionic.one])
+        frame = quaternionic.array([quaternionic.one])
         frame_type = "inertial"
         w_pn = PostNewtonian.inertial_waveform(
             inspiral, modes_function=modes_function, ell_min=ell_min,
