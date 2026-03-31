@@ -9,16 +9,59 @@ containing the Python code you want to run.
 
 As of this writing, Mathematica *claims* that it works with all reasonably
 modern versions of Python — specifically ["Python
-3.4+"](https://reference.wolfram.com/language/ref/externalevaluationsystem/Python.html).
-Assuming this is true, the only extra thing to worry about is that Mathematica
-requires the `pyzmq` package to interface with Python.
+3.5+"](https://reference.wolfram.com/language/ref/externalevaluationsystem/Python.html).
+The package `WolframClientForPython` ships with recent versions of Mathematica,
+and enables bidirectional communication between the two languages. The
+version of `WolframClientForPython` needs to be sufficiently new to avoid bugs
+in how they handle `pandas.NaT` (not-a-time) values that appear in our dataframe.
 
-If you have already installed `sxs`, you should be able to install `pyzmq` in
-the same way.  Alternatively, you may want to create a separate environment with
-both.  Using [`conda`](https://docs.anaconda.com/anaconda/install/), you can run
+/// details | `WolframClientForPython` newer than March 2026 required
+
+If the version of `WolframClientForPython` that shipped with your
+Mathematica installation is too old, then you have to install
+`WolframClientForPython` directly from [their
+repo](https://github.com/WolframResearch/WolframClientForPython). Clone the
+repo, make sure you have all the requirements (including the `pyarrow` package),
+then do `pip install .` from the root of the `WolframClientForPython` directory,
+while you are in the appropriate conda environment (see below).
+Next, we have "build" the paclet from within Mathematica so we can install it:
+```mathematica
+Needs["PacletTools`"]
+pbResult = PacletBuild["/path/to/local/WolframClientForPython"]
+```
+This should give you a `Success[]` object with a path inside that you can use
+for installation like so:
+```mathematica
+PacletInstall[pbResult["PacletArchive"], ForceVersionInstall -> True]
+```
+After this installation step, all future Mathematica sessions should be using
+your local copy of `WolframClientForPython`. You can check the python code path
+by starting a session and importing `wolframclient` like so:
+```mathematica
+session = StartExternalSession[<|
+    "System" -> "Python",
+    "Executable" -> "/full/path/to/bin/python"
+    |>];
+py = ExternalEvaluate[session];
+py["import wolframclient"];
+py["wolframclient.__path__"]
+```
+If installation was successful, this should return your
+"/path/to/local/WolframClientForPython" instead of a Mathematica system path.
+
+///
+
+Assuming your `WolframClientForPython` is sufficiently new, the only extra thing
+to worry about is that it requires the `pyzmq` and `pyarrow` packages to
+interface with Python.
+
+If you have already installed `sxs`, you should be able to install `pyzmq` and
+`pyarrow` in the same way.  Alternatively, you may want to create a separate
+environment with both.  Using
+[`conda`](https://docs.anaconda.com/anaconda/install/), you can run
 
 ```bash
-conda create -n sxs_mathematica sxs pyzmq
+conda create -n sxs_mathematica sxs pyzmq pyarrow
 ```
 
 Note that this command just *creates* the environment; if you want to use it
@@ -64,29 +107,29 @@ py["import sxs"];
 To load the catalog, you can run
 
 ```mathematica
-py["catalog = sxs.load('catalog')"]
+py["df = sxs.load('dataframe')"]
 ```
 
-The python session will hang onto this `catalog` object, and you can use it
+The python session will hang onto this `df` object, and you can use it
 again later.  For example, you can extract the table of metadata for all
 simulations like this:
 
 ```mathematica
-sims = py["catalog.table"];
+sims = py["df"];
 ```
 
-The result is a Mathematica `Dataset`, which you can search and slice in ways
+The result is a Mathematica `Tabular` object, which you can search and slice in ways
 comparable to the `pandas` interface in python.  For example, to select systems
 with mass ratios greater than 8 and both spin magnitudes less than 0.1, then
 list only selected columns (initial mass ratio, and so on), use code like this:
 
 ```mathematica
-sims[
- Select[#["reference_mass_ratio"] > 8
-    && #["reference_dimensionless_spin1_mag"] < 0.1
-    && #["reference_dimensionless_spin2_mag"] < 0.1 &],
- {"initial_mass_ratio", "initial_separation", "reference_chi1_mag",
-  "reference_chi2_mag", "reference_eccentricity_bound"}]
+Select[#["reference_mass_ratio"] > 8
+     && #["reference_dimensionless_spin1_mag"] < 0.1
+     && #["reference_dimensionless_spin2_mag"] < 0.1 &][df][All,
+  {"Index1", "initial_mass_ratio", "initial_separation",
+   "reference_chi1_mag", "reference_chi2_mag",
+   "reference_eccentricity_bound"}]
 ```
 
 Of course, more complex python code can be used.  For example, we could write
