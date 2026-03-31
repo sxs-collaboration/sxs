@@ -74,4 +74,5 @@ markdown_extensions:
       generic: true
   - pymdownx.highlight:
       anchor_linenums: true
-  - pymdownx.superfences 
+  - pymdownx.blocks.details
+  - pymdownx.superfences
