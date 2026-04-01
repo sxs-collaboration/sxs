@@ -574,13 +574,20 @@ def compute_optimized_mismatch_at_points(
     mp_start_method=None,
 ):
     """
-    Compute the worst optimized pointwise mismatch over a set of sky locations.
+    Compute the maximum optimized pointwise mismatch over a set of sky locations.
+
+    This code considers a series of points on the two sphere, and each point performs
+    an optimization of time translations, U(1) rotations about the z-axis (i.e.,
+    multiplying each mode by a factor of e^{i*m*\phi}), and polarization rotations
+    (i.e., multiplying the waveform evaluation at a point on the sphere by e^{i\psi}).
+    After this optimization, the mismatch is computed, and then the maximum mismatch
+    across all of the sky points considered is returned.
 
     Parameters
     ----------
     wa : WaveformModes
     wb : WaveformModes
-        Waveforms to be aligned
+        Waveforms to be compared.
     t1 : float
     t2 : float
         Beginning and end of integration interval.
