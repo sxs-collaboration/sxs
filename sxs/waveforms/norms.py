@@ -1,5 +1,4 @@
-import numpy as np
-import multiprocessing as mp
+import numpy as np import multiprocessing as mp
 from scipy.integrate import trapezoid
 from scipy.interpolate import CubicSpline
 from scipy.optimize import least_squares
@@ -302,8 +301,6 @@ def init_mismatch_pool(
     dphi_brute_force,
     limit_threads,
 ):
-    import sxs
-
     _MP_STATE.clear()
 
     if limit_threads:
@@ -372,45 +369,47 @@ def restrict_to_common_modes(wa, wb, include_modes=None):
     if include_modes is not None:
         wa_sliced_data = wa_sliced.data
         wb_sliced_data = wb_sliced.data
-        for mode in include_modes:
-            wa_sliced_data[:, wa_sliced.index(*mode)] *= 0
-            wb_sliced_data[:, wb_sliced.index(*mode)] *= 0
+        for L in range(wa.ell_min, wa.ell_max + 1):
+            for M in range(-L, L + 1):
+                if not (L,M) in include_modes:
+                    wa_sliced_data[:, wa_sliced.index(L, M)] *= 0
+                    wb_sliced_data[:, wb_sliced.index(L, M)] *= 0
 
-            wa_sliced = WaveformModes(
-                time=wa_sliced.t,
-                input_array=wa_sliced_data,
-                time_axis=wa_sliced.time_axis,
-                modes_axis=wa_sliced.modes_axis,
-                ell_min=wa_sliced.ell_min,
-                ell_max=wa_sliced.ell_max,
-                spin_weight=wa_sliced.spin_weight,
-            )
-
-            wb_sliced = WaveformModes(
-                time=wb_sliced.t,
-                input_array=wb_sliced_data,
-                time_axis=wb_sliced.time_axis,
-                modes_axis=wb_sliced.modes_axis,
-                ell_min=wb_sliced.ell_min,
-                ell_max=wb_sliced.ell_max,
-                spin_weight=wb_sliced.spin_weight,
-            )
+        wa_sliced = WaveformModes(
+            time=wa_sliced.t,
+            input_array=wa_sliced_data,
+            time_axis=wa_sliced.time_axis,
+            modes_axis=wa_sliced.modes_axis,
+            ell_min=wa_sliced.ell_min,
+            ell_max=wa_sliced.ell_max,
+            spin_weight=wa_sliced.spin_weight,
+        )
+        
+        wb_sliced = WaveformModes(
+            time=wb_sliced.t,
+            input_array=wb_sliced_data,
+            time_axis=wb_sliced.time_axis,
+            modes_axis=wb_sliced.modes_axis,
+            ell_min=wb_sliced.ell_min,
+            ell_max=wb_sliced.ell_max,
+            spin_weight=wb_sliced.spin_weight,
+        )
 
     return wa_sliced, wb_sliced
 
 
-def choose_points_on_sphere(is_aligned, N_theta=7, N_phi=5):
+def choose_points_on_sphere(use_only_northern_hemisphere, N_theta=7, N_phi=5):
     """
     N_theta needs to be odd to ensure pi/2 is included.
 
-    If is_aligned == False:
+    If use_only_northern_hemisphere == False:
         Distributes (N_theta-2)*N_phi + 2 points uniformly across the sky.
 
-    If is_aligned == True, assumes aligned spins and retains only the upper
+    If use_only_northern_hemisphere == True, assumes aligned spins and retains only the upper
     hemisphere plus the equator.
     """
-    if type(is_aligned) is not bool:
-        raise TypeError("Expected `is_aligned` to be a bool.")
+    if type(use_only_northern_hemisphere) is not bool:
+        raise TypeError("Expected `use_only_northern_hemisphere` to be a bool.")
     if N_theta % 2 != 1:
         raise ValueError("N_theta needs to be odd.")
 
@@ -419,14 +418,14 @@ def choose_points_on_sphere(is_aligned, N_theta=7, N_phi=5):
 
     th_phi_list = []
     for th in th_vec:
-        if th < np.pi / 2.0 + 1e-5 or not is_aligned:
+        if th < np.pi / 2.0 + 1e-5 or not use_only_northern_hemisphere:
             if np.isclose(th, 0.0) or np.isclose(th, np.pi):
                 th_phi_list.append((float(th), 0.0))
             else:
                 for ph in ph_vec:
                     th_phi_list.append((float(th), float(ph)))
 
-    if is_aligned:
+    if use_only_northern_hemisphere:
         expected = (N_theta // 2 - 1) * N_phi + 1 + N_phi
         if len(th_phi_list) != expected:
             raise RuntimeError("Did not get expected number of aligned-spin points.")
@@ -567,7 +566,7 @@ def compute_optimized_mismatch_at_points(
     N_theta=7,
     N_phi=5,
     optimize_polarization=True,
-    is_aligned=False,
+    use_only_northern_hemisphere=False,
     max_δt=10,
     include_modes=None,
     nprocs=None,
@@ -598,7 +597,7 @@ def compute_optimized_mismatch_at_points(
     optimize_polarization : bool, optional
         Whether or not to choose an optimal polarization angle.
         Default is True.
-    is_aligned : bool, optional
+    use_only_northern_hemisphere : bool, optional
         Whether or not to only consider points in the northern hemisphere.
     max_δt : float, optional
         Max δt to allow for when choosing the initial guess.
@@ -607,6 +606,7 @@ def compute_optimized_mismatch_at_points(
     nprocs: int, optional
         Number of cpus to use. Default is maximum number.
         If 1 is provided, then no multiprocessing is performed.
+        Parallelization is performed over the number of sky points.
     mp_start_method : str, optional
         What start method to use ("fork" or "spawn").
         Default is fork.
@@ -624,7 +624,7 @@ def compute_optimized_mismatch_at_points(
         raise ValueError(f"(t1, t2)=({t1}, {t2}) is not contained in wb.t.")
     if wa.spin_weight != wb.spin_weight:
         raise ValueError(
-            f"Spin weights must match, but got wa.spin_weight={wa.spin_weight} " f"and wb.spin_weight={wb.spin_weight}."
+            f"Spin weights must match, but got {wa.spin_weight=} " f"and {wb.spin_weight=}."
         )
 
     wa, wb = restrict_to_common_modes(wa, wb, include_modes)
@@ -665,7 +665,7 @@ def compute_optimized_mismatch_at_points(
     sky_points = [
         (float(theta), float(phi))
         for theta, phi in choose_points_on_sphere(
-            is_aligned=is_aligned,
+            use_only_northern_hemisphere=use_only_northern_hemisphere,
             N_theta=N_theta,
             N_phi=N_phi,
         )
