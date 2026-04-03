@@ -1,4 +1,5 @@
-import numpy as np import multiprocessing as mp
+import numpy as np
+import multiprocessing as mp
 from scipy.integrate import trapezoid
 from scipy.interpolate import CubicSpline
 from scipy.optimize import least_squares
