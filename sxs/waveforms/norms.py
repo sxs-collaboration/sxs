@@ -446,8 +446,6 @@ def build_transformed_point_signal_from_shifted(
     wb_target,
     inner_product,
 ):
-    import sxs
-
     wa_prime = WaveformModes(
         input_array=shifted_mode_data * phase_vector,
         time=_MP_STATE["t_reference"],
