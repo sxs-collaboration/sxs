@@ -364,8 +364,8 @@ def restrict_to_common_modes(wa, wb, include_modes=None):
     ib1 = wb.index(ell_min, -ell_min)
     ib2 = wb.index(ell_max, ell_max) + 1
 
-    wa_sliced = wa[:, ia1:ia2]
-    wb_sliced = wb[:, ib1:ib2]
+    wa_sliced = wa[:, ia1:ia2].copy()
+    wb_sliced = wb[:, ib1:ib2].copy()
 
     if include_modes is not None:
         wa_sliced_data = wa_sliced.data
