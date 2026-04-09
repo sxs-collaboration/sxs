@@ -276,7 +276,7 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
         elif location == "catalog":
             return Catalog.load(download=download)
 
-        elif location in ["simulations", "dataframe"]:
+        elif location in ["simulations", "dataframe", "RITsimulations", "RITdataframe", "MAYAsimulations", "MAYAdataframe"]:
             return sxscatalog.load(location, download=download, **kwargs)
 
         elif _safe_resolve_exists(h5_path):
