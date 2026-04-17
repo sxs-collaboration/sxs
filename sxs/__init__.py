@@ -30,7 +30,7 @@ from .waveforms import rotating_paired_xor_multishuffle_bzip2 as rpxmb
 from .waveforms import rotating_paired_diff_multishuffle_bzip2 as rpdmb
 from .waveforms import spectre_cce_v1
 from . import catalog, metadata, horizons, waveforms, zenodo
-from .simulations import Simulation, Simulations, write_local_simulations, local_simulations
+from .simulations import Simulation, RITSimulation, Simulations, write_local_simulations, local_simulations
 from .handlers import load, load_via_sxs_id, loadcontext, load_lvc
 
 # The speed of light is, of course, defined to be exactly

@@ -234,6 +234,10 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
          the data.  Note that `download` must be explicitly set in
          this case, or a ValueError will be raised.
 
+      8) Given an RIT simulation specification — like "RIT:BBH:1234" or
+         "RIT:eBBH:1234" — the simulation is loaded as an
+         `sxs.RITSimulation` object.
+
     If the file is downloaded, it will be stored in the cache
     according to the `location`, unless `truepath` is set as noted
     above, in which case it is stored there.  Note that downloading is
@@ -243,7 +247,7 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
     """
     import pathlib
     import urllib.request
-    from . import Simulations, Simulation, read_config, sxs_directory, Catalog
+    from . import Simulations, Simulation, RITSimulation, read_config, sxs_directory, Catalog
     from .utilities import url, download_file, sxs_path_to_system_path, sxs_id_version_lev_exact_re, lev_path_re, sxs_identifier_re
 
     # Note: `download` and/or `cache` may still be `None` after this
@@ -296,6 +300,9 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
 
         elif sxs_id_version_lev_exact_re.match(location):
             return Simulation(location, download=download, cache=cache, progress=progress, **kwargs)
+
+        elif location.startswith("RIT:"):
+            return RITSimulation(location, download=download, cache=cache, progress=progress, **kwargs)
 
         else:
             # Try to find an appropriate SXS file in the simulations
