@@ -1,4 +1,5 @@
-from pathlib import Path
+import urllib
+from pathlib import PurePosixPath
 from .simulation import SimulationBase
 from .. import Metadata
 from ..utilities import download_file, sxs_directory
@@ -69,6 +70,7 @@ def RITSimulation(location, *args, **kwargs):
         version=version,
         files=files,
         location=location,
+        *args, **kwargs
     )
     sim.__file__ = str(sxs_directory("cache") / location)
     return sim
@@ -111,7 +113,8 @@ class RITSimulation_v4(SimulationBase):
         from ..waveforms import lvcnr
 
         strain_url = self.metadata.extrap_strain_url
-        filename = Path(strain_url).name
+        strain_path = urllib.parse.urlparse(strain_url).path
+        filename = PurePosixPath(strain_path).name
 
         path = sxs_directory("cache") / location / filename
 

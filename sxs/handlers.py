@@ -247,7 +247,10 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
     """
     import pathlib
     import urllib.request
-    from . import Simulations, Simulation, RITSimulation, read_config, sxs_directory, Catalog
+    from . import (
+        Simulations, Simulation, RITSimulation,
+        read_config, sxs_directory, Catalog
+    )
     from .utilities import url, download_file, sxs_path_to_system_path, sxs_id_version_lev_exact_re, lev_path_re, sxs_identifier_re
 
     # Note: `download` and/or `cache` may still be `None` after this
