@@ -8,8 +8,7 @@ from ..utilities import download_file, sxs_directory
 def _not_defined_property(name):
     @property
     def prop(self):
-        raise AttributeError(f"'{name}' is not supported for version {self.version} of the catalog.")
-
+        raise AttributeError(f"'{name}' is not available for RIT simulations (version {self.version}).")
     return prop
 
 
@@ -38,8 +37,7 @@ def RITSimulation(location, *args, **kwargs):
     Returns
     -------
     simulation : SimulationBase
-        A `RITSimulation_v4` object, depending on the version of the simulation
-        data.
+        An `RITSimulation_v4` object.
 
     Note that all remaining arguments (including keyword arguments)
     are passed on to the `SimulationBase` constructors.
@@ -65,11 +63,11 @@ def RITSimulation(location, *args, **kwargs):
     version = "v4.0"
 
     sim = RITSimulation_v4(
-        metadata=metadata,
-        series=series,
-        version=version,
-        files=files,
-        location=location,
+        metadata,
+        series,
+        version,
+        files,
+        location,
         *args, **kwargs
     )
     sim.__file__ = str(sxs_directory("cache") / location)
@@ -86,10 +84,10 @@ class RITSimulation_v4(SimulationBase):
     """
 
     def __init__(self, metadata, series, version, files, location, *args, **kwargs):
-    # Note that we want just a subset of the constructor of SimulationBase here.
-    # Therefore, we don't use the super of SimulationsBase.
-    # This keeps the constructor clean and avoids setting positional arguments -
-    # sxs_id_stem, sxs_id, url, lev_numbers and lev_number to None.
+        # Note that we want just a subset of the constructor of SimulationBase here.
+        # Therefore, we don't use the super of SimulationsBase.
+        # This keeps the constructor clean and avoids setting positional arguments -
+        # sxs_id_stem, sxs_id, url, lev_numbers and lev_number to None.
         self.metadata = metadata
         self.series = series
         self.version = version
@@ -145,3 +143,4 @@ class RITSimulation_v4(SimulationBase):
     Lev = _not_defined_property("Lev")
     metadata_path = _not_defined_property("metadata_path")
     horizons = _not_defined_property("horizons")
+    Horizons = horizons
