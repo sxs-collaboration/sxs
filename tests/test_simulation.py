@@ -1,7 +1,7 @@
 import pytest
 import sxs
 from .conftest import skip_macOS_GH_actions_downloads
-
+import numpy as np
 
 @skip_macOS_GH_actions_downloads
 def test_catalog_file_sizes():
@@ -290,3 +290,15 @@ def test_issue_116():
             h4 = sxs.load(f"{temp_dir}/test", metadata={})
     assert h4.t.size == h3.t.size == h.t.size
     assert h4.t[0] == h3.t[0]
+
+
+@skip_macOS_GH_actions_downloads
+def test_sxs_load_rit_v4():
+    s = sxs.load("RIT:BBH:0084")
+    assert s.location == "RIT:BBH:0084"
+    assert s.version == "v4.0"
+    s.h
+    s.strain
+    s.H
+    s.Strain
+    assert np.allclose(s.h.max_norm_time(), 0.0)
