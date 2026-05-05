@@ -1,8 +1,8 @@
 import urllib
-from pathlib import PurePosixPath
+from pathlib import PurePosixPath, Path
 from .simulation import SimulationBase
 from .. import Metadata
-from ..utilities import download_file, sxs_directory
+from ..utilities import download_file, sxs_directory, sxs_path_to_system_path
 
 
 def _not_defined_property(name):
@@ -70,7 +70,7 @@ def RITSimulation(location, *args, **kwargs):
         location,
         *args, **kwargs
     )
-    sim.__file__ = str(sxs_directory("cache") / location)
+    sim.__file__ = str(sxs_directory("cache") / sxs_path_to_system_path(location))
     return sim
 
 
@@ -106,37 +106,40 @@ class RITSimulation_v4(SimulationBase):
         construction += f"e={e:.3g} simulation" if type(e) is float else f"{e=} simulation"
         return construction
 
-    def load_waveform(self, location):
-
-        from ..waveforms import lvcnr
-
-        strain_url = self.metadata.extrap_strain_url
-        strain_path = urllib.parse.urlparse(strain_url).path
-        filename = PurePosixPath(strain_path).name
-
-        path = sxs_directory("cache") / location / filename
-
-        if not path.exists():
-            download_file(strain_url, path)
-
-        w = lvcnr.load(path)
-        w.metadata = self.metadata
-
-        return w
-
     distances = _not_implemented_function("distances")
     closest_simulation = _not_implemented_function("closest_simulation")
+    load_waveform = _not_implemented_function("load_waveform")
     load_horizons = _not_implemented_function("load_horizons")
 
     @property
     def strain(self):
         if not hasattr(self, "_strain"):
-            self._strain = self.load_waveform(self.location)
+            from ..waveforms import lvcnr
+
+            strain_url = self.metadata.extrap_strain_url
+            strain_path = urllib.parse.urlparse(strain_url).path
+            filename = PurePosixPath(strain_path).name
+            location = Path(self.location)
+
+            path = sxs_directory("cache") / location / filename
+
+            if not path.exists():
+                download_file(strain_url, path)
+
+            w = lvcnr.load(path)
+            w.metadata = self.metadata
+
+            self._strain = w
         return self._strain
 
     Strain = strain
     h = strain
     H = strain
+
+    @property
+    def psi4(self):
+        raise NotImplementedError(f"psi4 is currently not implemented for RITSimulation_v4.")
+    Psi4 = psi4
 
     versions = _not_defined_property("versions")
     lev = _not_defined_property("lev")
