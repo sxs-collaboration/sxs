@@ -150,6 +150,33 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 obj = TimeSeries(obj)
         return obj
 
+    def __mul__(self, other):
+        if isinstance(other, WaveformModes):
+            modes12_data, modes12_ellmin, modes12_ellmax, modes12_spin = spherical.multiply(
+                self,
+                self.ell_min,
+                self.ell_max,
+                self.spin_weight,
+                other,
+                other.ell_min,
+                other.ell_max,
+                other.spin_weight,
+                ellmin_fg=None,
+                ellmax_fg=self.ell_max
+            )
+            return WaveformModes(
+                modes12_data,
+                time=self.time,
+                time_axis=0,
+                ell_min=modes12_ellmin,
+                ell_max=modes12_ellmax,
+                modes_axis=1,
+                spin_weight=modes12_spin,
+                frame=self.frame
+            )
+        else:
+            return super().__mul__(other)
+
     @property
     def modes_axis(self):
         """Axis of the array storing the various modes
