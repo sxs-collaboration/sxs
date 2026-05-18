@@ -151,19 +151,28 @@ class WaveformModes(WaveformMixin, TimeSeries):
         return obj
 
     def __mul__(self, other):
-        if isinstance(other, WaveformModes):
+        if isinstance(other, WaveformModes) and np.allclose(self.frame, other.frame):
+            if self.multiplication_truncator is not None:
+                new_ell_max = self.multiplication_truncator((self.ell_max, other.ell_max))
+            else:
+                new_ell_max = max(
+                    truncator((self.ell_max, other.ell_max))
+                    for truncator in [
+                        self._metadata.get('multiplication_truncator', sum),
+                        other._metadata.get('multiplication_truncator', sum)
+                    ]
+                )
             modes12_data, modes12_ellmin, modes12_ellmax, modes12_spin = spherical.multiply(
-                self,
-                self.ell_min,
-                self.ell_max,
-                self.spin_weight,
-                other,
-                other.ell_min,
-                other.ell_max,
-                other.spin_weight,
-                ellmin_fg=None,
-                ellmax_fg=self.ell_max
-            )
+            self,
+            self.ell_min,
+            self.ell_max,
+            self.spin_weight,
+            other,
+            other.ell_min,
+            other.ell_max,
+            other.spin_weight,
+            ellmax_fg=new_ell_max
+        )
             return WaveformModes(
                 modes12_data,
                 time=self.time,
@@ -199,6 +208,11 @@ class WaveformModes(WaveformMixin, TimeSeries):
     def ell_max(self):
         """Largest value of ℓ stored in the data"""
         return self._metadata["ell_max"]
+
+    @property
+    def multiplication_truncator(self):
+        """Multiplication truncator stored in the data"""
+        return self._metadata["multiplication_truncator"]
 
     @property
     def n_modes(self):
