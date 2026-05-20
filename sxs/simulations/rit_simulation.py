@@ -119,7 +119,7 @@ class RITSimulation_v4(SimulationBase):
             strain_url = self.metadata.extrap_strain_url
             strain_path = urllib.parse.urlparse(strain_url).path
             filename = PurePosixPath(strain_path).name
-            location = Path(self.location)
+            location = Path(sxs_path_to_system_path(self.location))
 
             path = sxs_directory("cache") / location / filename
 
