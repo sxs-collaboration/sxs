@@ -150,6 +150,46 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 obj = TimeSeries(obj)
         return obj
 
+    def __add__(self, other):
+        """Addition method for two WaveformModes object.
+
+        Raises TypeError if other is not a WaveformModes instance.
+        Raises ValueError if spin weights or data shapes are incompatible.
+        """
+        if not isinstance(other, WaveformModes):
+            raise TypeError(f"Cannot add WaveformModes class object with an object of type {type(other).__name__}.")
+
+        self._is_compatible(other)
+
+        if self.spin_weight != other.spin_weight:
+            raise ValueError(f"Cannot add two WaveformModes with different spin weights ({self.spin_weight=} and {other.spin_weight=})")
+        if self.shape != other.shape:
+            raise ValueError(f"Cannot add two WaveformModes with different shape of the data array. ({self.shape=} and {other.shape=})")
+
+        result = self.data + other.data
+
+        return type(self)(result, **self._metadata)
+
+    def __sub__(self, other):
+        """Subtraction method for two WaveformModes object.
+
+        Raises TypeError if other is not a WaveformModes instance.
+        Raises ValueError if spin weights or data shapes are incompatible.
+        """
+        if not isinstance(other, WaveformModes):
+            raise TypeError(f"Cannot subtract WaveformModes class object with an object of type {type(other).__name__}.")
+
+        self._is_compatible(other)
+
+        if self.spin_weight != other.spin_weight:
+            raise ValueError(f"Cannot subtract two WaveformModes with different spin weights ({self.spin_weight=} and {other.spin_weight=})")
+        if self.shape != other.shape:
+            raise ValueError(f"Cannot subtract two WaveformModes with different shape of the data array. ({self.shape=} and {other.shape=})")
+
+        result = self.data - other.data
+
+        return type(self)(result, **self._metadata)
+
     def __mul__(self, other):
         """Multiplication method for two WaveformModes object.
 
@@ -160,13 +200,16 @@ class WaveformModes(WaveformMixin, TimeSeries):
         right operand's truncator is used; if both are absent, it defaults to
         the sum of the two `ell_max`.
         """
-        if isinstance(other, WaveformModes) and self._is_compatible(other):
+        if isinstance(other, WaveformModes):
+
+            self._is_compatible(other)
+
             if self.multiplication_truncator is not None:
                 new_ell_max = self.multiplication_truncator((self.ell_max, other.ell_max))
             elif other.multiplication_truncator is not None:
                 new_ell_max = other.multiplication_truncator((self.ell_max, other.ell_max))
             else:
-                new_ell_max = sum(self.ell_max, other.ell_max)
+                new_ell_max = self.ell_max + other.ell_max
 
             modes12_data, modes12_ellmin, modes12_ellmax, modes12_spin = spherical.multiply(
             self,
