@@ -151,17 +151,23 @@ class WaveformModes(WaveformMixin, TimeSeries):
         return obj
 
     def __mul__(self, other):
-        if isinstance(other, WaveformModes) and np.allclose(self.frame, other.frame):
+        """Multiplication method for two WaveformModes object.
+
+        First it checks if the two objects are compatible for multiplication
+        using the `_is_compatible` method.
+        The output `ell_max` is determined by the `multiplication_truncator`
+        attribute. The left operand's truncator takes priority; if absent, the
+        right operand's truncator is used; if both are absent, it defaults to
+        the sum of the two `ell_max`.
+        """
+        if isinstance(other, WaveformModes) and self._is_compatible(other):
             if self.multiplication_truncator is not None:
                 new_ell_max = self.multiplication_truncator((self.ell_max, other.ell_max))
+            elif other.multiplication_truncator is not None:
+                new_ell_max = other.multiplication_truncator((self.ell_max, other.ell_max))
             else:
-                new_ell_max = max(
-                    truncator((self.ell_max, other.ell_max))
-                    for truncator in [
-                        self._metadata.get('multiplication_truncator', sum),
-                        other._metadata.get('multiplication_truncator', sum)
-                    ]
-                )
+                new_ell_max = sum(self.ell_max, other.ell_max)
+
             modes12_data, modes12_ellmin, modes12_ellmax, modes12_spin = spherical.multiply(
             self,
             self.ell_min,
@@ -181,10 +187,24 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 ell_max=modes12_ellmax,
                 modes_axis=1,
                 spin_weight=modes12_spin,
-                frame=self.frame
+                frame=self.frame,
+                frame_type=self.frame_type,
+                multiplication_truncator=max
             )
         else:
             return super().__mul__(other)
+
+    def _is_compatible(self,other):
+        """Helper function to check if two waveform modes are compatible for
+        algebraic operations."""
+        if self.frame_type!=other.frame_type:
+            raise ValueError(f"Both waveforms must have identical frame types; self has `{self.frame_type=}`, other has `{other.frame_type=}`.")
+        if not np.array_equal(self.frame, other.frame):
+            raise ValueError(f"Both waveforms must have identical frame arrays.")
+        if not np.array_equal(self.time, other.time):
+            raise ValueError(f"Both waveforms must have identical time arrays.")
+
+        return True
 
     @property
     def modes_axis(self):
