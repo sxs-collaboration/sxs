@@ -223,11 +223,14 @@ class WaveformModes(WaveformMixin, TimeSeries):
         other.spin_weight,
         ellmax_fg=new_ell_max
     )
+        ell_min = abs(modes12_spin)
+        modes_data = modes12_data[:,spherical.Yindex(ell_min, - ell_min, modes12_ellmin) : ]
+
         return WaveformModes(
-            modes12_data,
+            modes_data,
             time=self.time,
             time_axis=0,
-            ell_min=modes12_ellmin,
+            ell_min=ell_min,
             ell_max=modes12_ellmax,
             modes_axis=1,
             spin_weight=modes12_spin,
