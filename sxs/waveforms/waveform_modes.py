@@ -156,7 +156,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         Raises TypeError if other is not a WaveformModes instance.
         Raises ValueError if spin weights or data shapes are incompatible.
         """
-        if not isinstance(other, WaveformModes):
+        if not isinstance(other, type(self)):
             raise TypeError(f"Cannot add WaveformModes class object with an object of type {type(other).__name__}.")
 
         self._is_compatible(other)
@@ -176,7 +176,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         Raises TypeError if other is not a WaveformModes instance.
         Raises ValueError if spin weights or data shapes are incompatible.
         """
-        if not isinstance(other, WaveformModes):
+        if not isinstance(other, type(self)):
             raise TypeError(f"Cannot subtract WaveformModes class object with an object of type {type(other).__name__}.")
 
         self._is_compatible(other)
@@ -200,42 +200,49 @@ class WaveformModes(WaveformMixin, TimeSeries):
         right operand's truncator is used; if both are absent, it defaults to
         the sum of the two `ell_max`.
         """
-        if isinstance(other, WaveformModes):
-
-            self._is_compatible(other)
-
-            if self.multiplication_truncator is not None:
-                new_ell_max = self.multiplication_truncator((self.ell_max, other.ell_max))
-            elif other.multiplication_truncator is not None:
-                new_ell_max = other.multiplication_truncator((self.ell_max, other.ell_max))
-            else:
-                new_ell_max = self.ell_max + other.ell_max
-
-            modes12_data, modes12_ellmin, modes12_ellmax, modes12_spin = spherical.multiply(
-            self,
-            self.ell_min,
-            self.ell_max,
-            self.spin_weight,
-            other,
-            other.ell_min,
-            other.ell_max,
-            other.spin_weight,
-            ellmax_fg=new_ell_max
-        )
-            return WaveformModes(
-                modes12_data,
-                time=self.time,
-                time_axis=0,
-                ell_min=modes12_ellmin,
-                ell_max=modes12_ellmax,
-                modes_axis=1,
-                spin_weight=modes12_spin,
-                frame=self.frame,
-                frame_type=self.frame_type,
-                multiplication_truncator=max
-            )
-        else:
+        if not isinstance(other, type(self)):
             return super().__mul__(other)
+
+        self._is_compatible(other)
+
+        if self.multiplication_truncator is not None:
+            new_ell_max = self.multiplication_truncator((self.ell_max, other.ell_max))
+        elif other.multiplication_truncator is not None:
+            new_ell_max = other.multiplication_truncator((self.ell_max, other.ell_max))
+        else:
+            new_ell_max = self.ell_max + other.ell_max
+
+        modes12_data, modes12_ellmin, modes12_ellmax, modes12_spin = spherical.multiply(
+        self,
+        self.ell_min,
+        self.ell_max,
+        self.spin_weight,
+        other,
+        other.ell_min,
+        other.ell_max,
+        other.spin_weight,
+        ellmax_fg=new_ell_max
+    )
+        return WaveformModes(
+            modes12_data,
+            time=self.time,
+            time_axis=0,
+            ell_min=modes12_ellmin,
+            ell_max=modes12_ellmax,
+            modes_axis=1,
+            spin_weight=modes12_spin,
+            frame=self.frame,
+            frame_type=self.frame_type,
+            multiplication_truncator=self.multiplication_truncator
+        )
+
+    def __truediv__(self, other):
+        """Division of two WaveformModes object.
+        """
+        if isinstance(other, type(self)):
+            raise ValueError(f"Cannot divide one WaveformModes object by another")
+        else:
+            return super().__truediv__(other)
 
     def _is_compatible(self,other):
         """Helper function to check if two waveform modes are compatible for
