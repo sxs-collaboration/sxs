@@ -567,6 +567,7 @@ def load(
         ell_min=ell_min,
         ell_max=ell_max,
         spin_weight=spin_weight,
+        multiplication_truncator=max
     )
 
     if convert_from_conjugate_pairs:
