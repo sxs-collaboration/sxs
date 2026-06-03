@@ -154,7 +154,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         """Addition method for two WaveformModes object.
 
         Raises TypeError if other is not a WaveformModes instance.
-        Raises ValueError if spin weights or data shapes are incompatible.
+        Raises ValueError if spin weights are incompatible.
         """
         if not isinstance(other, type(self)):
             raise TypeError(f"Cannot add WaveformModes class object with an object of type {type(other).__name__}.")
@@ -163,18 +163,33 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         if self.spin_weight != other.spin_weight:
             raise ValueError(f"Cannot add two WaveformModes with different spin weights ({self.spin_weight=} and {other.spin_weight=})")
-        if self.shape != other.shape:
-            raise ValueError(f"Cannot add two WaveformModes with different shape of the data array. ({self.shape=} and {other.shape=})")
 
-        result = self.data + other.data
+        mode_diff = self.n_modes - other.n_modes
 
-        return type(self)(result, **self._metadata)
+        data_self = np.pad(self.data, pad_width=((0, 0), (-mode_diff, 0))) if mode_diff < 0 else self.data
+
+        data_other = np.pad(other.data, pad_width=((0,0),(mode_diff,0))) if mode_diff > 0 else other.data
+
+        result = data_self + data_other
+        ell_min = min(self.ell_min, other.ell_min)
+
+        return type(self)(
+            result,
+            time=self.time,
+            time_axis=0,
+            ell_min=ell_min,
+            ell_max=self.ell_max,
+            modes_axis=1,
+            spin_weight=self.spin_weight,
+            frame=self.frame,
+            frame_type=self.frame_type,
+        )
 
     def __sub__(self, other):
         """Subtraction method for two WaveformModes object.
 
         Raises TypeError if other is not a WaveformModes instance.
-        Raises ValueError if spin weights or data shapes are incompatible.
+        Raises ValueError if spin weights are incompatible.
         """
         if not isinstance(other, type(self)):
             raise TypeError(f"Cannot subtract WaveformModes class object with an object of type {type(other).__name__}.")
@@ -183,12 +198,27 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         if self.spin_weight != other.spin_weight:
             raise ValueError(f"Cannot subtract two WaveformModes with different spin weights ({self.spin_weight=} and {other.spin_weight=})")
-        if self.shape != other.shape:
-            raise ValueError(f"Cannot subtract two WaveformModes with different shape of the data array. ({self.shape=} and {other.shape=})")
 
-        result = self.data - other.data
+        mode_diff = self.n_modes - other.n_modes
 
-        return type(self)(result, **self._metadata)
+        data_self = np.pad(self.data, pad_width=((0, 0), (-mode_diff, 0))) if mode_diff < 0 else self.data
+
+        data_other = np.pad(other.data, pad_width=((0,0),(mode_diff,0))) if mode_diff > 0 else other.data
+
+        result = data_self - data_other
+        ell_min = min(self.ell_min, other.ell_min)
+
+        return type(self)(
+            result,
+            time=self.time,
+            time_axis=0,
+            ell_min=ell_min,
+            ell_max=self.ell_max,
+            modes_axis=1,
+            spin_weight=self.spin_weight,
+            frame=self.frame,
+            frame_type=self.frame_type,
+        )
 
     def __mul__(self, other):
         """Multiplication method for two WaveformModes object.
