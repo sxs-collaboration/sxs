@@ -164,21 +164,24 @@ class WaveformModes(WaveformMixin, TimeSeries):
         if self.spin_weight != other.spin_weight:
             raise ValueError(f"Cannot add two WaveformModes with different spin weights ({self.spin_weight=} and {other.spin_weight=})")
 
-        mode_diff = self.n_modes - other.n_modes
-
-        data_self = np.pad(self.data, pad_width=((0, 0), (-mode_diff, 0))) if mode_diff < 0 else self.data
-
-        data_other = np.pad(other.data, pad_width=((0,0),(mode_diff,0))) if mode_diff > 0 else other.data
-
-        result = data_self + data_other
         ell_min = min(self.ell_min, other.ell_min)
+        ell_max = max(self.ell_max, other.ell_max)
+
+        result = np.zeros((self.time.size, spherical.Ysize(ell_min, ell_max)), dtype=self.dtype)
+
+        slice_1 = slice(spherical.Yindex(self.ell_min, -self.ell_min, ell_min), spherical.Yindex(self.ell_max + 1, -(self.ell_max + 1), ell_min),)
+
+        slice_2 = slice(spherical.Yindex(other.ell_min, -other.ell_min, ell_min), spherical.Yindex(other.ell_max + 1, -(other.ell_max + 1), ell_min),)
+
+        result[:, slice_1] += self.data
+        result[:, slice_2] += other.data
 
         return type(self)(
             result,
             time=self.time,
             time_axis=0,
             ell_min=ell_min,
-            ell_max=self.ell_max,
+            ell_max=ell_max,
             modes_axis=1,
             spin_weight=self.spin_weight,
             frame=self.frame,
@@ -199,21 +202,24 @@ class WaveformModes(WaveformMixin, TimeSeries):
         if self.spin_weight != other.spin_weight:
             raise ValueError(f"Cannot subtract two WaveformModes with different spin weights ({self.spin_weight=} and {other.spin_weight=})")
 
-        mode_diff = self.n_modes - other.n_modes
-
-        data_self = np.pad(self.data, pad_width=((0, 0), (-mode_diff, 0))) if mode_diff < 0 else self.data
-
-        data_other = np.pad(other.data, pad_width=((0,0),(mode_diff,0))) if mode_diff > 0 else other.data
-
-        result = data_self - data_other
         ell_min = min(self.ell_min, other.ell_min)
+        ell_max = max(self.ell_max, other.ell_max)
+
+        result = np.zeros((self.time.size, spherical.Ysize(ell_min, ell_max)), dtype=self.dtype)
+
+        slice_1 = slice(spherical.Yindex(self.ell_min, -self.ell_min, ell_min), spherical.Yindex(self.ell_max + 1, -(self.ell_max + 1), ell_min),)
+
+        slice_2 = slice(spherical.Yindex(other.ell_min, -other.ell_min, ell_min), spherical.Yindex(other.ell_max + 1, -(other.ell_max + 1), ell_min),)
+
+        result[:, slice_1] += self.data
+        result[:, slice_2] -= other.data
 
         return type(self)(
             result,
             time=self.time,
             time_axis=0,
             ell_min=ell_min,
-            ell_max=self.ell_max,
+            ell_max=ell_max,
             modes_axis=1,
             spin_weight=self.spin_weight,
             frame=self.frame,
@@ -252,7 +258,8 @@ class WaveformModes(WaveformMixin, TimeSeries):
         other.ell_max,
         other.spin_weight,
         ellmax_fg=new_ell_max
-    )
+        )
+
         ell_min = abs(modes12_spin)
         modes_data = modes12_data[:,spherical.Yindex(ell_min, - ell_min, modes12_ellmin) : ]
 
@@ -286,6 +293,8 @@ class WaveformModes(WaveformMixin, TimeSeries):
             raise ValueError(f"Both waveforms must have identical frame arrays.")
         if not np.array_equal(self.time, other.time):
             raise ValueError(f"Both waveforms must have identical time arrays.")
+        if not self.time_axis==other.time_axis:
+            raise ValueError(f"The time axis of the two waveforms must be same for algebraic operations.")
 
         return True
 
