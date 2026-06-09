@@ -169,8 +169,6 @@ class WaveformModes(WaveformMixin, TimeSeries):
         ell_min = min(self.ell_min, other.ell_min)
         ell_max = max(self.ell_max, other.ell_max)
 
-        result = np.zeros((self.time.size, spherical.Ysize(ell_min, ell_max)), dtype=self.dtype)
-
         slice_1 = slice(
             spherical.Yindex(self.ell_min, -self.ell_min, ell_min),
             spherical.Yindex(self.ell_max + 1, -(self.ell_max + 1), ell_min),
@@ -181,20 +179,22 @@ class WaveformModes(WaveformMixin, TimeSeries):
             spherical.Yindex(other.ell_max + 1, -(other.ell_max + 1), ell_min),
         )
 
-        result[:, slice_1] += self.data
-        result[:, slice_2] += other.data
+        if self.time_axis != other.time_axis:
+            other = other.T
 
-        return type(self)(
-            result,
-            time=self.time,
-            time_axis=0,
-            ell_min=ell_min,
-            ell_max=ell_max,
-            modes_axis=1,
-            spin_weight=self.spin_weight,
-            frame=self.frame,
-            frame_type=self.frame_type,
-        )
+        n_modes = spherical.Ysize(ell_min, ell_max)
+        n_times = self.n_times
+
+        shape = (n_times, n_modes) if self.time_axis==0 else (n_modes, n_times)
+        result = np.zeros(shape, dtype=self.dtype)
+
+        idx1 = (slice(None), slice_1) if self.time_axis == 0 else (slice_1, slice(None))
+        idx2 = (slice(None), slice_2) if self.time_axis == 0 else (slice_2, slice(None))
+
+        result[idx1] += self.data
+        result[idx2] += other.data
+
+        return type(self)(result, **self._metadata)
 
     def __neg__(self):
         """Return a new WaveformModes object with negated data.
@@ -227,18 +227,23 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         self._is_compatible(other)
 
-        truncator = self.multiplication_truncator or other.multiplication_truncator or sum
-        new_ell_max = truncator((self.ell_max, other.ell_max))
+        time_axis = self.time_axis
+
+        left_WM = self if self.time_axis == 0 else self.T
+        right_WM = other if other.time_axis == 0 else other.T
+
+        truncator = left_WM.multiplication_truncator or right_WM.multiplication_truncator or sum
+        new_ell_max = truncator((left_WM.ell_max, right_WM.ell_max))
 
         modes12_data, modes12_ellmin, modes12_ellmax, modes12_spin = spherical.multiply(
-            self,
-            self.ell_min,
-            self.ell_max,
-            self.spin_weight,
-            other,
-            other.ell_min,
-            other.ell_max,
-            other.spin_weight,
+            left_WM,
+            left_WM.ell_min,
+            left_WM.ell_max,
+            left_WM.spin_weight,
+            right_WM,
+            right_WM.ell_min,
+            right_WM.ell_max,
+            right_WM.spin_weight,
             ellmax_fg=new_ell_max
         )
 
@@ -247,20 +252,27 @@ class WaveformModes(WaveformMixin, TimeSeries):
         if ell_min > modes12_ellmax:
             raise ValueError(f"ell_min ({ell_min}) of the product self*other exceeds ell_max ({modes12_ellmax}), resulting in no valid modes.")
 
-        modes_data = modes12_data[:,spherical.Yindex(ell_min, - ell_min, modes12_ellmin) : ]
+        start_idx = spherical.Yindex(ell_min, - ell_min, modes12_ellmin)
 
-        return type(self)(
-            modes_data,
-            time=self.time,
-            time_axis=0,
-            ell_min=ell_min,
-            ell_max=modes12_ellmax,
-            modes_axis=1,
-            spin_weight=modes12_spin,
-            frame=self.frame,
-            frame_type=self.frame_type,
-            multiplication_truncator=truncator
-        )
+        modes_data = modes12_data[:, start_idx: ]
+
+        result = type(self)(
+                modes_data,
+                time=self.time,
+                time_axis=0,
+                ell_min=ell_min,
+                ell_max=modes12_ellmax,
+                modes_axis=1,
+                spin_weight=modes12_spin,
+                frame=self.frame,
+                frame_type=self.frame_type,
+                multiplication_truncator=truncator
+            )
+
+        if time_axis != 0:
+            result = result.T
+
+        return result
 
     def __truediv__(self, other):
         """Division of two WaveformModes object.
@@ -281,8 +293,6 @@ class WaveformModes(WaveformMixin, TimeSeries):
             raise ValueError(f"Both waveforms must have identical frame arrays.")
         if not np.array_equal(self.time, other.time):
             raise ValueError(f"Both waveforms must have identical time arrays.")
-        if not self.time_axis==other.time_axis:
-            raise ValueError(f"The time axis of the two waveforms must be same for algebraic operations.")
 
         return True
 
@@ -1523,8 +1533,34 @@ class WaveformModes(WaveformMixin, TimeSeries):
         h_without_memory = raw_remove_memory(self, integration_start_time=integration_start_time)
 
         return h_without_memory
-        
-        
+
+    def transpose(self):
+        """Return a waveform modes object with transposed data.
+
+        The resulting object will have a transposed data array with time_axis
+        and modes_axis swapped.
+        """
+        return type(self)(
+            self.data.T,
+            time=self.time,
+            time_axis=self.modes_axis,
+            ell_min=self.ell_min,
+            ell_max=self.ell_max,
+            modes_axis=self.time_axis,
+            spin_weight=self.spin_weight,
+            frame=self.frame,
+            frame_type=self.frame_type,
+            multiplication_truncator=self.multiplication_truncator
+        )
+
+    @property
+    def T(self):
+        """Returns the transpose of this waveform modes object.
+
+        Equivalent to calling transpose(). See transpose() for details.
+        """
+        return self.transpose()
+
 class WaveformModesDict(MutableMapping, WaveformModes):
     """A dictionary-like class for storing waveform modes
 
