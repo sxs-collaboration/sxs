@@ -155,19 +155,26 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         Raises TypeError if other is not a WaveformModes instance.
         Raises ValueError if spin weights are incompatible.
+        Raises ValueErrors if the two WaveformModes object aren't compatible for
+        algebraic oeprations.
         """
         if not isinstance(other, type(self)):
             raise TypeError(f"Cannot add WaveformModes class object with an object of type {type(other).__name__}.")
-
-        self._is_compatible(other)
 
         if self.spin_weight != other.spin_weight:
             raise ValueError(
                 f"Cannot add two WaveformModes with different spin weights ({self.spin_weight=} and {other.spin_weight=})."
             )
 
+        self._require_compatibility(other)
+
         ell_min = min(self.ell_min, other.ell_min)
         ell_max = max(self.ell_max, other.ell_max)
+
+        n_modes = spherical.Ysize(ell_min, ell_max)
+        shape = list(np.broadcast_shapes(self.shape, other.shape))
+        shape[self.modes_axis] = n_modes
+        result = np.zeros(shape, dtype=np.result_type(self, other))
 
         # Compute slices into `result` corresponding to `self` and `other`'s modes axes
         slice_1 = slice(
@@ -179,21 +186,13 @@ class WaveformModes(WaveformMixin, TimeSeries):
             spherical.Yindex(other.ell_max, other.ell_max, ell_min) + 1,
         )
 
-        if self.time_axis != other.time_axis:
-            other = other.T
-
-        n_modes = spherical.Ysize(ell_min, ell_max)
-        shape = list(np.broadcast_shapes(self.shape, other.shape))
-        shape[self.modes_axis] = n_modes
-        result = np.zeros(shape, dtype=np.result_type(self, other))
-
         idx1 = [slice(None)] * self.ndim
         idx1[self.modes_axis] = slice_1
         idx2 = [slice(None)] * other.ndim
         idx2[other.modes_axis] = slice_2
 
-        result[idx1] += self.data
-        result[idx2] += other.data
+        result[tuple(idx1)] += self.data
+        result[tuple(idx2)] += other.data
 
         metadata = self._metadata.copy()
         metadata.update(
@@ -224,64 +223,67 @@ class WaveformModes(WaveformMixin, TimeSeries):
         """Multiplication method for two WaveformModes object.
 
         First it checks if the two objects are compatible for multiplication
-        using the `_is_compatible` method.
+        using the `_require_compatibility` method.
         The output `ell_max` is determined by the `multiplication_truncator`
         attribute. The left operand's truncator takes priority; if absent, the
         right operand's truncator is used; if both are absent, it defaults to
         the sum of the two `ell_max`.
+        ----
+        Note that the `modes_axis` of self and other should be the last axis of
+        the WaveformModes data as per spherical.multiply, otherwise it raises a
+        ValueError.
         """
         if not isinstance(other, type(self)):
             return super().__mul__(other)
 
-        self._is_compatible(other)
+        if self.modes_axis != self.ndim - 1:
+            raise ValueError(
+                f"The modes_axis of self and other should be the last axis of the data (ndim-1={self.ndim - 1}), rather it is {self.modes_axis}."
+            )
 
-        time_axis = self.time_axis
+        self._require_compatibility(other)
 
         self_ell_max = self.multiplication_truncator((self.ell_max, other.ell_max))
         other_ell_max = other.multiplication_truncator((self.ell_max, other.ell_max))
+
         if self_ell_max >= other_ell_max:
             truncator = self.multiplication_truncator
             new_ell_max = self_ell_max
         else:
-        	truncator = other.multiplication_truncator
-        	new_ell_max = other_ell_max
-        end
+            truncator = other.multiplication_truncator
+            new_ell_max = other_ell_max
 
-        modes12_data, modes12_ellmin, modes12_ellmax, modes12_spin = spherical.multiply(
-            left_WM,
-            left_WM.ell_min,
-            left_WM.ell_max,
-            left_WM.spin_weight,
-            right_WM,
-            right_WM.ell_min,
-            right_WM.ell_max,
-            right_WM.spin_weight,
-            ellmax_fg=new_ell_max
-        )
-
+        modes12_spin = self.spin_weight + other.spin_weight
         ell_min = abs(modes12_spin)
 
-        if ell_min > modes12_ellmax:
-            raise ValueError(f"ell_min ({ell_min}) of the product self*other exceeds ell_max ({modes12_ellmax}), resulting in no valid modes.")
+        if ell_min > new_ell_max:
+            raise ValueError(f"ell_min ({ell_min}) of the product self*other exceeds ell_max ({new_ell_max}), resulting in no valid modes.")
+
+        modes12_data, modes12_ellmin, new_ell_max, modes12_spin = spherical.multiply(
+            self,
+            self.ell_min,
+            self.ell_max,
+            self.spin_weight,
+            other,
+            other.ell_min,
+            other.ell_max,
+            other.spin_weight,
+            ellmax_fg=new_ell_max
+        )
 
         start_idx = spherical.Yindex(ell_min, - ell_min, modes12_ellmin)
 
         modes_data = modes12_data[..., start_idx: ]
 
-        result = type(self)(
-                modes_data,
-                time=self.time,
-                time_axis=self.time_axis,
-                ell_min=ell_min,
-                ell_max=modes12_ellmax,
-                modes_axis=self.modes_axis,
-                spin_weight=modes12_spin,
-                frame=self.frame,
-                frame_type=self.frame_type,
-                multiplication_truncator=truncator
-            )
+        metadata = self._metadata.copy()
+        metadata.update(
+            ell_min=ell_min,
+            ell_max=new_ell_max,
+            spin_weight=modes12_spin,
+            multiplication_truncator=truncator
+        )
 
-        return result
+        return type(self)(modes_data, **metadata)
 
     def __truediv__(self, other):
         """Division of two WaveformModes object.
@@ -291,7 +293,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         else:
             return super().__truediv__(other)
 
-    def _is_compatible(self,other):
+    def _require_compatibility(self,other):
         """Helper function to check if two waveform modes are compatible for
         algebraic operations."""
         if self.frame_type!=other.frame_type:
@@ -302,8 +304,10 @@ class WaveformModes(WaveformMixin, TimeSeries):
             raise ValueError(f"Both waveforms must have identical frame arrays.")
         if not np.array_equal(self.time, other.time):
             raise ValueError(f"Both waveforms must have identical time arrays.")
-
-        return True
+        if not self.time_axis==other.time_axis:
+            raise ValueError(f"Both waveforms must have identical time_axis.")
+        if not self.modes_axis==other.modes_axis:
+            raise ValueError(f"Both waveforms must have identical modes_axis.")
 
     @property
     def modes_axis(self):
@@ -332,6 +336,10 @@ class WaveformModes(WaveformMixin, TimeSeries):
     def multiplication_truncator(self):
         """Multiplication truncator stored in the data"""
         return self._metadata.get("multiplication_truncator", max)
+
+    @multiplication_truncator.setter
+    def multiplication_truncation(self, truncator_prm):
+        self._metadata["multiplication_truncator"] = truncator_prm
 
     @property
     def n_modes(self):
