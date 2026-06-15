@@ -169,27 +169,28 @@ class WaveformModes(WaveformMixin, TimeSeries):
         ell_min = min(self.ell_min, other.ell_min)
         ell_max = max(self.ell_max, other.ell_max)
 
+        # Compute slices into `result` corresponding to `self` and `other`'s modes axes
         slice_1 = slice(
             spherical.Yindex(self.ell_min, -self.ell_min, ell_min),
-            spherical.Yindex(self.ell_max + 1, -(self.ell_max + 1), ell_min),
+            spherical.Yindex(self.ell_max, self.ell_max, ell_min) + 1,
         )
-
         slice_2 = slice(
             spherical.Yindex(other.ell_min, -other.ell_min, ell_min),
-            spherical.Yindex(other.ell_max + 1, -(other.ell_max + 1), ell_min),
+            spherical.Yindex(other.ell_max, other.ell_max, ell_min) + 1,
         )
 
         if self.time_axis != other.time_axis:
             other = other.T
 
         n_modes = spherical.Ysize(ell_min, ell_max)
-        n_times = self.n_times
+        shape = list(np.broadcast_shapes(self.shape, other.shape))
+        shape[self.modes_axis] = n_modes
+        result = np.zeros(shape, dtype=np.result_type(self, other))
 
-        shape = (n_times, n_modes) if self.time_axis==0 else (n_modes, n_times)
-        result = np.zeros(shape, dtype=self.dtype)
-
-        idx1 = (slice(None), slice_1) if self.time_axis == 0 else (slice_1, slice(None))
-        idx2 = (slice(None), slice_2) if self.time_axis == 0 else (slice_2, slice(None))
+        idx1 = [slice(None)] * self.ndim
+        idx1[self.modes_axis] = slice_1
+        idx2 = [slice(None)] * other.ndim
+        idx2[other.modes_axis] = slice_2
 
         result[idx1] += self.data
         result[idx2] += other.data
@@ -201,7 +202,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
             spin_weight=self.spin_weight,
         )
 
-        return type(self)(result, metadata)
+        return type(self)(result, **metadata)
 
     def __neg__(self):
         """Return a new WaveformModes object with negated data.
@@ -236,11 +237,15 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         time_axis = self.time_axis
 
-        left_WM = self if self.time_axis == 0 else self.T
-        right_WM = other if other.time_axis == 0 else other.T
-
-        truncator = left_WM.multiplication_truncator or right_WM.multiplication_truncator or sum
-        new_ell_max = truncator((left_WM.ell_max, right_WM.ell_max))
+        self_ell_max = self.multiplication_truncator((self.ell_max, other.ell_max))
+        other_ell_max = other.multiplication_truncator((self.ell_max, other.ell_max))
+        if self_ell_max >= other_ell_max:
+            truncator = self.multiplication_truncator
+            new_ell_max = self_ell_max
+        else:
+        	truncator = other.multiplication_truncator
+        	new_ell_max = other_ell_max
+        end
 
         modes12_data, modes12_ellmin, modes12_ellmax, modes12_spin = spherical.multiply(
             left_WM,
@@ -261,23 +266,20 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         start_idx = spherical.Yindex(ell_min, - ell_min, modes12_ellmin)
 
-        modes_data = modes12_data[:, start_idx: ]
+        modes_data = modes12_data[..., start_idx: ]
 
         result = type(self)(
                 modes_data,
                 time=self.time,
-                time_axis=0,
+                time_axis=self.time_axis,
                 ell_min=ell_min,
                 ell_max=modes12_ellmax,
-                modes_axis=1,
+                modes_axis=self.modes_axis,
                 spin_weight=modes12_spin,
                 frame=self.frame,
                 frame_type=self.frame_type,
                 multiplication_truncator=truncator
             )
-
-        if time_axis != 0:
-            result = result.T
 
         return result
 
@@ -329,7 +331,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
     @property
     def multiplication_truncator(self):
         """Multiplication truncator stored in the data"""
-        return self._metadata.get("multiplication_truncator", None)
+        return self._metadata.get("multiplication_truncator", max)
 
     @property
     def n_modes(self):
