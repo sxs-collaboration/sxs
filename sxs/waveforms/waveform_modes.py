@@ -194,7 +194,14 @@ class WaveformModes(WaveformMixin, TimeSeries):
         result[idx1] += self.data
         result[idx2] += other.data
 
-        return type(self)(result, **self._metadata)
+        metadata = self._metadata.copy()
+        metadata.update(
+            ell_min=ell_min,
+            ell_max=ell_max,
+            spin_weight=self.spin_weight,
+        )
+
+        return type(self)(result, metadata)
 
     def __neg__(self):
         """Return a new WaveformModes object with negated data.
