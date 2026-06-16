@@ -172,7 +172,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         ell_max = max(self.ell_max, other.ell_max)
 
         n_modes = spherical.Ysize(ell_min, ell_max)
-        shape = list(np.broadcast_shapes(self.shape, other.shape))
+        shape = list(self.shape)
         shape[self.modes_axis] = n_modes
         result = np.zeros(shape, dtype=np.result_type(self, other))
 
@@ -230,8 +230,8 @@ class WaveformModes(WaveformMixin, TimeSeries):
         the sum of the two `ell_max`.
         ----
         Note that the `modes_axis` of self and other should be the last axis of
-        the WaveformModes data as per spherical.multiply, otherwise it raises a
-        ValueError.
+        the WaveformModes data as per spherical.multiply, otherwise a
+        ValueError is raised.
         """
         if not isinstance(other, type(self)):
             return super().__mul__(other)
