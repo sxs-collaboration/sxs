@@ -1551,33 +1551,6 @@ class WaveformModes(WaveformMixin, TimeSeries):
 
         return h_without_memory
 
-    def transpose(self):
-        """Return a waveform modes object with transposed data.
-
-        The resulting object will have a transposed data array with time_axis
-        and modes_axis swapped.
-        """
-        return type(self)(
-            self.data.T,
-            time=self.time,
-            time_axis=self.modes_axis,
-            ell_min=self.ell_min,
-            ell_max=self.ell_max,
-            modes_axis=self.time_axis,
-            spin_weight=self.spin_weight,
-            frame=self.frame,
-            frame_type=self.frame_type,
-            multiplication_truncator=self.multiplication_truncator
-        )
-
-    @property
-    def T(self):
-        """Returns the transpose of this waveform modes object.
-
-        Equivalent to calling transpose(). See transpose() for details.
-        """
-        return self.transpose()
-
 class WaveformModesDict(MutableMapping, WaveformModes):
     """A dictionary-like class for storing waveform modes
 
