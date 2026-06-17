@@ -338,7 +338,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         return self._metadata.get("multiplication_truncator", max)
 
     @multiplication_truncator.setter
-    def multiplication_truncation(self, truncator_prm):
+    def multiplication_truncator(self, truncator_prm):
         self._metadata["multiplication_truncator"] = truncator_prm
 
     @property
