@@ -8,6 +8,11 @@ from .sxs_identifiers import sxs_path_re
 
 _platform_system = platform.system()
 
+# RIT IDs (e.g., "RIT:BBH:0084" or "RIT:eBBH:1234") also contain colons that are
+# incompatible with Windows file systems.  Unlike SXS IDs, these are not matched
+# by `sxs_path_re`, so we handle them with a dedicated pattern.
+rit_path_re = re.compile(r"RIT:[a-zA-Z]+:[0-9]+")
+
 
 def sxs_path_to_system_path(path):
     r"""Translate SXS path to a system-compatible path
@@ -16,18 +21,21 @@ def sxs_path_to_system_path(path):
     ----------
     path : str
         SXS-style path to a file — for example, r"SXS:BBH:0123\Lev4:Horizons.h5"
-        becomes r"SXS_BBH_0123\Lev4_Horizons.h5" on Windows.  Other systems can
-        handle the original path, so are not changed.
+        becomes r"SXS_BBH_0123\Lev4_Horizons.h5" on Windows.  Similarly, RIT-style
+        paths like r"RIT:BBH:0084\..." become r"RIT_BBH_0084\..." on Windows.
+        Other systems can handle the original path, so are not changed.
 
     Notes
     -----
-    SXS-style paths begin with SXS IDs, which contain colon characters.  These
+    SXS- and RIT-style paths begin with IDs that contain colon characters.  These
     colons are incompatible with Windows file systems, so we simply replace the
-    colons with underscores.
+    colons within the IDs with underscores.
 
     """
     if _platform_system == "Windows":
-        return sxs_path_re.sub(lambda s: s.group(0).replace(":", "_"), str(path))
+        path = sxs_path_re.sub(lambda s: s.group(0).replace(":", "_"), str(path))
+        path = rit_path_re.sub(lambda s: s.group(0).replace(":", "_"), path)
+        return path
     else:
         return path
 
