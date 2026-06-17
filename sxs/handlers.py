@@ -261,6 +261,19 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
     if progress is None:
         progress = read_config("download_progress", True)
 
+    # Check for reserved keywords *first*, and return the
+    # corresponding object immediately.  These are pure string
+    # dispatches that consult neither a local path nor `truepath`, so
+    # they must take precedence; otherwise a file or directory in the
+    # current working directory that happens to share one of these
+    # names (e.g., "simulations") would shadow the keyword and fail to
+    # load.
+    if location == "catalog":
+        return Catalog.load(download=download)
+
+    if location in ["simulations", "dataframe", "RITsimulations", "RITdataframe", "MAYAsimulations", "MAYAdataframe"]:
+        return sxscatalog.load(location, download=download, **kwargs)
+
     # We set the cache path to be persistent if `cache` is `True` or `None`.  Thus,
     # we test for whether or not `cache` literally *is* `False`, rather than just
     # if it casts to `False`.
@@ -279,12 +292,6 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
 
         elif _safe_resolve_exists(path):
             pass  # We already have the correct path
-
-        elif location == "catalog":
-            return Catalog.load(download=download)
-
-        elif location in ["simulations", "dataframe", "RITsimulations", "RITdataframe", "MAYAsimulations", "MAYAdataframe"]:
-            return sxscatalog.load(location, download=download, **kwargs)
 
         elif _safe_resolve_exists(h5_path):
             path = h5_path
