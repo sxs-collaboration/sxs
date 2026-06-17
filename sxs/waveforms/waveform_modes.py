@@ -220,14 +220,16 @@ class WaveformModes(WaveformMixin, TimeSeries):
         return self + (-other)
 
     def __mul__(self, other):
-        """Multiplication method for two WaveformModes object.
+        """Multiplication method for two WaveformModes object; falls back to
+        the parent class if `other` is not a WaveformModes instance.
 
         First it checks if the two objects are compatible for multiplication
-        using the `_require_compatibility` method.
-        The output `ell_max` is determined by the `multiplication_truncator`
-        attribute. The left operand's truncator takes priority; if absent, the
-        right operand's truncator is used; if both are absent, it defaults to
-        the sum of the two `ell_max`.
+        using the `_require_compatibility` method and `modes_axis` of the
+        data.
+        The product `ell_max` and `multiplication_truncator` are determined by
+        applying each operand's `multiplication_truncator` to `(self.ell_max,
+        other.ell_max)`, and selecting the operand whose truncator yields the
+        larger result.
         ----
         Note that the `modes_axis` of self and other should be the last axis of
         the WaveformModes data as per spherical.multiply, otherwise a
@@ -236,12 +238,12 @@ class WaveformModes(WaveformMixin, TimeSeries):
         if not isinstance(other, type(self)):
             return super().__mul__(other)
 
+        self._require_compatibility(other)
+
         if self.modes_axis != self.ndim - 1:
             raise ValueError(
                 f"The modes_axis of self and other should be the last axis of the data (ndim-1={self.ndim - 1}), rather it is {self.modes_axis}."
             )
-
-        self._require_compatibility(other)
 
         self_ell_max = self.multiplication_truncator((self.ell_max, other.ell_max))
         other_ell_max = other.multiplication_truncator((self.ell_max, other.ell_max))
