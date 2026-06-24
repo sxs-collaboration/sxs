@@ -171,7 +171,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         ell_min = min(self.ell_min, other.ell_min)
         ell_max = max(self.ell_max, other.ell_max)
 
-        n_modes = spherical.Ysize(ell_min, ell_max)
+        n_modes = max(self.n_modes, other.n_modes)
         shape = list(self.shape)
         shape[self.modes_axis] = n_modes
         result = np.zeros(shape, dtype=np.result_type(self, other))
@@ -245,15 +245,15 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 f"The modes_axis of self and other should be the last axis of the data (ndim-1={self.ndim - 1}), rather it is {self.modes_axis}."
             )
 
-        self_ell_max = self.multiplication_truncator((self.ell_max, other.ell_max))
-        other_ell_max = other.multiplication_truncator((self.ell_max, other.ell_max))
+        self_new_ell_max = self.multiplication_truncator((self.ell_max, other.ell_max))
+        other_new_ell_max = other.multiplication_truncator((self.ell_max, other.ell_max))
 
-        if self_ell_max >= other_ell_max:
+        if self_new_ell_max >= other_new_ell_max:
             truncator = self.multiplication_truncator
-            new_ell_max = self_ell_max
+            new_ell_max = self_new_ell_max
         else:
             truncator = other.multiplication_truncator
-            new_ell_max = other_ell_max
+            new_ell_max = other_new_ell_max
 
         modes12_spin = self.spin_weight + other.spin_weight
         ell_min = abs(modes12_spin)
