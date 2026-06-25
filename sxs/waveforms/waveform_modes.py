@@ -171,7 +171,7 @@ class WaveformModes(WaveformMixin, TimeSeries):
         ell_min = min(self.ell_min, other.ell_min)
         ell_max = max(self.ell_max, other.ell_max)
 
-        n_modes = max(self.n_modes, other.n_modes)
+        n_modes = spherical.Ysize(ell_min, ell_max)
         shape = list(self.shape)
         shape[self.modes_axis] = n_modes
         result = np.zeros(shape, dtype=np.result_type(self, other))
