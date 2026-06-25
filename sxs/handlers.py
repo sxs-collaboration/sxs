@@ -207,12 +207,21 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
       2) Given an absolute or relative path to a local file, it just
          loads the data directly.
 
-      3) If `location` is one of "simulations" or "dataframe" (or the
+      3.a) If `location` is one of "simulations" or "dataframe" (or the
          deprecated "catalog"), the corresponding catalog data is
          loaded.  The "simulations" option returns a dictionary mapping
          SXS IDs to raw metadata, while "dataframe" returns a pandas
          DataFrame indexed by SXS ID, but the metadata is processed
          into more consistent form.
+
+      3.b) If `location` is one of "RITsimulations" or "RITdataframe" or
+         "MAYAsimulations" or "MAYAdataframe", the corresponding catalog data is
+         loaded. See `sxscatalog.simulations.rit_maya_simulations` for more
+         details on the class used to load these catalogs.
+
+         See the documentation for `sxscatalog.load()` for additional kwargs,
+         which can be passed alongside a location value of "simulations",
+         "dataframe", "RITsimulations", "MAYAsimulations", or "MAYAdataframe".
 
       4) If `location` is a valid URL including the scheme (https://,
          or http://), it will be downloaded regardless of the
@@ -222,6 +231,8 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
          "SXS:BBH:1234v2.0", "SXS:BBH:1234/Lev5", or
          "SXS:BBH:1234v2.0/Lev5" — the simulation is loaded as an
          `sxs.Simulation` object.
+         See the docs for `sxs.Simulation` for additional kwargs that can be
+         passed to this function.
 
       6) Given an SXS path — like
          "SXS:BBH:1234/Lev5/h_Extrapolated_N2.h5" — the file is
@@ -237,6 +248,8 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
       8) Given an RIT simulation specification — like "RIT:BBH:1234" or
          "RIT:eBBH:1234" — the simulation is loaded as an
          `sxs.RITSimulation` object.
+         See the docs for `sxs.RITSimulation` for additional kwargs that can be
+         passed to this function.
 
     If the file is downloaded, it will be stored in the cache
     according to the `location`, unless `truepath` is set as noted
