@@ -68,7 +68,7 @@ def RITSimulation(location, *args, **kwargs):
     series = simulations.dataframe.loc[rit_id]
     metadata = simulations[rit_id]
 
-    resolution_tags = metadata.resolution_tags if "resolution_tags" in metadata else [metadata.resolution_tag]
+    resolution_tags = metadata.get("resolution_tags", [metadata.resolution_tag])
 
     if resolution_tag is not None and resolution_tag not in resolution_tags:
         raise ValueError(
@@ -90,7 +90,7 @@ def RITSimulation(location, *args, **kwargs):
     }
         metadata.update(files=files)
 
-    files = {k: v for k,v in metadata.files.items() if k.startswith(f"{resolution_tag}")}
+    files = {k: v for k,v in metadata.files.items() if k.startswith(resolution_tag)}
 
     # There aren't multiple versions of the same simulation.
     # Hence, we set version to be the version of the latest catalog.
