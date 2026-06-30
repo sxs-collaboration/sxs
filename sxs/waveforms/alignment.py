@@ -1,3 +1,5 @@
+from itertools import repeat
+
 import numpy as np
 
 import quaternionic
@@ -5,9 +7,45 @@ import quaternionic
 from scipy.integrate import trapezoid
 
 import multiprocessing as mp
-from functools import partial
 
 from .norms import L2_difference
+
+
+# Helpers for the multiprocessing brute-force searches in `align2d`/`align4d`.
+#
+# The cost-function arguments include a `scipy.interpolate.CubicSpline` object,
+# which is not picklable: scipy caches the array-namespace *module* on the
+# instance, and modules cannot be pickled.  So we cannot send the cost function
+# through `Pool.map` directly (as the old `functools.partial` wrapper did).
+#
+# However, the spline's underlying data — the breakpoints `.x` and coefficients
+# `.c` — are plain, picklable numpy arrays, and `PPoly.construct_fast` rebuilds
+# an identical spline from them with no solve (and no array copy).  So we send
+# the picklable form of the arguments to the workers and let each worker
+# reconstruct the spline as needed.  This works under any start method
+# ("spawn", "fork", "forkserver"), so no platform-specific handling is needed.
+
+
+def _picklable_args(args):
+    """Replace the leading (unpicklable) spline in a cost `args` tuple with its arrays."""
+    spline = args[0]
+    return ((spline.c, spline.x, spline.extrapolate, spline.axis), *args[1:])
+
+
+def _reconstruct_args(args):
+    """Inverse of `_picklable_args`: rebuild the spline from its arrays (no solve)."""
+    from scipy.interpolate import PPoly
+
+    c, x, extrapolate, axis = args[0]
+    return (PPoly.construct_fast(c, x, extrapolate=extrapolate, axis=axis), *args[1:])
+
+
+def _worker_cost2d(δt_δϕ, args):
+    return _cost2d(δt_δϕ, _reconstruct_args(args))
+
+
+def _worker_cost4d(δt_δso3, args):
+    return _cost4d(δt_δso3, _reconstruct_args(args))
 
 
 def align1d(wa, wb, t1, t2, n_brute_force=None):
@@ -277,23 +315,29 @@ def align2d(
     if use_δΨ:
         δΨ_factors = [-1, +1]
     for δΨ_factor in δΨ_factors:
-        # Optimize by brute force with multiprocessing
-        cost_wrapper = partial(_cost2d, args=[modes_A, modes_B, t_reference, m, δΨ_factor, normalization])
+        # `_cost2d` takes the variable offset plus these shared arguments.  Note
+        # that `args[0]` (the spline) is unpicklable, so the worker pool is fed
+        # `_picklable_args(args)` and each worker reconstructs the spline (see
+        # `_worker_cost2d`); the serial path and the `least_squares` call below
+        # use the spline directly via `args`.
+        args = (modes_A, modes_B, t_reference, m, δΨ_factor, normalization)
 
+        # Optimize by brute force, in parallel unless multiprocessing is disabled
         if nprocs != -1:
             if nprocs is None:
                 nprocs = mp.cpu_count()
-            pool = mp.Pool(processes=nprocs)
-            cost_brute_force = pool.map(cost_wrapper, δt_δϕ_brute_force)
-            pool.close()
-            pool.join()
+            picklable_args = _picklable_args(args)
+            with mp.Pool(processes=nprocs) as pool:
+                cost_brute_force = pool.starmap(_worker_cost2d, zip(δt_δϕ_brute_force, repeat(picklable_args)))
         else:
-            cost_brute_force = [cost_wrapper(δt_δϕ_brute_force_item) for δt_δϕ_brute_force_item in δt_δϕ_brute_force]
+            cost_brute_force = [_cost2d(δt_δϕ_brute_force_item, args) for δt_δϕ_brute_force_item in δt_δϕ_brute_force]
 
         δt_δϕ = δt_δϕ_brute_force[np.argmin(cost_brute_force)]
 
         # Optimize explicitly
-        optimum = least_squares(cost_wrapper, δt_δϕ, bounds=[(δt_lower, 0), (δt_upper, 2 * np.pi)], max_nfev=50000)
+        optimum = least_squares(
+            _cost2d, δt_δϕ, args=(args,), bounds=[(δt_lower, 0), (δt_upper, 2 * np.pi)], max_nfev=50000
+        )
         optimums.append(optimum)
         δt, δϕ = optimum.x
 
@@ -507,25 +551,30 @@ def align4d(
         t_reference,
     )
 
-    # Optimize by brute force with multiprocessing
-    cost_wrapper = partial(_cost4d, args=[modes_A, modes_B, t_reference, normalization])
+    # `_cost4d` takes the variable offset plus these shared arguments.  Note that
+    # `args[0]` (the spline) is unpicklable, so the worker pool is fed
+    # `_picklable_args(args)` and each worker reconstructs the spline (see
+    # `_worker_cost4d`); the serial path and the `least_squares` call below use
+    # the spline directly via `args`.
+    args = (modes_A, modes_B, t_reference, normalization)
 
+    # Optimize by brute force, in parallel unless multiprocessing is disabled
     if nprocs != -1:
         if nprocs is None:
             nprocs = mp.cpu_count()
-        pool = mp.Pool(processes=nprocs)
-        cost_brute_force = pool.map(cost_wrapper, δt_δso3_brute_force)
-        pool.close()
-        pool.join()
+        picklable_args = _picklable_args(args)
+        with mp.Pool(processes=nprocs) as pool:
+            cost_brute_force = pool.starmap(_worker_cost4d, zip(δt_δso3_brute_force, repeat(picklable_args)))
     else:
-        cost_brute_force = [cost_wrapper(δt_δso3_brute_force_item) for δt_δso3_brute_force_item in δt_δso3_brute_force]
+        cost_brute_force = [_cost4d(δt_δso3_brute_force_item, args) for δt_δso3_brute_force_item in δt_δso3_brute_force]
 
     δt_δso3 = δt_δso3_brute_force[np.argmin(cost_brute_force)]
 
     # Optimize explicitly
     optimum = least_squares(
-        cost_wrapper,
+        _cost4d,
         δt_δso3,
+        args=(args,),
         bounds=[(δt_lower, -np.pi / 2, -np.pi / 2, -np.pi / 2), (δt_upper, np.pi / 2, np.pi / 2, np.pi / 2)],
         max_nfev=50000,
     )
