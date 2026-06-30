@@ -70,22 +70,25 @@ def RITSimulation(location, *args, **kwargs):
 
     resolution_tags = metadata.get("resolution_tags", [metadata.resolution_tag])
 
-    if resolution_tag is not None and resolution_tag not in resolution_tags:
-        raise ValueError(
-                f"Resolution tag '{resolution_tag}' not found in simulation files for {rit_id}."
-            )
-
     # If res is given as part of `location` use it; otherwise, use the highest
     # available.
     if resolution_tag is None:
         resolution_tag = max(resolution_tags, key = lambda r: int(r[1:]))
 
+    if resolution_tag not in resolution_tags:
+        raise ValueError(
+                f"Resolution tag '{resolution_tag}' not found in simulation files for {rit_id}."
+            )
+
+
     location = f"{rit_id}/{resolution_tag}"
 
+    # This adds "files" key to the metadata for backwards compatibility with v4
+    # tag of RITSimulations.json.
     if "files" not in metadata:
         files = {
         f"{resolution_tag}:extrap_strain.h5 ": {"link": metadata.extrap_strain_url},
-        f"{resolution_tag}:extrap_psi4.h5": {"link": metadata.extrap_psi4_url},
+        f"{resolution_tag}:extrap_psi4.tar.gz": {"link": metadata.extrap_psi4_url},
         f"{resolution_tag}:metadata.txt": {"link": metadata.metadata_url},
     }
         metadata.update(files=files)
