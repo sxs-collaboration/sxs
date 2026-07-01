@@ -14,6 +14,12 @@ concurrency:
 env:
   PYTHONUNBUFFERED: "1"
   FORCE_COLOR: "1"
+  # Force uv (and hatch, which installs via uv here) to use managed
+  # python-build-standalone interpreters rather than any distro Python.
+  # Ubuntu 24.04 ships a system python3.12 linked against OpenSSL 3.0, but
+  # juliapkg refuses Julia >=1.12 unless the running Python's OpenSSL is >=3.5
+  # (Julia 1.12 requires OpenSSL 3.5). Managed builds ship OpenSSL >=3.5.
+  UV_PYTHON_PREFERENCE: "only-managed"
 
 jobs:
 
