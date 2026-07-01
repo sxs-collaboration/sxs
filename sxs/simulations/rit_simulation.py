@@ -35,7 +35,7 @@ def RITSimulation(location, *args, **kwargs):
     "RIT:eBBH:xxxx". It must exist, or no files will be found to load the data
     from.
 
-    The returned object will be a `RITSimulation_v4` object.
+    The returned object will be a `RITSimulation_v5` object.
 
     Parameters
     ----------
@@ -46,7 +46,7 @@ def RITSimulation(location, *args, **kwargs):
     Returns
     -------
     simulation : SimulationBase
-        An `RITSimulation_v4` object.
+        An `RITSimulation_v5` object.
 
     Note that all remaining arguments (including keyword arguments)
     are passed on to the `SimulationBase` constructors.
@@ -69,36 +69,30 @@ def RITSimulation(location, *args, **kwargs):
     metadata = simulations[rit_id]
 
     resolution_tags = metadata.get("resolution_tags", [metadata.resolution_tag])
-
+    max_resolution_tag = max(resolution_tags)
     # If res is given as part of `location` use it; otherwise, use the highest
     # available.
     if resolution_tag is None:
-        resolution_tag = max(resolution_tags, key = lambda r: int(r[1:]))
+        resolution_tag = max_resolution_tag
 
     if resolution_tag not in resolution_tags:
         raise ValueError(
                 f"Resolution tag '{resolution_tag}' not found in simulation files for {rit_id}."
             )
 
-
     location = f"{rit_id}/{resolution_tag}"
 
-    # This adds "files" key to the metadata for backwards compatibility with v4
-    # tag of RITSimulations.json.
-    if "files" not in metadata:
-        files = {
-        f"{resolution_tag}:extrap_strain.h5 ": {"link": metadata.extrap_strain_url},
-        f"{resolution_tag}:extrap_psi4.tar.gz": {"link": metadata.extrap_psi4_url},
-        f"{resolution_tag}:metadata.txt": {"link": metadata.metadata_url},
-    }
-        metadata.update(files=files)
+    files = metadata.files
 
-    files = {k: v for k,v in metadata.files.items() if k.startswith(resolution_tag)}
+    # Keep the metadata around unless we're asking for a lower res_tag
+    if (resolution_tag != max_resolution_tag):
+        metadata = None
 
     # There aren't multiple versions of the same simulation.
     # Hence, we set version to be the version of the latest catalog.
     version = "v5.0"
     sim = RITSimulation_v5(
+        metadata,
         series,
         version,
         rit_id,
@@ -195,7 +189,7 @@ class RITSimulation_v5(RITSimulation_v4):
     also `RITSimulation_v4` for the base class that this class inherits
     from.
     """
-    def __init__(self, series, version, rit_id, files, location, resolution_tag, resolution_tags, *args, **kwargs):
+    def __init__(self, metadata, series, version, rit_id, files, location, resolution_tag, resolution_tags, *args, **kwargs):
         self.series = series
         self.version = version
         self.rit_id = rit_id
@@ -203,7 +197,7 @@ class RITSimulation_v5(RITSimulation_v4):
         self.files = files
         self.resolution_tag = resolution_tag
         self.resolution_tags = resolution_tags
-        self.metadata = self.load_metadata()
+        self.metadata = metadata or self.load_metadata()
 
     @property
     def metadata_path(self):
@@ -230,23 +224,38 @@ class RITSimulation_v5(RITSimulation_v4):
         return metadata
 
     @property
-    def strain(self):
-        if not hasattr(self, "_strain"):
-            from ..waveforms import lvcnr
+    def strain_path(self):
+        if (fn:=f"{self.resolution_tag}:extrap_strain.h5") in self.files:
+            return fn
+        raise ValueError(
+            f"Strain file not found in simulation files for {self.location}"
+        )
 
-            strain_url = self.files[f"{self.resolution_tag}:extrap_strain.h5"]["link"]
-            strain_path = urllib.parse.urlparse(strain_url).path
-            filename = PurePosixPath(strain_path).name
-            location = Path(sxs_path_to_system_path(self.location))
+    def load_waveform(self, file_name):
+        from ..waveforms import lvcnr
 
-            path = sxs_directory("cache") / location / filename
+        strain_url = self.files.get(file_name)["link"]
+        strain_path = urllib.parse.urlparse(strain_url).path
+        filename = PurePosixPath(strain_path).name
+        location = Path(sxs_path_to_system_path(self.location))
 
-            if not path.exists():
-                download_file(strain_url, path)
+        path = sxs_directory("cache") / location / filename
 
-            w = lvcnr.load(path)
-            w.metadata = self.metadata
+        if not path.exists():
+            download_file(strain_url, path)
 
-            self._strain = w
+        w = lvcnr.load(path)
+        w.metadata = self.metadata
+
+        self._strain = w
         return self._strain
 
+    @property
+    def strain(self):
+        if not hasattr(self, "_strain"):
+            self._strain = self.load_waveform(self.strain_path)
+        return self._strain
+
+    Strain = strain
+    h = strain
+    H = strain
