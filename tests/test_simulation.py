@@ -293,10 +293,9 @@ def test_issue_116():
 
 
 @skip_macOS_GH_actions_downloads
-def test_sxs_load_rit_v4():
-    s = sxs.load("RIT:BBH:0084")
-    assert s.location == "RIT:BBH:0084"
-    assert s.version == "v4.0"
+def test_sxs_load_rit():
+    s = sxs.load("RIT:BBH:0084/n100")
+    assert s.rit_id == "RIT:BBH:0084"
     s.h
     s.strain
     s.H
