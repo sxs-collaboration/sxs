@@ -316,3 +316,44 @@ def test_rpdmb():
         assert np.array_equal(w2.t, w3.t)
         assert np.array_equal(w2.data, w3.data)
         assert np.array_equal(w2.frame, w3.frame)
+
+def test_type_and_spin_in_modes_addition():
+
+    t = np.linspace(0.,10.,50)
+    n_times = len(t)
+
+    l = 1
+    α_data = np.random.rand(n_times, 2*l+1)
+    α = sxs.WaveformModes(α_data, t, modes_axis=1, ell_min=l, ell_max=l,spin_weight=0)
+
+    ϕ_data = np.zeros_like(α_data)
+
+    with pytest.raises(TypeError):
+        α + ϕ_data
+
+    ϕ = sxs.WaveformModes(ϕ_data, t, modes_axis=1, ell_min=l, ell_max=l,spin_weight=1)
+
+    with pytest.raises(ValueError):
+        α + ϕ
+
+def test_mode_multiplication_with_identity():
+
+    t = np.linspace(0.,10.,50)
+    n_times = len(t)
+
+    l_1 = 1
+    s_1 = 1
+    α_data = np.random.rand(n_times, 2*l_1 + 1)
+    α = sxs.WaveformModes(α_data, t, modes_axis=1, ell_min=l_1, ell_max=l_1, spin_weight=s_1)
+
+    l_2 = 0
+    s_2 = 0
+    ϕ_data = np.full((n_times, 2*l_2+1), np.sqrt(4*np.pi), dtype=complex)
+    ϕ = sxs.WaveformModes(ϕ_data, t, modes_axis=1, ell_min=l_2, ell_max=l_2,spin_weight=s_2)
+
+    #Multiplication by identity
+    β = α * ϕ
+    assert β.spin_weight == s_1 + s_2
+    assert β.ell_min >= abs(s_1 + s_2)
+    assert β.ell_max >= max(l_1, l_2)
+    assert np.allclose(β, α)
