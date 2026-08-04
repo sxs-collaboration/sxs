@@ -6,7 +6,7 @@ from ..utilities import download_file, sxs_directory, sxs_path_to_system_path
 from ..utilities.sxs_identifiers import sep_regex
 import re
 from sxscatalog.utilities import consolidate_xyz_vectors
-from sxscatalog.simulations.rit_maya_simulations import promote_z_3vec, _add_parameters_to_RIT
+from sxscatalog.simulations.rit_maya_simulations import _add_parameters_to_RIT
 
 rit_id_regex = r"(?P<rit_identifier>RIT:BBH:[0-9]+)"
 res_regex = r"(?P<res>n[0-9]+)"
@@ -200,7 +200,6 @@ class RITSimulation_v5(RITSimulation_v4):
         self.resolution_tag = resolution_tag
         self.resolution_tags = resolution_tags
         self.metadata = metadata or self.load_metadata()
-        self._derive_metadata_fields()
 
     @property
     def metadata_path(self):
@@ -227,23 +226,9 @@ class RITSimulation_v5(RITSimulation_v4):
         # This consolidates the xyz components to a vector array when fields are
         # loaded from metadata.txt file.
         metadata = consolidate_xyz_vectors(metadata)
+        metadata = _add_parameters_to_RIT(metadata)
 
         return metadata
-
-    def _derive_metadata_fields(self):
-        """Derive extra RIT metadata fields - 'relaxed_chi1_perp',
-        'relaxed_chi2_perp', and 'relaxed_chi_eff'.
-        """
-        # If there are keys with only z components, they are promoted to 3
-        # vectors here.
-        for key in ["relaxed_chi1", "relaxed_chi2", "initial_bh_chi1", "initial_bh_chi2"]:
-            if key not in self.metadata:
-                self.metadata[key] = promote_z_3vec(self.metadata.pop(key + "z"))
-
-        self.metadata.update(zip(
-            ["relaxed_chi1_perp", "relaxed_chi2_perp", "relaxed_chi_eff"],
-            _add_parameters_to_RIT(self.metadata),
-        ))
 
     @property
     def strain_path(self):
