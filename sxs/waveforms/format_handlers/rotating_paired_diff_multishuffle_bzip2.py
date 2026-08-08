@@ -24,7 +24,8 @@ def save(
         L2norm_fractional_tolerance=1e-10, log_frame=None,
         shuffle_widths=default_shuffle_widths, convert_to_conjugate_pairs=True,
         compression=bz2, diff=diff, formats=None, verbose=True, allow_existing_group=False,
-        version_info_update=None, max_phase_per_timestep=None
+        version_info_update=None, max_phase_per_timestep=None,
+        corotating_frame_tolerance=None,
 ):
     """Save a waveform in RPDMB format
 
@@ -61,6 +62,8 @@ def save(
     L2norm_fractional_tolerance : float, optional
         Tolerance passed to `WaveformModes.truncate`; see that
         function's docstring for details.  Default value is 1e-10.
+        If L2norm_fractional_tolerance is <=0.0 or None, then no
+        truncation is done.
     log_frame : array of quaternions, optional
         If this argument is given the waveform must be in the
         corotating frame, and the given data will be used as the
@@ -70,9 +73,7 @@ def save(
         from the waveform if it is already corotating.
     shuffle_widths : iterable of ints, optional
         See `sxs.utilities.multishuffle` for details.  The default
-        value is `default_shuffle_widths`.  Note that if
-        `L2norm_fractional_tolerance` is 0.0, this will be ignored and
-        the standard HDF5 shuffle option will be used instead.
+        value is `default_shuffle_widths`.
     convert_to_conjugate_pairs : bool, optional
         If `True` (the default), the data is converted to
         conjugate-pair form.
@@ -112,6 +113,9 @@ def save(
         noise won't trigger it, but low enough that the integration
         will still proceed reasonably quickly for anything below this
         threshold.
+    corotating_frame_tolerance : float, optional
+        Tolerance for the transformation to the corotating frame.
+        Default is `L2norm_fractional_tolerance`.
 
     Returns
     -------
@@ -134,6 +138,13 @@ def save(
     if formats is None:
         formats = sxs_formats
 
+    if corotating_frame_tolerance is None:
+        corotating_frame_tolerance = L2norm_fractional_tolerance
+        if L2norm_fractional_tolerance is None or L2norm_fractional_tolerance <=0.0:
+            warning = f"corotating_frame_tolerance has not been specified, so it is defaulting to L2norm_fractional_tolerance.  However, L2norm_fractional_tolerance is {L2norm_fractional_tolerance} which does not make sense as a corotating_frame_tolerance.  You probably want to explicitly set corotating_frame_tolerance."
+            warnings.warn(warning)
+            
+
     # Make sure that we can understand the file_name and create the directory
     group = None
     if file_name is None:
@@ -154,60 +165,57 @@ def save(
 
     shuffle = multishuffle(tuple(shuffle_widths))
 
-    if L2norm_fractional_tolerance is None:
-        log_frame = np.log(w.frame).ndarray[:, 1:]
-    else:
-        # We need this storage anyway, so let's just make a copy and work in-place
-        w = w.copy()
-        if log_frame is not None:
-            log_frame = log_frame.copy()
+    # We need this storage anyway, so let's just make a copy and work in-place
+    w = w.copy()
+    if log_frame is not None:
+        log_frame = log_frame.copy()
 
-        # Ensure waveform is in corotating frame
-        if w.frame_type == "inertial":
-            try:
-                initial_time = w.t[0]
-                relaxation_time = w.metadata.relaxation_time
-                max_norm_time = w.max_norm_time()
-                z_alignment_region = ((relaxation_time - initial_time) / (max_norm_time - initial_time), 0.95)
-            except Exception:
-                z_alignment_region = (0.1, 0.95)
-            try:
-                w, log_frame = w.to_corotating_frame(
-                    tolerance=L2norm_fractional_tolerance,
-                    z_alignment_region=z_alignment_region,
-                    truncate_log_frame=True,
-                    max_phase_per_timestep=max_phase_per_timestep
-                )
-            except ValueError as e:
-                print("\nError transforming to corotating frame:")
-                raise e
-            log_frame = log_frame.ndarray[:, 1:]
-        if w.frame_type != "corotating":
-            raise ValueError(
-                f"Frame type of input waveform must be 'corotating' or 'inertial'; it is {w.frame_type}"
+    # Ensure waveform is in corotating frame
+    if w.frame_type == "inertial":
+        try:
+            initial_time = w.t[0]
+            relaxation_time = w.metadata.relaxation_time
+            max_norm_time = w.max_norm_time()
+            z_alignment_region = ((relaxation_time - initial_time) / (max_norm_time - initial_time), 0.95)
+        except Exception:
+            z_alignment_region = (0.1, 0.95)
+        try:
+            w, log_frame = w.to_corotating_frame(
+                tolerance=corotating_frame_tolerance,
+                z_alignment_region=z_alignment_region,
+                truncate_log_frame=True,
+                max_phase_per_timestep=max_phase_per_timestep
             )
+        except ValueError as e:
+            print("\nError transforming to corotating frame:")
+            raise e
+        log_frame = log_frame.ndarray[:, 1:]
+    if w.frame_type != "corotating":
+        raise ValueError(
+            f"Frame type of input waveform must be 'corotating' or 'inertial'; it is {w.frame_type}"
+        )
 
-        # Convert mode structure to conjugate pairs
-        if convert_to_conjugate_pairs:
-            w.convert_to_conjugate_pairs()
+    # Convert mode structure to conjugate pairs
+    if convert_to_conjugate_pairs:
+        w.convert_to_conjugate_pairs()
 
-        # Set bits below the desired significance level to 0
-        if L2norm_fractional_tolerance > 0.0:
-            w.truncate(tol=L2norm_fractional_tolerance)
+    # Set bits below the desired significance level to 0
+    if L2norm_fractional_tolerance is not None and L2norm_fractional_tolerance > 0.0:
+        w.truncate(tol=L2norm_fractional_tolerance)
 
-        # Compute log(frame)
-        if log_frame is None:
-            log_frame = np.log(w.frame).ndarray[:, 1:]
+    # Compute log(frame)
+    if log_frame is None:
+        log_frame = np.log(w.frame).ndarray[:, 1:]
 
-        # Change -0.0 to 0.0 (~.5% compression for non-precessing systems)
-        w.t += 0.0
-        np.add(w.data, 0.0, out=w.data)  # Use `.data` so WaveformModes doesn't override scalar addition
-        log_frame += 0.0
+    # Change -0.0 to 0.0 (~.5% compression for non-precessing systems)
+    w.t += 0.0
+    np.add(w.data, 0.0, out=w.data)  # Use `.data` so WaveformModes doesn't override scalar addition
+    log_frame += 0.0
 
-        # diff successive instants in time
-        t = xor(w.t)
-        data = diff(w.data.view(float), axis=w.time_axis)
-        log_frame = diff(log_frame, axis=0)
+    # diff successive instants in time
+    t = xor(w.t)
+    data = diff(w.data.view(float), axis=w.time_axis)
+    log_frame = diff(log_frame, axis=0)
 
     # Make sure we have a place to keep all this
     with contextlib.ExitStack() as context:
@@ -227,36 +235,20 @@ def save(
                     g = f.create_group(group)
             else:
                 g = f
-            if L2norm_fractional_tolerance is not None:
-                g.attrs["sxs_format"] = formats[0]
-                g.attrs["n_times"] = w.n_times
-                g.attrs["ell_min"] = w.ell_min
-                g.attrs["ell_max"] = w.ell_max
-                g.attrs["shuffle_widths"] = np.array(shuffle_widths, dtype=np.uint8)
-                data = np.void(
-                    compression.compress(
-                        shuffle(t).tobytes()
-                        + shuffle(data.flatten("F")).tobytes()
-                        + shuffle(log_frame.flatten("F")).tobytes()
-                    )
+
+            g.attrs["sxs_format"] = formats[0]
+            g.attrs["n_times"] = w.n_times
+            g.attrs["ell_min"] = w.ell_min
+            g.attrs["ell_max"] = w.ell_max
+            g.attrs["shuffle_widths"] = np.array(shuffle_widths, dtype=np.uint8)
+            data = np.void(
+                compression.compress(
+                    shuffle(t).tobytes()
+                    + shuffle(data.flatten("F")).tobytes()
+                    + shuffle(log_frame.flatten("F")).tobytes()
                 )
-                g.create_dataset("data", data=data)
-            else:
-                compression_options = {
-                    "compression": "gzip",
-                    "compression_opts": 9,
-                    "shuffle": True,
-                }
-                g.attrs["sxs_format"] = f"{formats[0]}"
-                g.create_dataset("time", data=w.t.view(np.uint64), chunks=(w.n_times,), **compression_options)
-                g.create_dataset("modes", data=w.data.view(np.uint64), chunks=(w.n_times, 1), **compression_options)
-                g["modes"].attrs["ell_min"] = w.ell_min
-                g["modes"].attrs["ell_max"] = w.ell_max
-                g["modes"].attrs["spin_weight"] = w.spin_weight
-                if log_frame.size > 1:
-                    g.create_dataset(
-                        "log_frame", data=log_frame.view(np.uint64), chunks=(w.n_times, 1), **compression_options
-                    )
+            )
+            g.create_dataset("data", data=data)
 
         # Get some numbers for the JSON file
         h5_size = h5_path.stat().st_size
