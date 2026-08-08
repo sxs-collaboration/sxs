@@ -59,6 +59,9 @@ ecosystem = [
   "spinsfast >=2022; sys_platform != 'win32'",
   "scri >=2020.8.18; sys_platform != 'win32'"
 ]
+threading = [
+  "threadpoolctl"
+]
 
 [project.urls]
 Homepage = "https://github.com/sxs-collaboration/sxs"
