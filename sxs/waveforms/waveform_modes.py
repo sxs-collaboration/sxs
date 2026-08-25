@@ -572,8 +572,61 @@ class WaveformModes(WaveformMixin, TimeSeries):
     from spherical.modes.derivatives import (
         Lsquared, Lz, Lplus, Lminus,
         Rsquared, Rz, Rplus, Rminus,
-        eth, ethbar
     )
+
+    @property
+    def eth(self):
+        """Spin-raising derivative operator defined by Newman-Penrose
+        conventions.
+
+        The operator ð was originally defined in
+        https://dx.doi.org/10.1063/1.1931221, but is more completely defined in
+        https://dx.doi.org/10.1063/1.4962723.
+
+        See Also
+        --------
+        ethbar : Conjugate of this operator
+
+        """
+        eth_self = self.Rminus()
+        ell_min = eth_self.ell_min
+        l_min_from_s = abs(eth_self.spin_weight)
+
+        if ell_min == l_min_from_s:
+            return eth_self
+        else:
+            result = eth_self.data[:, eth_self.index(l_min_from_s, -l_min_from_s):]
+            metadata = eth_self._metadata.copy()
+            metadata.update(ell_min=l_min_from_s)
+
+            return type(self)(result, **metadata)
+
+    @property
+    def ethbar(self):
+        """Spin-lowering conjugate-derivative operator defined by Newman-Penrose
+        conventions.
+
+        The operator ð̄  was originally defined in
+        https://dx.doi.org/10.1063/1.1931221, but is more completely defined in
+        https://dx.doi.org/10.1063/1.4962723.
+
+        See Also
+        --------
+        eth : Conjugate of this operator
+
+        """
+        ethbar_self = -self.Rplus()
+        ell_min = ethbar_self.ell_min
+        l_min_from_s = abs(ethbar_self.spin_weight)
+
+        if ell_min == l_min_from_s:
+            return ethbar_self
+        else:
+            result = ethbar_self.data[:, ethbar_self.index(l_min_from_s, -l_min_from_s):]
+            metadata = ethbar_self._metadata.copy()
+            metadata.update(ell_min=l_min_from_s)
+
+            return type(self)(result, **metadata)
 
     @property
     def eth_GHP(self):
