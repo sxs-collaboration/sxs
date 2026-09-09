@@ -357,3 +357,71 @@ def test_mode_multiplication_with_identity():
     assert β.ell_min >= abs(s_1 + s_2)
     assert β.ell_max >= max(l_1, l_2)
     assert np.allclose(β, α)
+
+def test_rpdmb_metadata_in_h5():
+    """Check that the JSON data can live inside the H5 file itself"""
+    import json
+
+    np.random.seed(1234)
+    n_times, ell_min, ell_max = 500, 2, 4
+    t = np.linspace(0.0, 100.0, n_times)
+    omega = 0.1
+    data = np.array([
+        (np.random.rand() + 1j * np.random.rand()) * np.exp(1j * m * omega * t)
+        for ell in range(ell_min, ell_max + 1) for m in range(-ell, ell + 1)
+    ]).T.copy()
+    w = sxs.WaveformModes(
+        data, time=t, time_axis=0, modes_axis=1, ell_min=ell_min, ell_max=ell_max,
+        frame_type="inertial", data_type="h", spin_weight=-2,
+    )
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = pathlib.Path(temp_dir)
+
+        # The default is still to write a separate JSON file
+        with contextlib.redirect_stdout(None):
+            sxs.rpdmb.save(w, temp_dir / "separate", verbose=False)
+        assert (temp_dir / "separate.json").exists()
+        with h5py.File(temp_dir / "separate.h5", "r") as f:
+            assert "metadata.json" not in f
+        with (temp_dir / "separate.json").open("r") as f:
+            separate_json = json.load(f)
+
+        # With `metadata_in_h5`, the JSON data go into the H5 file
+        with contextlib.redirect_stdout(None):
+            sxs.rpdmb.save(w, temp_dir / "combined", verbose=False, metadata_in_h5=True)
+        assert not (temp_dir / "combined.json").exists()
+        with h5py.File(temp_dir / "combined.h5", "r") as f:
+            combined_json = json.loads(f["metadata.json"][()])
+
+        # The two sets of JSON data agree, except for the validation
+        # keys that describe the H5 file as a whole
+        assert combined_json["validation"] == {"n_times": n_times}
+        assert (
+            {k: v for k, v in combined_json.items() if k != "validation"}
+            == {k: v for k, v in separate_json.items() if k != "validation"}
+        )
+
+        # Both layouts load, and give precisely the same results
+        with contextlib.redirect_stdout(None):
+            w1 = sxs.rpdmb.load(temp_dir / "separate", drop_times_before="begin")
+            w2 = sxs.rpdmb.load(temp_dir / "combined", drop_times_before="begin")
+        assert w2.json_data == combined_json
+        assert w2.data_type == w1.data_type == "h"
+        assert w2.spin_weight == w1.spin_weight == -2
+        assert np.array_equal(w1.t, w2.t)
+        assert np.array_equal(w1.data, w2.data)
+        assert np.array_equal(sxs.rpdmb.load_time(temp_dir / "combined"), w2.t)
+
+        # And the same is true when writing into groups
+        for i, group in enumerate(["Y_l2_m2", "Y_l3_m3"]):
+            with contextlib.redirect_stdout(None):
+                sxs.rpdmb.save(
+                    w, f"{temp_dir / 'groups'}.h5/{group}", verbose=False,
+                    file_write_mode="w" if i == 0 else "a", metadata_in_h5=True,
+                )
+        assert not (temp_dir / "groups.json").exists()
+        with contextlib.redirect_stdout(None):
+            w3 = sxs.rpdmb.load(f"{temp_dir / 'groups'}.h5/Y_l3_m3", drop_times_before="begin")
+        assert np.array_equal(w2.t, w3.t)
+        assert np.array_equal(w2.data, w3.data)
