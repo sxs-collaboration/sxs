@@ -57,7 +57,7 @@ def RITSimulation(location, *args, **kwargs):
     from .. import load
 
     # Load the simulation catalog
-    simulations = load("RITsimulations")
+    simulations = load("RITsimulations", tag = kwargs.get("tag", ""))
 
     # Extract the simulation ID and the resolution number
     rit_id, resolution_tag = rit_id_and_resolution_tag(location)
