@@ -4,6 +4,7 @@ import collections
 import logging
 import types
 from math import inf
+from textwrap import dedent
 from enum import Flag, auto
 
 # Possible groups for metadata fields
@@ -81,7 +82,7 @@ metadata_fields = [
         description = "Comma-separated array of alternative names, "
         "longer, more descriptive, and/or indicating the specific "
         "series of simulations this configuration belongs to.  One "
-        "of these alternative names is the `SXS:BBH:dddd' id-number, "
+        "of these alternative names is the `SXS:BBH:dddd` id-number, "
         "which is guaranteed to be unique."
     ),
     MetadataField(
@@ -90,7 +91,7 @@ metadata_fields = [
         intended_type = list[str],
         introduced = 0,
         description = "List of free-form keywords.  Presence of the "
-        "keyword `deprecated' means that this simulation has been "
+        "keyword `deprecated` means that this simulation has been "
         "deprecated."
     ),
     MetadataField(
@@ -179,8 +180,8 @@ metadata_fields = [
         intended_type = str,
         introduced = 0,
         computed = True,
-        description = "Keyword description to identify the object types "
-        "type.  One of {`bh`, `ns`}.",
+        description = "Keyword description to identify the types of both "
+        "objects.  One of {'BHBH', 'BHNS', 'NSNS'}.",
     ),
     MetadataField(
         group = "inputParam",
@@ -188,28 +189,30 @@ metadata_fields = [
         intended_type = str,
         introduced = 0,
         description = "Keyword description to identify the object 1 "
-        "type.  One of {`bh`, `ns`}."
+        "type.  One of {'bh', 'ns'}."
     ),
     MetadataField(
         group = "inputParam",
         name  = "object2",
         intended_type = str,
         introduced = 0,
-        description = "Keyword description to identify the object 1 "
-        "type.  One of {`bh`, `ns`}."
+        description = "Keyword description to identify the object 2 "
+        "type.  One of {'bh', 'ns'}."
     ),
     MetadataField(
         group = "inputParam",
         name  = "initial_data_type",
         intended_type = str,
         introduced = 0,
-        description = "Type of initial data.  One of "
-        "`BBH_CFMS` -- conformally flat, maximal slice; "
-        "`BBH_SKS` -- superposed Kerr-Schild; "
-        "`BBH_SHK` -- superposed harmonic Kerr-Schild [@Varma:2018sqd]; "
-        "`BBH_SSphKS` -- superposed spherical Kerr-Schild [@Chen:2021rtb]; "
-        "`BHNS`; "
-        "`NSNS`."
+        description = dedent("""\
+            Type of initial data.  One of
+
+            - `BBH_CFMS` -- conformally flat, maximal slice;
+            - `BBH_SKS` -- superposed Kerr-Schild;
+            - `BBH_SHK` -- superposed harmonic Kerr-Schild [@Varma:2018sqd];
+            - `BBH_SSphKS` -- superposed spherical Kerr-Schild [@Chen:2021rtb];
+            - `BHNS`;
+            - `NSNS`.""")
     ),
     MetadataField(
         group = "inputParam",
@@ -328,8 +331,8 @@ metadata_fields = [
         intended_type = float,
         introduced = 2,
         present_for = FP.BNS | FP.BHNS | FP.MERGER,
-        description = "Mass calculated with rotational energy (i.e. using the"
-        "Christodoulou formula, but with the measured NS spin",
+        description = "Mass calculated with rotational energy (i.e., using the "
+        "Christodoulou formula, but with the measured NS spin).",
     ),
 
     # group referenceParam
@@ -610,11 +613,11 @@ metadata_fields = [
         name  = "internal_minor_version",
         intended_type = int,
         introduced = 2,
-        description = """Incremented when anything changes in this
-local simulation that is not tracked by the fields `metadata_format_revision`,
-`metadata_content_revision`, or `postprocess_revision`. No
-relation to DOI revision numbers. Always starts at 0 for new
-simulations."""
+        description = "Incremented when anything changes in this local "
+        "simulation that is not tracked by the fields "
+        "`metadata_format_revision`, `metadata_content_revision`, or "
+        "`postprocess_revision`. No relation to DOI revision numbers. "
+        "Always starts at 0 for new simulations."
     ),
     MetadataField(
         group = "codeInfo",
@@ -660,41 +663,45 @@ simulations."""
         name  = "t_relaxed_algorithm",
         intended_type = dict,
         introduced = 2,
-        description = """`t_relaxed_algorithm` is a dict. It contains fields:
+        description = dedent("""\
+            `t_relaxed_algorithm` is a dict. It contains fields:
 
-- `algorithm`: either `HHT` or `RMS'.
-- `reason`: present only for `RMS` method; text explaining why HHT method failed and we fell back to RMS.
-- `reference_time_method`: usually absent, but
-  `set_by_hand` for certain simulations (almost head-on)
-   where a reference time was explicitly set by hand and is not
-   correlated with `relaxation_time`."""
+            - `algorithm`: either `HHT` or `RMS`.
+            - `reason`: present only for `RMS` method; text explaining why
+              HHT method failed and we fell back to RMS.
+            - `reference_time_method`: usually absent, but `set_by_hand` for
+              certain simulations (almost head-on) where a reference time
+              was explicitly set by hand and is not correlated with
+              `relaxation_time`.""")
     ),
     MetadataField(
         group = "codeInfo",
         name  = "pbj_info",
         intended_type = dict,
         introduced = 2,
-        description = """This is a dict that contains { `base_lev` : `str`,
-`transition_time` : `float`, `base_lev_bitwise_identical` : `str` }
+        description = dedent("""\
+            This is a dict that contains { `base_lev` : `str`,
+            `transition_time` : `float`, `base_lev_bitwise_identical` :
+            `str` }
 
-- `base_lev` is the Lev that is shared between all PBandJ Levs. It is a string like `Lev3`.
-- `transition_time` is the time at which PBandJ
-  happens. That is, before `transition_time`, all the Levs
-  should be identical. If there is no PBandJ, then
-  `transition_time` is 0.0 and `base_lev` is the same
-  as the Lev that the metadata.json file is in.
-- `base_lev_bitwise_identical` is either the string `true`
-  or the string `false`. If `true`, this means that the current
-  Lev (the one the metadata.json file is in) and its
-  `base_lev` actually are bitwise identical up to (approx)
-  `transition_time`. The `false` case occurs when someone
-  ran an additional Lev at a later time, but `base_lev` had
-  been deleted by the sysadmins, so the user reran
-  `base_lev` and then did PBandJ to start the new lev. But
-  the rerun of `base_lev` is not always bitwise identical
-  to the original `base_lev` because something changed
-  (timing-based stuff in SpEC, compiler version, libraries on
-  the cluster, etc)."""
+            - `base_lev` is the Lev that is shared between all PBandJ Levs.
+              It is a string like `Lev3`.
+            - `transition_time` is the time at which PBandJ happens. That
+              is, before `transition_time`, all the Levs should be
+              identical. If there is no PBandJ, then `transition_time` is
+              0.0 and `base_lev` is the same as the Lev that the
+              metadata.json file is in.
+            - `base_lev_bitwise_identical` is either the string `true` or
+              the string `false`. If `true`, this means that the current Lev
+              (the one the metadata.json file is in) and its `base_lev`
+              actually are bitwise identical up to (approx)
+              `transition_time`. The `false` case occurs when someone ran an
+              additional Lev at a later time, but `base_lev` had been
+              deleted by the sysadmins, so the user reran `base_lev` and
+              then did PBandJ to start the new lev. But the rerun of
+              `base_lev` is not always bitwise identical to the original
+              `base_lev` because something changed (timing-based stuff in
+              SpEC, compiler version, libraries on the cluster, etc).""")
     ),
 
     # group timeStamps
