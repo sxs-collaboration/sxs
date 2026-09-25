@@ -456,7 +456,8 @@ class Horizons(object):
         post-Newtonian theory and similar treatments.
 
         """
-        return TimeSeries(np.cross(self.n̂, self.λ̂), time=self.n̂.time)
+        ℓ⃗ = np.cross(self.n̂, self.λ̂)
+        return TimeSeries(ℓ⃗ / np.linalg.norm(ℓ⃗, axis=1)[:, np.newaxis], time=self.n̂.time)
 
     ellhat = ℓ̂
 

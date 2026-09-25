@@ -70,3 +70,11 @@ def test_horizon_existence():
     nsns = sxs.load("SXS:NSNS:0001", auto_supersede=True)
     with pytest.raises(ValueError, match="Horizons.h5 not found in any form in files"):
         nsns_horizon = nsns.horizons
+
+
+@skip_macOS_GH_actions_downloads
+def test_frame_normalization():
+    """Ensure that n̂, λ̂, and ℓ̂ are all unit vectors (GitHub issue #211)"""
+    horizons = sxs.load("SXS:BBH:0308").horizons
+    for v̂ in [horizons.nhat, horizons.lambdahat, horizons.ellhat]:
+        assert np.allclose(np.linalg.norm(v̂, axis=1), 1.0, rtol=1e-14, atol=1e-14)
