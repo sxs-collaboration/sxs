@@ -58,33 +58,40 @@ def compute_error_summary(wa, wb, t1, t2, modes=None, ASDs_and_total_masses=None
 
     errors["residual L2 norm"] = L2_difference(wa, wb, t1, t2, modes=modes)
 
-    i1 = wa.index_closest_to(t1)
-    i0, i2 = max(0, i1-5), min(i1+6, wa.n_times-1)
-    Ω1 = np.linalg.norm(wa[i0:i2].angular_velocity, axis=1)[5]
-    f1 = 2*Ω1 / (2*np.pi)
-
-    wa = wa.preprocess(t1, t1 + 0.01 * (t2 - t1), t2 - (t2 - t1) * 0.01, t2)
-    wb = wb.preprocess(t1, t1 + 0.01 * (t2 - t1), t2 - (t2 - t1) * 0.01, t2)
-
-    wa_tilde = wa.fourier_transform()
-    wb_tilde = wb.fourier_transform()
-    if ASDs_and_total_masses is not None:
+    if ASDs_and_total_masses:
+        i1 = wa.index_closest_to(t1)
+        i0, i2 = max(0, i1 - 5), min(i1 + 6, wa.n_times)
+        Ω1 = np.linalg.norm(wa[i0:i2].angular_velocity[i1 - i0])
+        f1 = Ω1 / np.pi
+        
+        wa_tilde = wa.preprocess(
+            t1, t1 + 0.01 * (t2 - t1), t2 - 0.01 * (t2 - t1), t2
+        ).fourier_transform()
+        wb_tilde = wb.preprocess(
+            t1, t1 + 0.01 * (t2 - t1), t2 - 0.01 * (t2 - t1), t2
+        ).fourier_transform()
+        
         for ASD_name, (ASD_data, total_masses) in ASDs_and_total_masses.items():
             for total_mass in total_masses:
-                # Note that we only need to make the frequency unitful, since the
-                # magnitude of the strain scales out in the mismatch.
-                # We make things unitful here because the fourier transform
-                # earlier was called outside of the for loop without a total mass
-                # so that it doesn't need to be computed at each iteration.
+                # Overall amplitude scaling cancels in the mismatch.
                 frequency_factor = 1 / (total_mass * m_sun_in_seconds)
-            
+                
                 wa_tilde_total_mass = wa_tilde.copy()
                 wb_tilde_total_mass = wb_tilde.copy()
-                wa_tilde_total_mass.t = wa_tilde_total_mass.t * frequency_factor
-                wb_tilde_total_mass.t = wb_tilde_total_mass.t * frequency_factor
-
+                wa_tilde_total_mass.t = wa_tilde.t * frequency_factor
+                wb_tilde_total_mass.t = wb_tilde.t * frequency_factor
+                
+                def ASD_two_sided(f):
+                    abs_f = np.abs(f)
+                    values = np.full_like(abs_f, np.inf, dtype=float)
+                    keep = abs_f >= f1 * frequency_factor
+                    if np.any(keep):
+                        values[keep] = ASD_data(abs_f[keep])
+                    return values
+                    
                 errors[f"mismatch {ASD_name} {total_mass}"] = mismatch(
-                    wa_tilde_total_mass, wb_tilde_total_mass, f1 * frequency_factor, modes=modes, ASD=ASD_data
+                    wa_tilde_total_mass, wb_tilde_total_mass,
+                    modes=modes, ASD=ASD_two_sided,
                 )
 
     ell_min = max(wa.ell_min, wb.ell_min)
