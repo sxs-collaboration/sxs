@@ -45,7 +45,7 @@ def test_PNWaveform():
 
     assert np.allclose(w1.t[:-10], w2.t[:-10])
     assert np.allclose(w1.data[:-10, :], w2.data[:-10, :], rtol=1e-3, atol=1e-5)
-    assert np.allclose(w1.frame, w2.frame)
+    assert np.allclose(np.asarray(w1.frame), np.asarray(w2.frame))
     assert np.allclose(w1.M1[:-10], w2.M1[:-10])
     assert np.allclose(w1.M2[:-10], w2.M2[:-10])
     assert np.allclose(w1.chi1[:-10, :], w2.chi1[:-10, :], rtol=1e-3)

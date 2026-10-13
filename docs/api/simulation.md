@@ -10,6 +10,8 @@ classes (or the factory) automatically; the `sxs.load` function will
 automatically select the appropriate version of the simulation and
 return the appropriate object.
 
+Functions and class for accessing SXS simulations:
+
 ## `sxs.Simulation` factory function
 ::: sxs.Simulation
 
@@ -24,3 +26,14 @@ return the appropriate object.
 
 ## `Simulation_v3` class
 ::: sxs.simulations.simulation.Simulation_v3
+
+Functions and class for accessing RIT simulations:
+
+## `sxs.RITSimulation` factory function
+::: sxs.RITSimulation
+
+## `RITSimulation_v4` class
+::: sxs.simulations.rit_simulation.RITSimulation_v4
+
+## `RITSimulation_v5` class
+::: sxs.simulations.rit_simulation.RITSimulation_v5

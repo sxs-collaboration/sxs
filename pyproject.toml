@@ -3,7 +3,7 @@ name = "sxs"
 dynamic = ["version"]
 description = "Interface to data produced by the Simulating eXtreme Spacetimes collaboration"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [
@@ -18,12 +18,12 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Astronomy"
 ]
 dependencies = [
-  "sxscatalog >=3.0.14",
+  "sxscatalog >=3.0.30",
   "numpy >=2.0, <3.0",
   "scipy >=1.13",
   "numba >=0.55; implementation_name == 'cpython'",
   "quaternionic >=1.0.15",
-  "spherical >=1.0.15",
+  "spherical >=1.1.0",
   "h5py >=3",
   "inflection >=0.5.1",
   "requests >=2.24.0",

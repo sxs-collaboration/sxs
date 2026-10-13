@@ -18,13 +18,17 @@ from .. import WaveformModes
 
 sxs_formats = ["rotating_paired_diff_multishuffle_bzip2", "rpdmb", "RPDMB"]
 
+# Name of the dataset holding the JSON data when it is stored inside
+# the H5 file itself, rather than in a separate `.json` file
+metadata_json_dataset = "metadata.json"
+
 
 def save(
         w, file_name=None, file_write_mode="w",
         L2norm_fractional_tolerance=1e-10, log_frame=None,
         shuffle_widths=default_shuffle_widths, convert_to_conjugate_pairs=True,
         compression=bz2, diff=diff, formats=None, verbose=True, allow_existing_group=False,
-        version_info_update=None, max_phase_per_timestep=None
+        version_info_update=None, max_phase_per_timestep=None, metadata_in_h5=False
 ):
     """Save a waveform in RPDMB format
 
@@ -45,13 +49,13 @@ def save(
         string contains `'.h5'` but does not *end* with that, the
         remainder of the string is taken to be the group within the
         HDF5 file in which the data should be stored.  Also note that
-        a JSON file is created in the same location, with `.h5`
-        replaced by `.json` (and the corresponding data is stored
-        under the `group` key if relevant).  To retrieve just the
-        return values, or for testing purposes, this argument may be
-        `None`, in which case a temporary directory is used, just to
-        test how large the output will be; it is deleted immediately
-        upon returning.
+        — unless `metadata_in_h5` is `True` — a JSON file is created
+        in the same location, with `.h5` replaced by `.json` (and the
+        corresponding data is stored under the `group` key if
+        relevant).  To retrieve just the return values, or for testing
+        purposes, this argument may be `None`, in which case a
+        temporary directory is used, just to test how large the output
+        will be; it is deleted immediately upon returning.
     file_write_mode : str, optional
         One of the valid [file modes for
         h5py](https://docs.h5py.org/en/stable/high/file.html#opening-creating-files).
@@ -112,6 +116,16 @@ def save(
         noise won't trigger it, but low enough that the integration
         will still proceed reasonably quickly for anything below this
         threshold.
+    metadata_in_h5 : bool, optional
+        If `True`, the JSON data is stored inside the H5 file itself,
+        as a dataset named `"metadata.json"` (inside `group`, if
+        relevant), and no separate `.json` file is written.  Note that
+        the `validation` fields describing the H5 file as a whole
+        (`h5_file_size` and `md5sum`) cannot be included in this case,
+        because they would refer to the file containing them.  Default
+        value is `False`, which writes the accompanying `.json` file
+        as usual.  The `load` function detects either layout
+        automatically.
 
     Returns
     -------
@@ -217,6 +231,42 @@ def save(
         elif verbose:
             print(f'Saving H5 to "{h5_path}"')
 
+        # Set up the corresponding JSON information.  Note that the
+        # `validation` entries describing the H5 file as a whole
+        # (`h5_file_size` and `md5sum`) can only be computed once that
+        # file is complete, so they are filled in below — and only if
+        # the JSON data are stored in a separate file, since they
+        # would otherwise refer to the file containing them.
+        json_data = None
+        if file_name is not None or metadata_in_h5:
+            json_data = {
+                "sxs_format": formats[0],
+                "data_info": {
+                    "data_type": w.data_type,
+                    "m_is_scaled_out": w._metadata.get("m_is_scaled_out", True),
+                    "r_is_scaled_out": w._metadata.get("r_is_scaled_out", True),
+                    "spin_weight": int(w.spin_weight),
+                    "ell_min": int(w.ell_min),
+                    "ell_max": int(w.ell_max),
+                },
+                "version_info": version_info(),  # see below for "spec_version_hist"
+                # see below for "validation"
+                # see below for "modifications"
+            }
+
+            version_hist = getattr(w, "version_hist", w._metadata.get("version_hist", None))
+            if version_hist is not None:
+                json_data["version_info"]["spec_version_hist"] = version_hist
+            if version_info_update is not None:
+                json_data["version_info"].update(version_info_update)
+
+            json_data["validation"] = {
+                "n_times": w.n_times,
+            }
+
+            if "modifications" in w._metadata:
+                json_data["modifications"] = w._metadata["modifications"]
+
         # Write the H5 file
         with h5py.File(h5_path, file_write_mode) as f:
             # If we are writing to a group within the file, create it
@@ -258,48 +308,30 @@ def save(
                         "log_frame", data=log_frame.view(np.uint64), chunks=(w.n_times, 1), **compression_options
                     )
 
+            # Store the JSON data inside this file, rather than alongside it
+            if metadata_in_h5:
+                if verbose:
+                    print(f'Saving JSON to "{metadata_json_dataset}" dataset in the H5 file')
+                g.create_dataset(
+                    metadata_json_dataset,
+                    data=json.dumps(json_data, indent=2, separators=(",", ": "), ensure_ascii=True)
+                )
+
         # Get some numbers for the JSON file
         h5_size = h5_path.stat().st_size
         if file_name is None:
             print(f"Output H5 file size: {h5_size:_} B")
-        md5sum = md5checksum(h5_path)
 
-        if file_name is not None:
-            # Set up the corresponding JSON information
-            json_data = {
-                "sxs_format": formats[0],
-                "data_info": {
-                    "data_type": w.data_type,
-                    "m_is_scaled_out": w._metadata.get("m_is_scaled_out", True),
-                    "r_is_scaled_out": w._metadata.get("r_is_scaled_out", True),
-                    "spin_weight": int(w.spin_weight),
-                    "ell_min": int(w.ell_min),
-                    "ell_max": int(w.ell_max),
-                },
-                "version_info": version_info(),  # see below for "spec_version_hist"
-                # see below for "validation"
-                # see below for "modifications"
-            }
-
-            version_hist = getattr(w, "version_hist", w._metadata.get("version_hist", None))
-            if version_hist is not None:
-                json_data["version_info"]["spec_version_hist"] = version_hist
-            if version_info_update is not None:
-                json_data["version_info"].update(version_info_update)
-
-            if group is not None:
-                json_data["validation"] = {
-                    "n_times": w.n_times,
-                }
-            else:
+        if file_name is not None and not metadata_in_h5:
+            if group is None:
+                md5sum = md5checksum(h5_path)
+                # Note that assigning to this pre-existing key leaves
+                # it in its original position in the dict
                 json_data["validation"] = {
                     "h5_file_size": h5_size,
                     "n_times": w.n_times,
                     "md5sum": md5sum
                 }
-
-            if "modifications" in w._metadata:
-                json_data["modifications"] = w._metadata["modifications"]
 
             # Write the corresponding JSON file
             json_path = h5_path.with_suffix(".json")
@@ -333,18 +365,23 @@ def load(
         Relative or absolute path to the input HDF5 file.  If this
         string contains but does not *end* with `'.h5'`, the remainder
         of the string is taken to be the group within the HDF5 file in
-        which the data is stored.  Also note that a JSON file is
-        expected in the same location, with `.h5` replaced by `.json`
-        (and the corresponding data must be stored under the `group`
-        key if relevant).
+        which the data is stored.  The corresponding JSON data may
+        either be stored inside the H5 file itself, as a dataset named
+        `"metadata.json"` (inside `group`, if relevant), or in a JSON
+        file in the same location, with `.h5` replaced by `.json` (and
+        the corresponding data stored under the `group` key if
+        relevant).  The dataset inside the H5 file takes precedence;
+        the separate file is used if that dataset is not found.
     ignore_validation : bool or None, optional
-        Validation checks the corresponding JSON file for (1)
+        Validation checks the corresponding JSON data for (1)
         existence, (2) number of time steps, (3) H5 file size, and (4)
-        H5 file MD5 checksum (if `check_md5` is `True`).  If this key
-        is `False`, all of this will be ignored; if `True`, a
-        `ValueError` will be raised if any of these checks fails; if
-        `None`, warnings will be issued, but the function will
-        continue as usual.
+        H5 file MD5 checksum (if `check_md5` is `True`).  Note that
+        the last two are only possible when the JSON data are stored
+        in a separate file; they are skipped when the JSON data are
+        found inside the H5 file itself.  If this key is `False`, all
+        of this will be ignored; if `True`, a `ValueError` will be
+        raised if any of these checks fails; if `None`, warnings will
+        be issued, but the function will continue as usual.
     check_md5 : bool, optional
         Default is `True`.  See `ignore_validation` for explanation.
     transform_to_inertial : bool, optional
@@ -394,10 +431,9 @@ def load(
         load the metadata from an accompanying file.
 
     Note that the keyword parameters will be overridden by
-    corresponding entries in the JSON file, if they exist.  If the
-    JSON file does not exist, any keyword parameters not listed above
-    will be passed through as the `json_data` field of the returned
-    waveform.
+    corresponding entries in the JSON data, if they exist.  If no JSON
+    data can be found, any keyword parameters not listed above will be
+    passed through as the `json_data` field of the returned waveform.
 
     """
     if formats is None:
@@ -450,50 +486,74 @@ def load(
     r_is_scaled_out = kwargs.pop("r_is_scaled_out", True)
     spin_weight = kwargs.pop("spin_weight", None)
 
-    if not json_path.exists():
-        invalid(f'\nJSON file "{json_path}" cannot be found, but is expected for this data format.')
-        json_data = kwargs.copy()
-    else:
-        with open(json_path) as f:
-            json_data = json.load(f)
-        if group is not None:
-            json_data = json_data[group]
-
-        data_type = json_data.get("data_info", {}).get("data_type", data_type)
-        m_is_scaled_out = json_data.get("data_info", {}).get("m_is_scaled_out", m_is_scaled_out)
-        r_is_scaled_out = json_data.get("data_info", {}).get("r_is_scaled_out", r_is_scaled_out)
-        spin_weight = json_data.get("data_info", {}).get("spin_weight", spin_weight)
-
-        # Make sure this is our format
-        sxs_format = json_data.get("sxs_format", "")
-        if sxs_format not in formats:
-            invalid(
-                f"\nThe `sxs_format` found in JSON file is '{sxs_format}';\n"
-                f"it should be one of\n"
-                f"    {formats}."
-            )
-
-        if group is None:
-            # Make sure the expected H5 file size matches the observed value
-            json_h5_file_size = json_data.get("validation", {}).get("h5_file_size", 0)
-            if json_h5_file_size != h5_size:
-                invalid(
-                    f"\nMismatch between `validation/h5_file_size` key in JSON file ({json_h5_file_size}) "
-                    f'and observed file size ({h5_size}) of "{h5_path}".'
-                )
-
-            # Make sure the expected H5 file hash matches the observed value
-            if check_md5:
-                md5sum = md5checksum(h5_path)
-                json_md5sum = json_data.get("validation", {}).get("md5sum", "")
-                if json_md5sum != md5sum:
-                    invalid(f"\nMismatch between `validation/md5sum` key in JSON file and observed MD5 checksum.")
-
     with h5py.File(h5_path, "r") as f:
         if group is not None:
             g = f[group]
         else:
             g = f
+
+        # The JSON data may be stored inside the H5 file itself, as a
+        # dataset named "metadata.json", or in a separate JSON file
+        # alongside it.  The former takes precedence.
+        if metadata_json_dataset in g:
+            json_string = g[metadata_json_dataset][()]
+            if isinstance(json_string, bytes):
+                json_string = json_string.decode("utf-8")
+            json_data = json.loads(json_string)
+            json_found = True
+            json_in_h5 = True
+        elif not json_path.exists():
+            invalid(
+                f'\nNo "{metadata_json_dataset}" dataset was found in the H5 file, and JSON file\n'
+                f'"{json_path}" cannot be found; one of the two is expected for this data format.'
+            )
+            json_data = kwargs.copy()
+            json_found = False
+            json_in_h5 = False
+        else:
+            with open(json_path) as json_file:
+                json_data = json.load(json_file)
+            if group is not None:
+                json_data = json_data[group]
+            json_found = True
+            json_in_h5 = False
+
+        if json_found:
+            json_source = "H5 file" if json_in_h5 else "JSON file"
+
+            data_type = json_data.get("data_info", {}).get("data_type", data_type)
+            m_is_scaled_out = json_data.get("data_info", {}).get("m_is_scaled_out", m_is_scaled_out)
+            r_is_scaled_out = json_data.get("data_info", {}).get("r_is_scaled_out", r_is_scaled_out)
+            spin_weight = json_data.get("data_info", {}).get("spin_weight", spin_weight)
+
+            # Make sure this is our format
+            sxs_format = json_data.get("sxs_format", "")
+            if sxs_format not in formats:
+                invalid(
+                    f"\nThe `sxs_format` found in the JSON data in the {json_source} is '{sxs_format}';\n"
+                    f"it should be one of\n"
+                    f"    {formats}."
+                )
+
+            # Note that if the JSON data are stored inside the H5 file
+            # itself, its size and checksum cannot be validated,
+            # because they refer to the file containing them.
+            if group is None and not json_in_h5:
+                # Make sure the expected H5 file size matches the observed value
+                json_h5_file_size = json_data.get("validation", {}).get("h5_file_size", 0)
+                if json_h5_file_size != h5_size:
+                    invalid(
+                        f"\nMismatch between `validation/h5_file_size` key in JSON file ({json_h5_file_size}) "
+                        f'and observed file size ({h5_size}) of "{h5_path}".'
+                    )
+
+                # Make sure the expected H5 file hash matches the observed value
+                if check_md5:
+                    md5sum = md5checksum(h5_path)
+                    json_md5sum = json_data.get("validation", {}).get("md5sum", "")
+                    if json_md5sum != md5sum:
+                        invalid(f"\nMismatch between `validation/md5sum` key in JSON file and observed MD5 checksum.")
+
         # Make sure this is our format
         sxs_format = g.attrs["sxs_format"]
         if sxs_format not in formats:

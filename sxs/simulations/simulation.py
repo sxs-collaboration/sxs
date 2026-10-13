@@ -134,7 +134,7 @@ def Simulation(location, *args, **kwargs):
     from ..metadata.metric import MetadataMetric
 
     # Load the simulation catalog
-    simulations = load("simulations")
+    simulations = load("simulations", tag = kwargs.get("tag", ""))
     v = Version(simulations.tag)
     latest_version = f"v{v.major}.{v.minor}"
 

@@ -168,6 +168,29 @@ def test_sxs_directory_cache_from_config(tmp_path, monkeypatch):
     assert str(sxs_dir) == str(tmp_path / "newcache")
 
 
+@pytest.mark.parametrize(
+    ("sxs_path", "windows_path"),
+    (
+        # SXS-style paths
+        (r"SXS:BBH:0001v2.0/Lev5/Strain_N2.h5", r"SXS_BBH_0001v2.0/Lev5/Strain_N2.h5"),
+        (r"SXS:BBH:0123/Lev4:Horizons.h5", r"SXS_BBH_0123/Lev4_Horizons.h5"),
+        # RIT-style paths
+        (r"RIT:BBH:0084", r"RIT_BBH_0084"),
+        (r"RIT:eBBH:1234/strain.h5", r"RIT_eBBH_1234/strain.h5"),
+    ),
+)
+def test_sxs_path_to_system_path(sxs_path, windows_path, monkeypatch):
+    import sxs.utilities.sxs_directories as sxs_directories
+
+    # On non-Windows systems, the path is returned unchanged
+    monkeypatch.setattr(sxs_directories, "_platform_system", "Darwin")
+    assert sxs_directories.sxs_path_to_system_path(sxs_path) == sxs_path
+
+    # On Windows, colons within SXS/RIT IDs are replaced with underscores
+    monkeypatch.setattr(sxs_directories, "_platform_system", "Windows")
+    assert sxs_directories.sxs_path_to_system_path(sxs_path) == windows_path
+
+
 def test_select_by_path_component():
     from sxs.utilities import select_by_path_component
 

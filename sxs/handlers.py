@@ -207,12 +207,21 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
       2) Given an absolute or relative path to a local file, it just
          loads the data directly.
 
-      3) If `location` is one of "simulations" or "dataframe" (or the
+      3.a) If `location` is one of "simulations" or "dataframe" (or the
          deprecated "catalog"), the corresponding catalog data is
          loaded.  The "simulations" option returns a dictionary mapping
          SXS IDs to raw metadata, while "dataframe" returns a pandas
          DataFrame indexed by SXS ID, but the metadata is processed
          into more consistent form.
+
+      3.b) If `location` is one of "RITsimulations" or "RITdataframe" or
+         "MAYAsimulations" or "MAYAdataframe", the corresponding catalog data is
+         loaded. See `sxscatalog.simulations.rit_maya_simulations` for more
+         details on the class used to load these catalogs.
+
+         See the documentation for `sxscatalog.load()` for additional kwargs,
+         which can be passed alongside a location value of "simulations",
+         "dataframe", "RITsimulations", "MAYAsimulations", or "MAYAdataframe".
 
       4) If `location` is a valid URL including the scheme (https://,
          or http://), it will be downloaded regardless of the
@@ -222,6 +231,8 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
          "SXS:BBH:1234v2.0", "SXS:BBH:1234/Lev5", or
          "SXS:BBH:1234v2.0/Lev5" — the simulation is loaded as an
          `sxs.Simulation` object.
+         See the docs for `sxs.Simulation` for additional kwargs that can be
+         passed to this function.
 
       6) Given an SXS path — like
          "SXS:BBH:1234/Lev5/h_Extrapolated_N2.h5" — the file is
@@ -234,6 +245,12 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
          the data.  Note that `download` must be explicitly set in
          this case, or a ValueError will be raised.
 
+      8) Given an RIT simulation specification — like "RIT:BBH:1234" or
+         "RIT:eBBH:1234" — the simulation is loaded as an
+         `sxs.RITSimulation` object.
+         See the docs for `sxs.RITSimulation` for additional kwargs that can be
+         passed to this function.
+
     If the file is downloaded, it will be stored in the cache
     according to the `location`, unless `truepath` is set as noted
     above, in which case it is stored there.  Note that downloading is
@@ -243,7 +260,10 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
     """
     import pathlib
     import urllib.request
-    from . import Simulations, Simulation, read_config, sxs_directory, Catalog
+    from . import (
+        Simulations, Simulation, RITSimulation,
+        read_config, sxs_directory, Catalog
+    )
     from .utilities import url, download_file, sxs_path_to_system_path, sxs_id_version_lev_exact_re, lev_path_re, sxs_identifier_re
 
     # Note: `download` and/or `cache` may still be `None` after this
@@ -253,6 +273,19 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
         cache = read_config("cache")
     if progress is None:
         progress = read_config("download_progress", True)
+
+    # Check for reserved keywords *first*, and return the
+    # corresponding object immediately.  These are pure string
+    # dispatches that consult neither a local path nor `truepath`, so
+    # they must take precedence; otherwise a file or directory in the
+    # current working directory that happens to share one of these
+    # names (e.g., "simulations") would shadow the keyword and fail to
+    # load.
+    if location == "catalog":
+        return Catalog.load(download=download)
+
+    if location in ["simulations", "dataframe", "RITsimulations", "RITdataframe", "MAYAsimulations", "MAYAdataframe"]:
+        return sxscatalog.load(location, download=download, **kwargs)
 
     # We set the cache path to be persistent if `cache` is `True` or `None`.  Thus,
     # we test for whether or not `cache` literally *is* `False`, rather than just
@@ -273,12 +306,6 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
         elif _safe_resolve_exists(path):
             pass  # We already have the correct path
 
-        elif location == "catalog":
-            return Catalog.load(download=download)
-
-        elif location in ["simulations", "dataframe"]:
-            return sxscatalog.load(location, download=download, **kwargs)
-
         elif _safe_resolve_exists(h5_path):
             path = h5_path
 
@@ -296,6 +323,9 @@ def load(location, download=None, cache=None, progress=None, truepath=None, **kw
 
         elif sxs_id_version_lev_exact_re.match(location):
             return Simulation(location, download=download, cache=cache, progress=progress, **kwargs)
+
+        elif location.startswith("RIT:"):
+            return RITSimulation(location, download=download, cache=cache, progress=progress, **kwargs)
 
         else:
             # Try to find an appropriate SXS file in the simulations

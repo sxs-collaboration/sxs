@@ -75,7 +75,7 @@ def PNWaveform(
         data_type = "h"
     elif modes_function is Ψ_M_bang:
         spin_weight = 0
-        data_type = "unknown"
+        data_type = "psim"
     else:
         raise ValueError("spin_weight and data_type can not be inferred for unknown modes_function. modes_function should be h_bang or Ψ_M_bang.")
 
@@ -88,7 +88,7 @@ def PNWaveform(
             raise ValueError("ell_min can not be inferred for unknown modes_function.")
 
     if inertial:
-        frame = np.array([quaternionic.one])
+        frame = quaternionic.array([quaternionic.one])
         frame_type = "inertial"
         w_pn = PostNewtonian.inertial_waveform(
             inspiral, modes_function=modes_function, ell_min=ell_min,
