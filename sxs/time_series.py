@@ -1023,3 +1023,123 @@ class TimeSeries(np.ndarray):
         data -= line
         data = np.moveaxis(data, -1, self.time_axis)
         return type(self)(data, **self._metadata.copy())
+
+    def preprocess(self, t1=0, t2=500, t3=None, t4=None, dt=None, **kwargs):
+        """Preprocess the data to prepare for FFT
+        This function is copied from WaveformModes, but functions on a
+        single TimeSeries (either a single mode or a polarization)
+        This function is a convenience function that applies a series
+        of common preprocessing steps to the data before Fourier
+        transforming it.  The steps are:
+        
+            1. `interpolate`
+            2. `taper`
+            3. `transition_to_constant`
+            4. `pad`
+            5. `line_subtraction`
+
+        Parameters
+        ----------
+        t1 : float, optional
+            Time before which the data will be zeroed, after which the
+            taper will begin.  Default is 0 (not the first time step,
+            but t=0).
+        t2 : float, optional
+            Time at which the tapering will end.  Default is 500.
+        t3 : float, optional
+            Time at which the transition to a constant value will
+            begin.  Default is max_norm_time+100.
+        t4 : float, optional
+            Time after which the data will be constant.  Default is
+            max_norm_time+200.
+        dt : float, optional
+            Time step for the new time array.  Default is the smallest
+            time step in the input data.
+
+        Keyword Parameters
+        ------------------
+        pad_length : tuple, optional
+            Length of padding to apply to the data.  Default option
+            will triple the length of the data.  (See `pad` for more
+            information.)
+        pad_mode : str, optional
+            Mode of padding.  Default value is `"edge"`.  (See `pad`
+            for more information.)
+        treat_as_zero : str, optional
+            How to treat the data at the boundaries.  Default value is
+            `"begin"`.  (See `line_subtraction` for more information.)
+        
+        All other keyword arguments are passed to `numpy.pad`.
+
+        Returns
+        -------
+        TimeSeries
+            New object with preprocessed data.
+
+        """
+        # Process arguments
+        t3 = t3 or self.t[np.argmax(abs(np.array(self.data)))] + 100
+        t4 = t4 or self.t[np.argmax(abs(np.array(self.data)))] + 200
+        dt = dt or np.min(np.diff(self.time))
+        pad_length = kwargs.pop("pad_length", None)
+        pad_mode = kwargs.pop("pad_mode", "edge")
+        treat_as_zero = kwargs.pop("treat_as_zero", "begin")
+
+        result = self.interpolate(np.arange(self.time[0], self.time[-1], dt))
+        result = result.taper(t1, t2)
+        result = result.transition_to_constant(t3, t4)
+        result = result.pad(pad_length, mode=pad_mode, **kwargs)
+        result = result.line_subtraction(treat_as_zero=treat_as_zero)
+        return result
+    def fourier_transform(self, total_mass=None, luminosity_distance=None):
+        """Fourier transform a TimeSeries.
+        This Fourier transforms the TimeSeries and replaces the
+        time attribute with the frequencies.
+
+        Parameters
+        ----------
+        total_mass : float, optional
+            Total mass in solar masses.
+            Default is no scaling is applied.
+        luminosity_distance : float, optional
+            Luminosity distance in Mpc.
+
+        Returns
+        -------
+        h_tilde : TimeSeries
+            Unitful Fourier transform.
+        """
+        from . import m_sun_in_meters, m_sun_in_seconds, parsec_in_meters
+        from scipy import fft
+        dt = np.diff(self.t)
+        max_dt = np.max(dt)
+        min_dt = np.min(dt)
+        if max_dt - min_dt > (self.t[-1] - self.t[0]) * 10 * np.finfo(self.t.dtype).eps:
+            raise ValueError("Time array must be uniform! Maybe run .preprocess first.")
+        
+        h_factor = 1
+        t_factor = 1
+        if total_mass is not None:
+            h_factor = total_mass * m_sun_in_meters
+            t_factor = total_mass * m_sun_in_seconds
+            
+        if luminosity_distance is not None:
+            h_factor /= (luminosity_distance * 1e6 * parsec_in_meters)
+        h_unitful = self
+        if total_mass is not None and luminosity_distance is not None:
+                h_unitful *= h_factor.value
+                h_unitful.t *= t_factor.value
+
+        N = h_unitful.t.size
+        max_dt = max(np.diff(h_unitful.t))
+
+        h_tilde = TimeSeries(
+                fft.fftshift(
+                    max_dt * fft.fft(h_unitful.data, axis=self.time_axis), axes=self.time_axis
+                ),
+                fft.fftshift(fft.fftfreq(N, max_dt)),
+            )
+            
+        h_tilde = h_tilde[h_tilde.t.size//2:]
+
+        return h_tilde
