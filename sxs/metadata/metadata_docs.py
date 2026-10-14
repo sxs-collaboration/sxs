@@ -703,6 +703,25 @@ metadata_fields = [
               `base_lev` because something changed (timing-based stuff in
               SpEC, compiler version, libraries on the cluster, etc).""")
     ),
+    MetadataField(
+        group = "codeInfo",
+        name  = "time_info",
+        intended_type = dict,
+        introduced = 3,
+        description = dedent("""\
+            This is a dict that contains { `wallclock_hours` : `float`,
+            `core_hours_used` : `float`, `node_hours_allocated` :
+            `float`, `core_hours_allocated`: `float`, `source` : `str` }.
+            Missing information is denoted with an empty string.
+
+            - `wallclock_hours` : Integrated wallclock time (hours).
+            - `core_hours_used` : Integrated core-hours.
+            - `node_hours_allocated` : Integrated allocated node-hours.
+            - `core_hours_allocated` : Integrated allocated core-hours.
+            - `source` : The source of the timing information. Possible values
+              include 'TimeInfo.dat', 'TimeInfo.dat (incomplete), SpEC.out',
+              'SpEC.out', and 'Failed to estimate from SpEC.out'.""")
+    ),
 
     # group timeStamps
     MetadataField(
