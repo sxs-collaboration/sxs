@@ -66,6 +66,8 @@ Documentation = "https://sxs.readthedocs.io/"
 
 [project.entry-points."mkdocs.plugins"]
 admonitions_translation = "mkdocs_preprocess:AdmonitionTranslationPlugin"
+[project.entry-points."gwtemplate_models"]
+sxs = "sxs.plugins.gwtemplate_plugin:SXS"
 
 
 [build-system]
