@@ -14,6 +14,9 @@ plugins:
             show_source: true
   - admonitions_translation
 
+hooks:
+  - mkdocs_metadata_fields.py
+
 nav:
   - Home: "index.md"
   - Tutorials:
@@ -28,6 +31,7 @@ nav:
     - "Simulations": "api/simulations.md"
     - "Simulation": "api/simulation.md"
     - "Metadata": "api/metadata.md"
+    - "Metadata fields": "api/metadata_fields.md"
     - "Time Series": "api/time_series.md"
     - "Horizons": "api/horizons.md"
     - "Waveforms": "api/waveforms.md"
@@ -63,6 +67,7 @@ extra_css:
 
 extra_javascript:
   - javascript/mathjax.js
+  - javascript/open_details.js
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js
 
 markdown_extensions:
