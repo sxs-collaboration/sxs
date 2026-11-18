@@ -9,3 +9,34 @@
     --md-typeset-a-color: var(--md-primary-fg-color);
     --md-hue: 18;
 }
+
+/* Auto-generated metadata-field tables (see mkdocs_metadata_fields.py).
+   Material only styles tables without a class, so we style these ourselves. */
+.md-typeset table.metadata-fields {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .64rem;
+    border: .05rem solid var(--md-typeset-table-color);
+}
+.md-typeset table.metadata-fields th,
+.md-typeset table.metadata-fields td {
+    padding: .9375em 1.25em;
+    vertical-align: top;
+    text-align: left;
+    border-top: .05rem solid var(--md-typeset-table-color);
+}
+.md-typeset table.metadata-fields th { font-weight: 700; }
+.md-typeset table.metadata-fields td.field { width: 30%; }
+.md-typeset table.metadata-fields td.field .field-name { font-weight: 700; }
+.md-typeset table.metadata-fields .field-meta {
+    margin-top: .5em;
+    font-size: .9em;
+    color: var(--md-default-fg-color--light);
+}
+.md-typeset table.metadata-fields .field-meta > span { display: block; }
+.md-typeset table.metadata-fields td p:first-child { margin-top: 0; }
+.md-typeset table.metadata-fields td p:last-child { margin-bottom: 0; }
+.md-typeset table.metadata-fields tr:target { background-color: var(--md-accent-fg-color--transparent); }
+.md-typeset .citation { white-space: nowrap; }
+.md-typeset ol.references li:target { background-color: var(--md-accent-fg-color--transparent); }
