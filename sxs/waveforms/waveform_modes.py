@@ -1541,9 +1541,9 @@ class WaveformModes(WaveformMixin, TimeSeries):
             
         if theta_phi is not None:
             h_unitful = self.evaluate(*theta_phi)
-            if total_mass is not None and luminosity_distance is not None:
-                h_unitful *= h_factor
-                h_unitful.t *= t_factor
+            h_unitful *= h_factor
+            h_unitful.t *= t_factor
+            
         else:                
             h_unitful = WaveformModes(
                 input_array=self.data * h_factor,
@@ -1577,8 +1577,13 @@ class WaveformModes(WaveformMixin, TimeSeries):
                 ell_max=self.ell_max,
                 spin_weight=self.spin_weight,
             )
-            
-        h_tilde = h_tilde[h_tilde.t.size//2:]
+
+        # Define the Fourier time origin as the first sample
+        phase_shape = [1] * h_tilde.ndim
+        phase_shape[h_tilde.time_axis] = -1
+        h_tilde.ndarray[...] *= np.exp(
+            -2j * np.pi * h_tilde.t * h_unitful.t[0]
+        ).reshape(phase_shape)
 
         return h_tilde
 
